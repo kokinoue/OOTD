@@ -1216,4 +1216,17 @@ a {
   .modal-body {
     padding: 16px 16px 14px;
   }
+
+  /* タイムラプスの操作列が窮屈にならないよう調整 */
+  .tl-counter {
+    white-space: nowrap;
+  }
+
+  .tl-total {
+    display: none; /* 「（全N秒）」は狭幅では省略 */
+  }
+
+  .tl-hud-bottom {
+    padding: 10px 14px 14px;
+  }
 }
