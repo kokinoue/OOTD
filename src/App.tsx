@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import FitsView from './components/FitsView'
 import ItemsView from './components/ItemsView'
 import WeatherView from './components/WeatherView'
 import { useOverrides } from './lib/store'
 import { useSplits } from './lib/splitsStore'
+import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
 export type View = 'fits' | 'items' | 'weather'
@@ -32,12 +32,13 @@ export default function App() {
   const ov = useOverrides()
   const { splits, assign, createSub, saveState } = useSplits()
   const data = useData(ov, splits)
-  const [view, setView] = useState<View>('fits')
-  const [filters, setFilters] = useState<Filters>(defaultFilters)
+  const [{ view, filters }, navigate] = useHashRoute()
+
+  const setView = (v: View) => navigate({ view: v, filters })
+  const setFilters = (f: Filters) => navigate({ view: 'fits', filters: f })
 
   const showFitsForItem = (itemId: string) => {
-    setFilters({ ...defaultFilters, itemId })
-    setView('fits')
+    navigate({ view: 'fits', filters: { ...defaultFilters, itemId } })
     window.scrollTo({ top: 0 })
   }
 
@@ -49,8 +50,7 @@ export default function App() {
         <button
           className="brand"
           onClick={() => {
-            setView('fits')
-            setFilters(defaultFilters)
+            navigate({ view: 'fits', filters: defaultFilters })
             window.scrollTo({ top: 0 })
           }}
         >
