@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
-import { fmtDate, thumb } from '../lib/useData'
+import { baseItems, fmtDate, thumb } from '../lib/useData'
+import { useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
 import type { Outfit, SplitsFile } from '../types'
+
+const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
 
 type Props = {
   outfit: Outfit
@@ -182,11 +185,20 @@ function AssignDialog({
     if (dialog && !dialog.open) dialog.showModal()
   }, [])
 
+  const ov = useOverrides()
   const subs = splits.items[baseId]?.subs ?? []
   const currentSubKey =
     subs.find((s) => s.outfits.includes(outfit.key))?.key ?? null
-  const baseLabel = baseId.split('|')[1] ?? baseId
-  const category = baseId.split('|')[0] ?? ''
+  const baseInfo = baseItemMap.get(baseId)
+  // 表示名は overrides の rename → items.json の表示ラベル → 生ID の順で解決
+  const baseLabel = ov.renames[baseId] ?? baseInfo?.label ?? baseId.split('|')[1] ?? baseId
+  const category = ov.categories[baseId] ?? baseInfo?.category ?? baseId.split('|')[0] ?? ''
+  // 個体ラベルは itemMap（rename 反映済み）から。未renameなら "ベース · サブ" の接頭辞を外して簡潔に
+  const subPrefix = baseInfo ? `${baseInfo.label} · ` : ''
+  const subLabelOf = (subKey: string, fallback: string) => {
+    const resolved = data.itemMap.get(`${baseId}#${subKey}`)?.label ?? fallback
+    return subPrefix && resolved.startsWith(subPrefix) ? resolved.slice(subPrefix.length) : resolved
+  }
 
   const choose = (subKey: string | null) => {
     onAssign(baseId, outfit.key, subKey)
@@ -236,7 +248,7 @@ function AssignDialog({
                   onClick={() => choose(sub.key)}
                 >
                   <span className="assign-radio">{sub.key === currentSubKey ? '●' : '○'}</span>
-                  <span className="assign-label jp">{sub.label}</span>
+                  <span className="assign-label jp">{subLabelOf(sub.key, sub.label)}</span>
                   <span className="item-meta mono dim">{count}回</span>
                 </button>
               </li>
