@@ -29,6 +29,8 @@ pnpm scrape     # note記事＋気温を取得し src/data/*.json を再生成
 
 新着分だけ取りにいく（`.cache/` にキャッシュ）。気温だけなら `pnpm weather`。
 
+**自動更新**: [毎日 18:00 JST に GitHub Actions](.github/workflows/scrape.yml) が scrape → 新着があれば自動でコミット＆公開更新する（手動実行も可）。
+
 ## 公開（GitHub Pages）
 
 main へ push すると [GitHub Actions](.github/workflows/deploy.yml) が build → デプロイする。
