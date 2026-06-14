@@ -7,37 +7,54 @@
           "key": "indigo-flare",
           "label": "紺フレアデニム",
           "outfits": [
+            "nc469abcc1055",
             "n87be482c43e6",
             "n0014a73f4152",
             "n61fa0c77b2e1",
             "nf86511e5f510",
             "na877ed3f93db",
             "ne73e9d781b49",
+            "n09a7eaf23c97",
             "n2c93fc842e8f",
             "n12108813178a",
+            "n997f0719e9da",
             "nd1a273ceb9f2",
             "n4b2ca74a41e0",
             "n85a90eb25d78",
             "n2b2ce23c7c97",
             "n910f33a98aa2",
+            "n3cb2cb06c80f",
             "n34531e211b80",
+            "n119062ba99ba",
             "need28f380cec",
+            "n8423e64af62c",
+            "n5c470b48e3a7",
             "n0c0a4fc5d4c7",
             "ndf726916aae7",
             "nd2e52b6c2414",
             "n7bcffa270621",
+            "n9ca6645bca38",
             "n5550ca9ceac3",
             "n47179311cfc0",
+            "ne7d396af8aa9",
+            "n6da6850b834c",
             "n67831e9a7e1c",
+            "n4a3debe25086",
+            "n76e3690d5ccf",
+            "n7cbd005b8433",
             "nad60589fe572",
+            "n796a42b9439b",
+            "nf947082a4e3d",
+            "n607f2e014f4f",
             "n19764812c602",
             "nbcc8108960f4",
             "n38953b86dc11",
             "n8f376328e22e",
+            "n43084b50a53d",
             "ncd62a04f11d8",
             "nb4a79e4f0938",
-            "n8eddd6cd932f",
-            "n164b588d495a"
+            "n084665f4a074",
+            "n8eddd6cd932f"
           ]
         },
         {
@@ -47,9 +64,7 @@
             "n35cf6cbdc0d1",
             "n9807f036e5df",
             "nadd8956d05d8",
-            "n759c6e2333be",
-            "n7450cdc33885",
-            "n3cb2cb06c80f"
+            "n759c6e2333be"
           ]
         },
         {
@@ -70,11 +85,7 @@
           "label": "白・ライト系",
           "outfits": [
             "n93f2ef44bf84",
-            "n119062ba99ba",
-            "n5c470b48e3a7",
-            "ne7d396af8aa9",
-            "n4a3debe25086",
-            "n7cbd005b8433",
+            "n7450cdc33885",
             "n94560f75e423"
           ]
         },
@@ -82,18 +93,7 @@
           "key": "blue-denim",
           "label": "ブルーデニム（中色）",
           "outfits": [
-            "nc469abcc1055",
-            "n997f0719e9da",
-            "n09a7eaf23c97",
-            "n8423e64af62c",
-            "n9ca6645bca38",
-            "n6da6850b834c",
-            "n76e3690d5ccf",
-            "n796a42b9439b",
-            "nf947082a4e3d",
-            "n607f2e014f4f",
-            "n43084b50a53d",
-            "n084665f4a074"
+            "n164b588d495a"
           ]
         }
       ]
