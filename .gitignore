@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.cache/
+*.local
+.DS_Store
+exports/
+.claude/
+.playwright-mcp/
