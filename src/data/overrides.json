@@ -1,8 +1,14 @@
 {
   "renames": {
-    "pants|maisonmartinmargiela#indigo-flare": "Maison Martin Margiela · 03ssデニム"
+    "pants|maisonmartinmargiela#indigo-flare": "Maison Martin Margiela · 03ss · デニム",
+    "pants|maisonmartinmargiela#grey-wide": "Maison Martin Margiela · 00ss · アーティザナル",
+    "pants|maisonmartinmargiela#light": "Maison Martin Margiela · 03aw · デニム",
+    "pants|maisonmartinmargiela#blue-denim": "Maison Martin Margiela · 04ss · アーティザナル",
+    "pants|used#black-dark": "used · 黒・スラックス"
   },
   "categories": {},
-  "merges": {},
+  "merges": {
+    "pants|maisonmartinmargiela#grey-slacks": "pants|maisonmartinmargiela#grey-wide"
+  },
   "hidden": []
 }
