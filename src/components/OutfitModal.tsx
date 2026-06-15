@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { baseItems, fmtDate, thumb } from '../lib/useData'
-import { useOverrides } from '../lib/store'
+import { overrideActions, resolveId, useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
 import { effectiveHair, HAIR_FIELDS } from '../lib/hair'
 import type { HairFile, HairTag, Outfit, SplitsFile } from '../types'
@@ -293,15 +293,17 @@ function AssignDialog({
   // この着用が別アイテムへ付け替え済みなら、その付け替え先ID
   const currentMove = splits.moves?.[baseId]?.[outfit.key] ?? null
   const movedItem = currentMove ? data.itemMap.get(currentMove) : null
+  // この着用が今表示されているアイテム（＝すでにそこにある所属先）。これだけ候補から除く
+  const currentDisplayId = data.resolveItemId(baseId, outfit.key)
 
-  // 「別のアイテムへ移す」候補: 自分自身（同ベース＋その個体）を除いた全アイテム
+  // 「別のアイテムへ移す」候補: いま表示中のアイテム以外すべて（同ベースの別個体も含む）
   const moveTargets = useMemo(() => {
     const qn = norm(moveQ.trim())
     return data.items
-      .filter((it) => it.id !== baseId && !it.id.startsWith(`${baseId}#`))
+      .filter((it) => it.id !== currentDisplayId)
       .filter((it) => !qn || norm(it.label).includes(qn) || norm(it.category).includes(qn))
       .slice(0, 30)
-  }, [data.items, moveQ, baseId])
+  }, [data.items, moveQ, currentDisplayId])
   const baseInfo = baseItemMap.get(baseId)
   // 表示名は overrides の rename → items.json の表示ラベル → 生ID の順で解決
   const baseLabel = ov.renames[baseId] ?? baseInfo?.label ?? baseId.split('|')[1] ?? baseId
@@ -312,6 +314,16 @@ function AssignDialog({
     const resolved = data.itemMap.get(`${baseId}#${subKey}`)?.label ?? fallback
     return subPrefix && resolved.startsWith(subPrefix) ? resolved.slice(subPrefix.length) : resolved
   }
+
+  // この個体（または未分類のベース）が別アイテムへ「統合」されているか。
+  // 統合は個体まるごとの付け替えなので、ここで気づけて解除できるようにする
+  const naturalId = currentSubKey ? `${baseId}#${currentSubKey}` : baseId
+  const mergedToId = !currentMove && ov.merges[naturalId] ? resolveId(naturalId, ov.merges) : null
+  const mergedToItem = mergedToId ? data.itemMap.get(mergedToId) : null
+  // 統合先に吸収されると itemMap から消えるので、rename → splits のラベル順で個体名を解決
+  const naturalLabel = currentSubKey
+    ? ov.renames[naturalId] ?? subs.find((s) => s.key === currentSubKey)?.label ?? currentSubKey
+    : baseLabel
 
   const choose = (subKey: string | null) => {
     onAssign(baseId, outfit.key, subKey)
@@ -325,12 +337,24 @@ function AssignDialog({
   }
 
   // この日の着用だけを別アイテムへ付け替える（解除すれば元の判定に戻る）
+  // 付け替え先が同じベースの個体なら、moves ではなく個体割り当て(onAssign)で表現する
   const moveTo = (targetId: string) => {
-    onMoveOutfit(baseId, outfit.key, targetId)
+    if (targetId === baseId) {
+      onAssign(baseId, outfit.key, null) // 同ベースの「未分類」へ
+    } else if (targetId.startsWith(`${baseId}#`)) {
+      onAssign(baseId, outfit.key, targetId.slice(baseId.length + 1))
+    } else {
+      onMoveOutfit(baseId, outfit.key, targetId)
+    }
     onClose()
   }
   const clearMove = () => {
     onMoveOutfit(baseId, outfit.key, null)
+    onClose()
+  }
+  // この個体の「統合」を解除する（元のアイテムに戻る）
+  const unmergeNatural = () => {
+    overrideActions.unmerge(naturalId)
     onClose()
   }
 
@@ -395,6 +419,18 @@ function AssignDialog({
             </button>
           </li>
         </ul>
+
+        {mergedToId && (
+          <div className="assign-moved jp">
+            <span>
+              この個体（{naturalLabel}）は{' '}
+              <strong>{mergedToItem?.label ?? mergedToId}</strong> に統合されています
+            </span>
+            <button className="link" onClick={unmergeNatural}>
+              統合を解除
+            </button>
+          </div>
+        )}
 
         {currentMove && (
           <div className="assign-moved jp">

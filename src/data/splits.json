@@ -524,7 +524,6 @@
           "key": "black-dark",
           "label": "黒・ダーク系",
           "outfits": [
-            "n24f1e0463946",
             "n1ce53d2b6079",
             "nb96e92ef9449",
             "n8109bf6427d9",
@@ -539,28 +538,25 @@
             "ne6c2d0de128b",
             "n6ec8b8687a71",
             "n45c5ad0798b3",
-            "nd1c64ab15c8d",
             "n3786bec6a076",
             "n461b7aa24def",
             "n6e54879d790c",
             "nc028e1a14860",
-            "ndd1acc8a9fa0",
             "nfadb991c2584",
-            "nef6e6c3fb352",
             "nae1149a4fbf2",
             "ncd16912ec0b3",
             "n05fd10a820b1",
             "n532416ec0f3b",
             "n2dd49be74ae0",
             "n10326a67bd29",
-            "n9494db4e9d88",
             "n155d502bd572",
             "ncd6d2ed4ad9b",
             "n043fe19be86e",
             "n59c5ba936a96",
             "ndbc72f1d6044",
             "ne6438b6a4624",
-            "n387a551ae38e"
+            "n387a551ae38e",
+            "n24f1e0463946"
           ]
         },
         {
@@ -581,7 +577,10 @@
             "nea990c1cf5f8",
             "n6fc328e2e9ce",
             "neda979962558",
-            "n0d4324f97d3f"
+            "n0d4324f97d3f",
+            "nd1c64ab15c8d",
+            "ndd1acc8a9fa0",
+            "nef6e6c3fb352"
           ]
         },
         {
@@ -596,6 +595,13 @@
           "label": "オリーブ",
           "outfits": [
             "n9adadd89df14"
+          ]
+        },
+        {
+          "key": "u-used-青",
+          "label": "used • 青",
+          "outfits": [
+            "n9494db4e9d88"
           ]
         }
       ]
@@ -1820,6 +1826,20 @@
           ]
         }
       ]
+    },
+    "pants|60s": {
+      "subs": [
+        {
+          "key": "u-60-s-us-ランチパンツ",
+          "label": "60's • us • ランチパンツ",
+          "outfits": [
+            "nb25575bf9ae6",
+            "n56bbe9fbef19",
+            "n7fe11fb4f007",
+            "nf7f08734f6ea"
+          ]
+        }
+      ]
     }
   },
   "noSplit": [
@@ -1849,5 +1869,21 @@
     "jacket|levis506xx",
     "shirt|brooksbrothers",
     "shoes|marsell"
-  ]
+  ],
+  "moves": {
+    "pants|used": {
+      "nb96e92ef9449": "pants|60s",
+      "n58379275eeec": "pants|60s",
+      "n7e4fe9b0b626": "pants|60s",
+      "ne6c2d0de128b": "pants|60s",
+      "n6ec8b8687a71": "pants|60s",
+      "ncd16912ec0b3": "pants|60s",
+      "n05fd10a820b1": "pants|60s",
+      "n10326a67bd29": "pants|60s",
+      "n155d502bd572": "pants|60s",
+      "ncd6d2ed4ad9b": "pants|60s",
+      "n043fe19be86e": "pants|60s",
+      "ne6438b6a4624": "pants|60s"
+    }
+  }
 }
