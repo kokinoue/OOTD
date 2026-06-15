@@ -1,12 +1,13 @@
 import FitsView from './components/FitsView'
 import ItemsView from './components/ItemsView'
+import RankingView from './components/RankingView'
 import WeatherView from './components/WeatherView'
 import { useOverrides } from './lib/store'
 import { useSplits } from './lib/splitsStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
-export type View = 'fits' | 'items' | 'weather'
+export type View = 'fits' | 'items' | 'ranking' | 'weather'
 
 export type Filters = {
   from: string
@@ -71,6 +72,12 @@ export default function App() {
             ITEMS <span className="tab-count mono">{visibleItemCount}</span>
           </button>
           <button
+            className={view === 'ranking' ? 'tab active' : 'tab'}
+            onClick={() => setView('ranking')}
+          >
+            スキ順
+          </button>
+          <button
             className={view === 'weather' ? 'tab active' : 'tab'}
             onClick={() => setView('weather')}
           >
@@ -91,6 +98,16 @@ export default function App() {
         />
       )}
       {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
+      {view === 'ranking' && (
+        <RankingView
+          data={data}
+          splits={splits}
+          onAssign={assign}
+          onCreateSub={createSub}
+          onMoveOutfit={moveOutfit}
+          onItemClick={showFitsForItem}
+        />
+      )}
       {view === 'weather' && <WeatherView />}
 
       {saveState === 'error' && (
