@@ -100,6 +100,8 @@ a {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -115,6 +117,7 @@ a {
   font-weight: 600;
   letter-spacing: 0.22em;
   color: var(--text-sub);
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 
@@ -1481,11 +1484,28 @@ a {
 
   .header {
     flex-wrap: wrap;
+    gap: 10px;
     padding-top: 14px;
   }
 
   .brand-mark {
     font-size: 17px;
+  }
+
+  /* タブは2行目に落として全幅で折り返す（5タブが1行に収まらないため） */
+  .tabs {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .tab {
+    padding: 7px 13px;
+    letter-spacing: 0.1em;
+  }
+
+  .tab-count {
+    font-size: 10px;
   }
 
   .grid {
