@@ -10,6 +10,8 @@
     "scrape": "node scripts/scrape.mjs && node scripts/fetch-weather.mjs && node scripts/extract-colors.mjs",
     "weather": "node scripts/fetch-weather.mjs",
     "colors": "node scripts/extract-colors.mjs",
+    "hair:sheets": "node scripts/hair-sheets.mjs",
+    "hair:apply": "node scripts/apply-hair.mjs",
     "timelapse": "node scripts/timelapse.mjs"
   },
   "dependencies": {

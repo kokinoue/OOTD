@@ -4,6 +4,7 @@ import RankingView from './components/RankingView'
 import WeatherView from './components/WeatherView'
 import { useOverrides } from './lib/store'
 import { useSplits } from './lib/splitsStore'
+import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
@@ -15,6 +16,9 @@ export type Filters = {
   year: number | null
   month: number | null
   itemId: string | null
+  hairColor: string | null
+  hairStyle: string | null
+  hat: string | null
   q: string
   order: 'desc' | 'asc'
 }
@@ -25,6 +29,9 @@ export const defaultFilters: Filters = {
   year: null,
   month: null,
   itemId: null,
+  hairColor: null,
+  hairStyle: null,
+  hat: null,
   q: '',
   order: 'desc',
 }
@@ -32,6 +39,7 @@ export const defaultFilters: Filters = {
 export default function App() {
   const ov = useOverrides()
   const { splits, assign, createSub, moveOutfit, saveState } = useSplits()
+  const { hair, setHair, saveState: hairSaveState } = useHair()
   const data = useData(ov, splits)
   const [{ view, filters }, navigate] = useHashRoute()
 
@@ -92,9 +100,11 @@ export default function App() {
           filters={filters}
           setFilters={setFilters}
           splits={splits}
+          hair={hair}
           onAssign={assign}
           onCreateSub={createSub}
           onMoveOutfit={moveOutfit}
+          onSetHair={setHair}
         />
       )}
       {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
@@ -102,17 +112,19 @@ export default function App() {
         <RankingView
           data={data}
           splits={splits}
+          hair={hair}
           onAssign={assign}
           onCreateSub={createSub}
           onMoveOutfit={moveOutfit}
+          onSetHair={setHair}
           onItemClick={showFitsForItem}
         />
       )}
       {view === 'weather' && <WeatherView />}
 
-      {saveState === 'error' && (
+      {(saveState === 'error' || hairSaveState === 'error') && (
         <div className="save-error jp">
-          splits.json を保存できませんでした。`pnpm dev` のサーバーで開いているか確認してください
+          データを保存できませんでした。`pnpm dev` のサーバーで開いているか確認してください
         </div>
       )}
 

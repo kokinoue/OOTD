@@ -3,7 +3,8 @@ import type { Data } from '../lib/useData'
 import { baseItems, fmtDate, thumb } from '../lib/useData'
 import { overrideActions, resolveId, useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
-import type { Outfit, SplitsFile } from '../types'
+import { effectiveHair, HAIR_FIELDS } from '../lib/hair'
+import type { HairFile, HairTag, Outfit, SplitsFile } from '../types'
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
@@ -12,9 +13,11 @@ type Props = {
   outfit: Outfit
   data: Data
   splits: SplitsFile
+  hair: HairFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
+  onSetHair: (outfitKey: string, tag: HairTag) => void
   onClose: () => void
   onPrev?: () => void
   onNext?: () => void
@@ -25,9 +28,11 @@ export default function OutfitModal({
   outfit,
   data,
   splits,
+  hair,
   onAssign,
   onCreateSub,
   onMoveOutfit,
+  onSetHair,
   onClose,
   onPrev,
   onNext,
@@ -135,6 +140,8 @@ export default function OutfitModal({
 
         {outfit.comment && <p className="modal-comment jp">{outfit.comment}</p>}
 
+        <HairSection hair={hair} outfitKey={outfit.key} onSetHair={onSetHair} />
+
         <footer className="modal-foot">
           <button className="chip" onClick={onPrev} disabled={!onPrev}>
             ← <span className="jp">前</span>
@@ -161,6 +168,92 @@ export default function OutfitModal({
         />
       )}
     </dialog>
+  )
+}
+
+/** コーデの髪タグ表示（常時）＋ 手動編集（dev のみ）。空欄は「該当なし／未設定」 */
+function HairSection({
+  hair,
+  outfitKey,
+  onSetHair,
+}: {
+  hair: HairFile
+  outfitKey: string
+  onSetHair: (outfitKey: string, tag: HairTag) => void
+}) {
+  const eff = effectiveHair(hair, outfitKey)
+  const isManual = hair.manual[outfitKey] != null
+  const hasAuto = hair.auto[outfitKey] != null
+
+  // 編集用ドラフト。outfitKey が変わったら同期
+  const [draft, setDraft] = useState<HairTag>(eff)
+  const lastKey = useRef(outfitKey)
+  if (lastKey.current !== outfitKey) {
+    lastKey.current = outfitKey
+    setDraft(eff)
+  }
+
+  if (READONLY) {
+    const set = HAIR_FIELDS.filter((f) => eff[f.key])
+    if (set.length === 0) return null
+    return (
+      <div className="modal-hair">
+        <span className="modal-hair-label jp">髪</span>
+        {set.map((f) => (
+          <span key={f.key} className="hair-badge jp">
+            <span className="hair-badge-cat">{f.label}</span>
+            {eff[f.key]}
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  const blankToNull = (s: string): string | null => {
+    const t = s.trim()
+    return t === '' ? null : t
+  }
+  const dirty = HAIR_FIELDS.some((f) => (draft[f.key] ?? '') !== (eff[f.key] ?? ''))
+
+  return (
+    <div className="modal-hair edit">
+      <span className="modal-hair-label jp">
+        髪
+        <span className="hair-src mono">{isManual ? '手動' : hasAuto ? 'AI推定' : '未設定'}</span>
+      </span>
+      {HAIR_FIELDS.map((f) => (
+        <label key={f.key} className="hair-field jp">
+          <span className="hair-field-label">{f.label}</span>
+          <input
+            className="hair-input jp"
+            type="text"
+            value={draft[f.key] ?? ''}
+            placeholder={f.key === 'hat' ? 'なし' : '—'}
+            onChange={(e) => setDraft({ ...draft, [f.key]: blankToNull(e.target.value) })}
+          />
+        </label>
+      ))}
+      <button
+        className="chip sm primary"
+        disabled={!dirty}
+        onClick={() => onSetHair(outfitKey, draft)}
+      >
+        <span className="jp">保存</span>
+      </button>
+      {isManual && (
+        <button
+          className="link jp"
+          onClick={() => {
+            const reset = hair.auto[outfitKey] ?? { color: null, style: null, hat: null }
+            setDraft(reset)
+            onSetHair(outfitKey, { color: null, style: null, hat: null })
+          }}
+          title="手動修正を消してAI推定に戻す"
+        >
+          AI推定に戻す
+        </button>
+      )}
+    </div>
   )
 }
 

@@ -1,24 +1,28 @@
 import { useMemo, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
-import type { SplitsFile } from '../types'
+import type { HairFile, HairTag, SplitsFile } from '../types'
 import OutfitModal from './OutfitModal'
 
 type Props = {
   data: Data
   splits: SplitsFile
+  hair: HairFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
+  onSetHair: (outfitKey: string, tag: HairTag) => void
   onItemClick: (itemId: string) => void
 }
 
 export default function RankingView({
   data,
   splits,
+  hair,
   onAssign,
   onCreateSub,
   onMoveOutfit,
+  onSetHair,
   onItemClick,
 }: Props) {
   const [year, setYear] = useState<number | null>(null)
@@ -102,9 +106,11 @@ export default function RankingView({
           outfit={ranked[openIndex]}
           data={data}
           splits={splits}
+          hair={hair}
           onAssign={onAssign}
           onCreateSub={onCreateSub}
           onMoveOutfit={onMoveOutfit}
+          onSetHair={onSetHair}
           onClose={() => setOpenIndex(null)}
           onPrev={openIndex > 0 ? () => setOpenIndex(openIndex - 1) : undefined}
           onNext={openIndex < ranked.length - 1 ? () => setOpenIndex(openIndex + 1) : undefined}
