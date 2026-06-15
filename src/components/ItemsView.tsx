@@ -9,6 +9,8 @@ import type { EffectiveItem } from '../types'
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
 
 type Sort = 'count' | 'recent' | 'name'
+type Layout = 'list' | 'grid'
+const LAYOUT_KEY = 'items-layout'
 
 type Props = {
   data: Data
@@ -20,6 +22,9 @@ export default function ItemsView({ data, onShowFits }: Props) {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<string>('all')
   const [sort, setSort] = useState<Sort>('count')
+  const [layout, setLayout] = useState<Layout>(
+    () => (localStorage.getItem(LAYOUT_KEY) as Layout) || 'list',
+  )
   const [showHidden, setShowHidden] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [mergingItem, setMergingItem] = useState<EffectiveItem | null>(null)
@@ -69,6 +74,58 @@ export default function ItemsView({ data, onShowFits }: Props) {
     }
   }
 
+  useEffect(() => {
+    localStorage.setItem(LAYOUT_KEY, layout)
+  }, [layout])
+
+  const renderActions = (it: EffectiveItem) =>
+    !READONLY && (
+      <span className="item-actions">
+        <select
+          className="select sm"
+          value={it.category}
+          onChange={(e) => changeCategory(it, e.target.value)}
+          title="カテゴリを変更"
+        >
+          {allCategories.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+          <option value="__new__">＋新しいカテゴリ…</option>
+        </select>
+        <button className="icon-btn" onClick={() => setEditingId(it.id)} title="名前を変更">
+          ✎
+        </button>
+        <button className="icon-btn" onClick={() => setMergingItem(it)} title="別のアイテムに統合">
+          ⇒
+        </button>
+        <button
+          className="icon-btn"
+          onClick={() => overrideActions.toggleHidden(it.id)}
+          title={it.hidden ? '一覧に表示する' : '一覧から非表示にする'}
+        >
+          {it.hidden ? '◌' : '−'}
+        </button>
+      </span>
+    )
+
+  const renameInput = (it: EffectiveItem) => (
+    <input
+      className="rename-input"
+      defaultValue={it.label}
+      autoFocus
+      onBlur={(e) => {
+        overrideActions.rename(it.id, e.target.value)
+        setEditingId(null)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        if (e.key === 'Escape') setEditingId(null)
+      }}
+    />
+  )
+
   const exportOverrides = () => {
     const blob = new Blob([JSON.stringify(ov, null, 2)], { type: 'application/json' })
     const a = document.createElement('a')
@@ -110,6 +167,38 @@ export default function ItemsView({ data, onShowFits }: Props) {
             />
             非表示も見る
           </label>
+          <div className="view-toggle" role="group" aria-label="表示の切り替え">
+            <button
+              type="button"
+              className={layout === 'list' ? 'view-toggle-btn active' : 'view-toggle-btn'}
+              onClick={() => setLayout('list')}
+              aria-pressed={layout === 'list'}
+              title="リスト表示"
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+                <rect x="1" y="2" width="3" height="3" rx="0.5" />
+                <rect x="6" y="2.75" width="8" height="1.5" rx="0.75" />
+                <rect x="1" y="6" width="3" height="3" rx="0.5" />
+                <rect x="6" y="6.75" width="8" height="1.5" rx="0.75" />
+                <rect x="1" y="10" width="3" height="3" rx="0.5" />
+                <rect x="6" y="10.75" width="8" height="1.5" rx="0.75" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={layout === 'grid' ? 'view-toggle-btn active' : 'view-toggle-btn'}
+              onClick={() => setLayout('grid')}
+              aria-pressed={layout === 'grid'}
+              title="グリッド表示"
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+                <rect x="1" y="1" width="5.5" height="5.5" rx="1" />
+                <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" />
+                <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" />
+                <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div className="filter-row">
           <button
@@ -135,91 +224,85 @@ export default function ItemsView({ data, onShowFits }: Props) {
           <h2 className="section-title mono">
             {group.name} <span className="section-count">{group.items.length}</span>
           </h2>
-          <ul className="item-list">
-            {group.items.map((it) => (
-              <li key={it.id} className={it.hidden ? 'item-row hidden-row' : 'item-row'}>
-                {it.rep ? (
-                  <button
-                    className="item-thumb"
-                    style={regionBackgroundStyle(it.category, thumb(it.rep.url, 320))}
-                    onClick={() => onShowFits(it.id)}
-                    title="このアイテムのコーデを見る"
-                    aria-label={`${it.label} の最新着用`}
-                  />
-                ) : (
-                  <span className="item-thumb empty" />
-                )}
-                {editingId === it.id ? (
-                  <input
-                    className="rename-input"
-                    defaultValue={it.label}
-                    autoFocus
-                    onBlur={(e) => {
-                      overrideActions.rename(it.id, e.target.value)
-                      setEditingId(null)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') e.currentTarget.blur()
-                      if (e.key === 'Escape') setEditingId(null)
-                    }}
-                  />
-                ) : (
-                  <button
-                    className="item-label"
-                    onClick={() => onShowFits(it.id)}
-                    title="このアイテムのコーデを見る"
-                  >
-                    {it.label}
-                  </button>
-                )}
-                {it.mergedFrom.length > 0 && (
-                  <span className="merged-note jp" title="統合済みのアイテム">
-                    +{it.mergedFrom.length}件統合
-                  </span>
-                )}
-                <span className="item-meta mono">{it.count}回</span>
-                <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
-                {!READONLY && (
-                  <span className="item-actions">
-                    <select
-                      className="select sm"
-                      value={it.category}
-                      onChange={(e) => changeCategory(it, e.target.value)}
-                      title="カテゴリを変更"
-                    >
-                      {allCategories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                      <option value="__new__">＋新しいカテゴリ…</option>
-                    </select>
+          {layout === 'grid' ? (
+            <ul className="item-grid">
+              {group.items.map((it) => (
+                <li key={it.id} className={it.hidden ? 'item-card hidden-row' : 'item-card'}>
+                  {it.rep ? (
                     <button
-                      className="icon-btn"
-                      onClick={() => setEditingId(it.id)}
-                      title="名前を変更"
-                    >
-                      ✎
-                    </button>
+                      className="item-card-thumb"
+                      style={regionBackgroundStyle(it.category, thumb(it.rep.url, 320))}
+                      onClick={() => onShowFits(it.id)}
+                      title="このアイテムのコーデを見る"
+                      aria-label={`${it.label} の最新着用`}
+                    />
+                  ) : (
+                    <span className="item-card-thumb empty" />
+                  )}
+                  <div className="item-card-body">
+                    {editingId === it.id ? (
+                      renameInput(it)
+                    ) : (
+                      <button
+                        className="item-card-label"
+                        onClick={() => onShowFits(it.id)}
+                        title="このアイテムのコーデを見る"
+                      >
+                        {it.label}
+                      </button>
+                    )}
+                    <div className="item-card-foot">
+                      <span className="item-meta mono">{it.count}回</span>
+                      <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
+                      {it.mergedFrom.length > 0 && (
+                        <span className="merged-note jp" title="統合済みのアイテム">
+                          +{it.mergedFrom.length}
+                        </span>
+                      )}
+                    </div>
+                    {renderActions(it)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="item-list">
+              {group.items.map((it) => (
+                <li key={it.id} className={it.hidden ? 'item-row hidden-row' : 'item-row'}>
+                  {it.rep ? (
                     <button
-                      className="icon-btn"
-                      onClick={() => setMergingItem(it)}
-                      title="別のアイテムに統合"
-                    >
-                      ⇒
-                    </button>
+                      className="item-thumb"
+                      style={regionBackgroundStyle(it.category, thumb(it.rep.url, 320))}
+                      onClick={() => onShowFits(it.id)}
+                      title="このアイテムのコーデを見る"
+                      aria-label={`${it.label} の最新着用`}
+                    />
+                  ) : (
+                    <span className="item-thumb empty" />
+                  )}
+                  {editingId === it.id ? (
+                    renameInput(it)
+                  ) : (
                     <button
-                      className="icon-btn"
-                      onClick={() => overrideActions.toggleHidden(it.id)}
-                      title={it.hidden ? '一覧に表示する' : '一覧から非表示にする'}
+                      className="item-label"
+                      onClick={() => onShowFits(it.id)}
+                      title="このアイテムのコーデを見る"
                     >
-                      {it.hidden ? '◌' : '−'}
+                      {it.label}
                     </button>
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+                  )}
+                  {it.mergedFrom.length > 0 && (
+                    <span className="merged-note jp" title="統合済みのアイテム">
+                      +{it.mergedFrom.length}件統合
+                    </span>
+                  )}
+                  <span className="item-meta mono">{it.count}回</span>
+                  <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
+                  {renderActions(it)}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ))}
 

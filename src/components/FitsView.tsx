@@ -19,9 +19,10 @@ type Props = {
   splits: SplitsFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
+  onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
 }
 
-export default function FitsView({ data, filters, setFilters, splits, onAssign, onCreateSub }: Props) {
+export default function FitsView({ data, filters, setFilters, splits, onAssign, onCreateSub, onMoveOutfit }: Props) {
   const years = useMemo(() => {
     const ys = new Set<number>()
     for (const o of outfits) ys.add(Number(o.date.slice(0, 4)))
@@ -258,6 +259,7 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
           splits={splits}
           onAssign={onAssign}
           onCreateSub={onCreateSub}
+          onMoveOutfit={onMoveOutfit}
           onClose={() => setOpenIndex(null)}
           onPrev={openIndex > 0 ? () => setOpenIndex(openIndex - 1) : undefined}
           onNext={

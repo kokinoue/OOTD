@@ -6,6 +6,7 @@ import { READONLY } from '../lib/env'
 import type { Outfit, SplitsFile } from '../types'
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
+const norm = (s: string) => s.normalize('NFKC').toLowerCase()
 
 type Props = {
   outfit: Outfit
@@ -13,6 +14,7 @@ type Props = {
   splits: SplitsFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
+  onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
   onClose: () => void
   onPrev?: () => void
   onNext?: () => void
@@ -25,6 +27,7 @@ export default function OutfitModal({
   splits,
   onAssign,
   onCreateSub,
+  onMoveOutfit,
   onClose,
   onPrev,
   onNext,
@@ -153,6 +156,7 @@ export default function OutfitModal({
           splits={splits}
           onAssign={onAssign}
           onCreateSub={onCreateSub}
+          onMoveOutfit={onMoveOutfit}
           onClose={() => setAssigningBaseId(null)}
         />
       )}
@@ -167,6 +171,7 @@ function AssignDialog({
   splits,
   onAssign,
   onCreateSub,
+  onMoveOutfit,
   onClose,
 }: {
   baseId: string
@@ -175,10 +180,13 @@ function AssignDialog({
   splits: SplitsFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
+  onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
   onClose: () => void
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const [newLabel, setNewLabel] = useState('')
+  const [moving, setMoving] = useState(false)
+  const [moveQ, setMoveQ] = useState('')
 
   useEffect(() => {
     const dialog = ref.current
@@ -189,6 +197,18 @@ function AssignDialog({
   const subs = splits.items[baseId]?.subs ?? []
   const currentSubKey =
     subs.find((s) => s.outfits.includes(outfit.key))?.key ?? null
+  // この着用が別アイテムへ付け替え済みなら、その付け替え先ID
+  const currentMove = splits.moves?.[baseId]?.[outfit.key] ?? null
+  const movedItem = currentMove ? data.itemMap.get(currentMove) : null
+
+  // 「別のアイテムへ移す」候補: 自分自身（同ベース＋その個体）を除いた全アイテム
+  const moveTargets = useMemo(() => {
+    const qn = norm(moveQ.trim())
+    return data.items
+      .filter((it) => it.id !== baseId && !it.id.startsWith(`${baseId}#`))
+      .filter((it) => !qn || norm(it.label).includes(qn) || norm(it.category).includes(qn))
+      .slice(0, 30)
+  }, [data.items, moveQ, baseId])
   const baseInfo = baseItemMap.get(baseId)
   // 表示名は overrides の rename → items.json の表示ラベル → 生ID の順で解決
   const baseLabel = ov.renames[baseId] ?? baseInfo?.label ?? baseId.split('|')[1] ?? baseId
@@ -208,6 +228,16 @@ function AssignDialog({
   const create = () => {
     if (!newLabel.trim()) return
     onCreateSub(baseId, newLabel, outfit.key)
+    onClose()
+  }
+
+  // この日の着用だけを別アイテムへ付け替える（解除すれば元の判定に戻る）
+  const moveTo = (targetId: string) => {
+    onMoveOutfit(baseId, outfit.key, targetId)
+    onClose()
+  }
+  const clearMove = () => {
+    onMoveOutfit(baseId, outfit.key, null)
     onClose()
   }
 
@@ -243,11 +273,15 @@ function AssignDialog({
               <li key={sub.key}>
                 <button
                   className={
-                    sub.key === currentSubKey ? 'assign-option current' : 'assign-option'
+                    !currentMove && sub.key === currentSubKey
+                      ? 'assign-option current'
+                      : 'assign-option'
                   }
                   onClick={() => choose(sub.key)}
                 >
-                  <span className="assign-radio">{sub.key === currentSubKey ? '●' : '○'}</span>
+                  <span className="assign-radio">
+                    {!currentMove && sub.key === currentSubKey ? '●' : '○'}
+                  </span>
                   <span className="assign-label jp">{subLabelOf(sub.key, sub.label)}</span>
                   <span className="item-meta mono dim">{count}回</span>
                 </button>
@@ -256,14 +290,63 @@ function AssignDialog({
           })}
           <li>
             <button
-              className={currentSubKey == null ? 'assign-option current' : 'assign-option'}
+              className={
+                currentSubKey == null && !currentMove ? 'assign-option current' : 'assign-option'
+              }
               onClick={() => choose(null)}
             >
-              <span className="assign-radio">{currentSubKey == null ? '●' : '○'}</span>
+              <span className="assign-radio">
+                {currentSubKey == null && !currentMove ? '●' : '○'}
+              </span>
               <span className="assign-label jp dim">未分類</span>
             </button>
           </li>
         </ul>
+
+        {currentMove && (
+          <div className="assign-moved jp">
+            <span>
+              この日の着用は{' '}
+              <strong>{movedItem?.label ?? currentMove}</strong> へ付け替え済み
+            </span>
+            <button className="link" onClick={clearMove}>
+              元に戻す
+            </button>
+          </div>
+        )}
+
+        <div className="assign-move">
+          {!moving ? (
+            <button className="link jp" onClick={() => setMoving(true)}>
+              {currentMove ? '別のアイテムへ付け替え直す →' : 'この日の着用だけ別のアイテムへ移す →'}
+            </button>
+          ) : (
+            <>
+              <p className="merge-help jp">
+                この日（{fmtDate(outfit.date)}）の「{baseLabel}」の着用だけを、選んだアイテムへ付け替えます（「元に戻す」でいつでも戻せます）。
+              </p>
+              <input
+                className="search jp"
+                type="search"
+                placeholder="付け替え先のアイテムを検索"
+                autoFocus
+                value={moveQ}
+                onChange={(e) => setMoveQ(e.target.value)}
+              />
+              <ul className="merge-list">
+                {moveTargets.map((it) => (
+                  <li key={it.id}>
+                    <button className="merge-candidate" onClick={() => moveTo(it.id)}>
+                      <span className="chip-cat mono">{it.category}</span>
+                      {it.label}
+                      <span className="item-meta mono dim">{it.count}回</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
 
         <div className="assign-new">
           <input

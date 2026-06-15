@@ -69,4 +69,6 @@ export type SplitsFile = {
   items: Record<string, { subs: SplitSub[] }>
   /** 確認済みで単一個体と判断したアイテム（メンテ用メモ） */
   noSplit?: string[]
+  /** 1着用だけを別アイテムへ付け替える（画像判定の訂正）: baseId -> (outfitKey -> 付け替え先ID) */
+  moves?: Record<string, Record<string, string>>
 }

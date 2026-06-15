@@ -59,8 +59,10 @@ export function useData(ov: Overrides, splits: SplitsFile): Data {
     }
 
     const resolveItemId = (baseId: string, outfitKey: string) => {
-      const split = splitAssign.get(baseId)?.get(outfitKey) ?? baseId
-      return resolveId(split, ov.merges)
+      // 1着用だけの付け替え（moves）が最優先。次に個体分割、最後に統合
+      const moved = splits.moves?.[baseId]?.[outfitKey]
+      const target = moved ?? splitAssign.get(baseId)?.get(outfitKey) ?? baseId
+      return resolveId(target, ov.merges)
     }
 
     const outfitItemIds = new Map<string, Set<string>>()

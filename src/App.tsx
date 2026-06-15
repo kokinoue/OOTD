@@ -30,7 +30,7 @@ export const defaultFilters: Filters = {
 
 export default function App() {
   const ov = useOverrides()
-  const { splits, assign, createSub, saveState } = useSplits()
+  const { splits, assign, createSub, moveOutfit, saveState } = useSplits()
   const data = useData(ov, splits)
   const [{ view, filters }, navigate] = useHashRoute()
 
@@ -87,6 +87,7 @@ export default function App() {
           splits={splits}
           onAssign={assign}
           onCreateSub={createSub}
+          onMoveOutfit={moveOutfit}
         />
       )}
       {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
