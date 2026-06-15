@@ -103,8 +103,7 @@ export default function App() {
         <a href={meta.magazineUrl} target="_blank" rel="noreferrer">
           note マガジン「出勤服」
         </a>{' '}
-        · {fmtDate(meta.scrapedAt.slice(0, 10))} 取得 ·{' '}
-        <span className="mono">pnpm scrape</span> で最新化
+        · {fmtDate(meta.scrapedAt.slice(0, 10))} 取得
       </footer>
     </div>
   )
