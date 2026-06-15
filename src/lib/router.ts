@@ -25,7 +25,14 @@ export function encodeHash({ view, filters }: Route): string {
 export function decodeHash(hash: string): Route {
   const raw = hash.replace(/^#\/?/, '')
   const [path, query] = raw.split('?')
-  const view: View = path === 'items' ? 'items' : path === 'weather' ? 'weather' : 'fits'
+  const view: View =
+    path === 'items'
+      ? 'items'
+      : path === 'weather'
+        ? 'weather'
+        : path === 'ranking'
+          ? 'ranking'
+          : 'fits'
   const p = new URLSearchParams(query ?? '')
   const filters: Filters = {
     ...defaultFilters,
