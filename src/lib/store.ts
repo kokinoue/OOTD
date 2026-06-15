@@ -10,6 +10,7 @@ export const emptyOverrides = (): Overrides => ({
   categories: {},
   merges: {},
   hidden: [],
+  colors: {},
 })
 
 // ビルドに焼き込まれた確定編集（公開サイトはこれを表示する）
@@ -76,6 +77,13 @@ export const overrideActions = {
     const merges = { ...cache.merges }
     delete merges[fromId]
     save({ ...cache, merges })
+  },
+  /** 色の手動補正。'auto' で自動判定に戻す、'none' で「色なし」に固定、それ以外はバケツ名 */
+  setColor(id: string, value: string) {
+    const colors = { ...cache.colors }
+    if (value === 'auto') delete colors[id]
+    else colors[id] = value === 'none' ? '' : value
+    save({ ...cache, colors })
   },
   toggleHidden(id: string) {
     const hidden = cache.hidden.includes(id)
