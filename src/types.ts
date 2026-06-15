@@ -34,6 +34,22 @@ export type Overrides = {
   categories: Record<string, string>
   merges: Record<string, string> // fromId -> toId
   hidden: string[]
+  /** 自動判定した色の手動補正: itemId -> 色バケツ名（'' で「色なし」に固定） */
+  colors: Record<string, string>
+}
+
+/** 色バケツの定義（src/data/colors.json の buckets と一致） */
+export type ColorBucket = {
+  name: string // 内部名（white, navy など）
+  label: string // 表示名（白, ネイビー など）
+  swatch: string // チップに出す代表色 hex
+}
+
+/** 代表画像から自動判定した色（src/data/colors.json） */
+export type ColorsFile = {
+  version: number
+  buckets: ColorBucket[]
+  items: Record<string, string> // displayId -> 色バケツ名
 }
 
 /** マージ解決・編集適用後の表示用アイテム */
@@ -48,6 +64,8 @@ export type EffectiveItem = {
   mergedFrom: string[] // このアイテムに統合された元アイテムのラベル
   /** 最新着用コーデの該当figure画像（一覧サムネ用） */
   rep?: { url: string; outfitKey: string }
+  /** 色バケツ名（自動判定 + 手動補正後）。未判定は undefined */
+  color?: string
 }
 
 export type Meta = {

@@ -2,12 +2,19 @@ import { useMemo } from 'react'
 import outfitsJson from '../data/outfits.json'
 import itemsJson from '../data/items.json'
 import metaJson from '../data/meta.json'
-import type { EffectiveItem, Item, Meta, Outfit, Overrides, SplitsFile } from '../types'
+import colorsJson from '../data/colors.json'
+import type { ColorsFile, EffectiveItem, Item, Meta, Outfit, Overrides, SplitsFile } from '../types'
 import { resolveId } from './store'
 
 export const outfits = outfitsJson as Outfit[]
 export const baseItems = itemsJson as Item[]
 export const meta = metaJson as Meta
+
+const colorsFile = colorsJson as ColorsFile
+/** 自動判定した色: displayId -> 色バケツ名 */
+const autoColors = colorsFile.items
+/** UIの色フィルタ用バケツ定義（表示順） */
+export const colorBuckets = colorsFile.buckets
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
 
@@ -103,6 +110,9 @@ export function useData(ov: Overrides, splits: SplitsFile): Data {
     const items: EffectiveItem[] = []
     for (const [id, count] of countByItem) {
       const base = baseInfoOf(id)
+      // 色: 手動補正があれば優先（'' は「色なし」固定）、なければ自動判定
+      const ovColor = ov.colors[id]
+      const color = ovColor !== undefined ? ovColor || undefined : autoColors[id]
       items.push({
         id,
         category: ov.categories[id] ?? base.category,
@@ -113,6 +123,7 @@ export function useData(ov: Overrides, splits: SplitsFile): Data {
         hidden: hiddenSet.has(id),
         mergedFrom: mergedFrom.get(id) ?? [],
         rep: repImage.get(id),
+        color,
       })
     }
     items.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))

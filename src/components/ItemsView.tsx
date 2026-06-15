@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
-import { fmtDate, thumb } from '../lib/useData'
+import { colorBuckets, fmtDate, thumb } from '../lib/useData'
 import { regionBackgroundStyle } from '../lib/regions'
 import { overrideActions, useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
 import type { EffectiveItem } from '../types'
 
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
+
+const colorMeta = new Map(colorBuckets.map((b) => [b.name, b]))
 
 type Sort = 'count' | 'recent' | 'name'
 type Layout = 'list' | 'grid'
@@ -21,6 +23,7 @@ export default function ItemsView({ data, onShowFits }: Props) {
   const ov = useOverrides()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<string>('all')
+  const [color, setColor] = useState<string>('all')
   const [sort, setSort] = useState<Sort>('count')
   const [layout, setLayout] = useState<Layout>(
     () => (localStorage.getItem(LAYOUT_KEY) as Layout) || 'list',
@@ -35,6 +38,7 @@ export default function ItemsView({ data, onShowFits }: Props) {
     const qn = norm(q.trim())
     let list = data.items.filter((it) => (showHidden ? true : !it.hidden))
     if (cat !== 'all') list = list.filter((it) => it.category === cat)
+    if (color !== 'all') list = list.filter((it) => it.color === color)
     if (qn) {
       list = list.filter(
         (it) => norm(it.label).includes(qn) || norm(it.category).includes(qn),
@@ -45,7 +49,7 @@ export default function ItemsView({ data, onShowFits }: Props) {
     if (sort === 'recent') sorted.sort((a, b) => (a.lastDate < b.lastDate ? 1 : -1))
     if (sort === 'name') sorted.sort((a, b) => a.label.localeCompare(b.label, 'ja'))
     return sorted
-  }, [data.items, q, cat, sort, showHidden])
+  }, [data.items, q, cat, color, sort, showHidden])
 
   const grouped = useMemo(() => {
     if (cat !== 'all') return [{ name: cat, items: visible }]
@@ -65,6 +69,18 @@ export default function ItemsView({ data, onShowFits }: Props) {
     [data.items],
   )
 
+  // 色フィルタの行に出す件数（検索・色フィルタ以外の条件を反映）。0件の色は出さない
+  const colorCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of data.items) {
+      if (!showHidden && it.hidden) continue
+      if (cat !== 'all' && it.category !== cat) continue
+      if (!it.color) continue
+      m.set(it.color, (m.get(it.color) ?? 0) + 1)
+    }
+    return m
+  }, [data.items, cat, showHidden])
+
   const changeCategory = (it: EffectiveItem, value: string) => {
     if (value === '__new__') {
       const input = window.prompt('新しいカテゴリ名（例: jacket）', it.category)
@@ -77,6 +93,17 @@ export default function ItemsView({ data, onShowFits }: Props) {
   useEffect(() => {
     localStorage.setItem(LAYOUT_KEY, layout)
   }, [layout])
+
+  // カテゴリ変更などで選択中の色が候補から消えたら「色すべて」に戻す
+  useEffect(() => {
+    if (color !== 'all' && !colorCounts.has(color)) setColor('all')
+  }, [color, colorCounts])
+
+  const colorSelectValue = (it: EffectiveItem) => {
+    const ovColor = ov.colors[it.id]
+    if (ovColor === undefined) return 'auto'
+    return ovColor === '' ? 'none' : ovColor
+  }
 
   const renderActions = (it: EffectiveItem) =>
     !READONLY && (
@@ -94,6 +121,20 @@ export default function ItemsView({ data, onShowFits }: Props) {
           ))}
           <option value="__new__">＋新しいカテゴリ…</option>
         </select>
+        <select
+          className="select sm"
+          value={colorSelectValue(it)}
+          onChange={(e) => overrideActions.setColor(it.id, e.target.value)}
+          title="色を補正（自動判定の修正）"
+        >
+          <option value="auto">色: 自動</option>
+          <option value="none">色なし</option>
+          {colorBuckets.map((b) => (
+            <option key={b.name} value={b.name}>
+              {b.label}
+            </option>
+          ))}
+        </select>
         <button className="icon-btn" onClick={() => setEditingId(it.id)} title="名前を変更">
           ✎
         </button>
@@ -109,6 +150,20 @@ export default function ItemsView({ data, onShowFits }: Props) {
         </button>
       </span>
     )
+
+  const colorDot = (it: EffectiveItem) => {
+    if (!it.color) return null
+    const meta = colorMeta.get(it.color)
+    if (!meta) return null
+    return (
+      <span
+        className="color-dot"
+        style={{ background: meta.swatch }}
+        title={`色: ${meta.label}`}
+        aria-label={`色: ${meta.label}`}
+      />
+    )
+  }
 
   const renameInput = (it: EffectiveItem) => (
     <input
@@ -217,6 +272,29 @@ export default function ItemsView({ data, onShowFits }: Props) {
             </button>
           ))}
         </div>
+        {colorCounts.size > 0 && (
+          <div className="filter-row color-row">
+            <button
+              className={color === 'all' ? 'chip active' : 'chip'}
+              onClick={() => setColor('all')}
+            >
+              色すべて
+            </button>
+            {colorBuckets
+              .filter((b) => colorCounts.has(b.name))
+              .map((b) => (
+                <button
+                  key={b.name}
+                  className={color === b.name ? 'chip color-chip active' : 'chip color-chip'}
+                  onClick={() => setColor(color === b.name ? 'all' : b.name)}
+                  title={b.label}
+                >
+                  <span className="color-dot" style={{ background: b.swatch }} aria-hidden="true" />
+                  {b.label} <span className="chip-count mono">{colorCounts.get(b.name)}</span>
+                </button>
+              ))}
+          </div>
+        )}
       </div>
 
       {grouped.map((group) => (
@@ -252,6 +330,7 @@ export default function ItemsView({ data, onShowFits }: Props) {
                       </button>
                     )}
                     <div className="item-card-foot">
+                      {colorDot(it)}
                       <span className="item-meta mono">{it.count}回</span>
                       <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
                       {it.mergedFrom.length > 0 && (
@@ -296,6 +375,7 @@ export default function ItemsView({ data, onShowFits }: Props) {
                       +{it.mergedFrom.length}件統合
                     </span>
                   )}
+                  {colorDot(it)}
                   <span className="item-meta mono">{it.count}回</span>
                   <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
                   {renderActions(it)}
