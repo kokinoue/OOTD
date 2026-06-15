@@ -27,7 +27,7 @@ pnpm build      # dist/ を生成（公開モード＝閲覧専用）
 pnpm scrape     # note記事＋気温を取得し src/data/*.json を再生成
 ```
 
-新着分だけ取りにいく（`.cache/` にキャッシュ）。気温だけなら `pnpm weather`。髪（髪色/髪型/帽子）の分類は画像AIで `ANTHROPIC_API_KEY=… pnpm hair`（詳細は [docs/INTERNALS.md](docs/INTERNALS.md)）。
+新着分だけ取りにいく（`.cache/` にキャッシュ）。気温だけなら `pnpm weather`。髪（髪色/髪型/帽子）は頭部のコンタクトシートを `pnpm hair:sheets` で作って判定し `pnpm hair:apply` で反映する（詳細は [docs/INTERNALS.md](docs/INTERNALS.md)）。
 
 **自動更新**: [毎日 18:00 JST に GitHub Actions](.github/workflows/scrape.yml) が scrape → 新着があれば自動でコミット＆公開更新する（手動実行も可）。
 

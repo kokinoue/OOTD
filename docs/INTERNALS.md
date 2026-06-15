@@ -69,20 +69,23 @@ node scripts/apply-splits.mjs                                  # decisions.json 
 - 統合・カテゴリ変更・非表示も ITEMS タブの既存機能が個体に対して使える
 - `pnpm scrape` 後の新着コーデは未割当として入る。コーデ詳細の ⇄ で割り当てる
 
-## 髪タグ（画像AIによる分類）
+## 髪タグ（コンタクトシート判定）
 
-各コーデ写真を画像認識AI（Anthropic）に渡し、**髪色・髪型・帽子**を推定して `src/data/hair.json` に持つ。FITS タブの髪フィルタ行（データがある軸だけ表示）で絞り込める。
+各コーデ写真の頭まわりをクロップしたコンタクトシートを作り、それを Claude が見て**髪色・髪型・帽子**を判定して `src/data/hair.json` に持つ（個体分割と同じ「シート → 判定 → 反映」の流儀。外部APIは使わない）。FITS タブの髪フィルタ行（データがある軸だけ表示）で絞り込める。
 
 ```sh
-ANTHROPIC_API_KEY=sk-... pnpm hair                 # 未分類のコーデを一括分類
-ANTHROPIC_API_KEY=sk-... pnpm hair -- --limit 5    # 試運転（5件だけ）
-ANTHROPIC_API_KEY=sk-... pnpm hair -- --force      # 既存分も全部やり直す
+pnpm hair:sheets                       # 全コーデの頭部クロップを .cache/sheets/hair-*.png に生成
+node scripts/hair-sheets.mjs --only 1,2   # 指定シートだけ作り直す
+pnpm hair:apply                        # 判定結果（hair-decisions.json）を hair.json に反映
 ```
 
-- 各軸は決め打ちの語彙（髪色: 黒/茶/明るめ/白髪まじり、帽子: キャップ/ニット帽/ハット 等）から選ばせ、チップ数を安定させる。帽子で隠れて不明な軸・帽子なしは保存時に「未設定」に畳む
-- 増分実行: `hair.auto` に未登録のコーデだけ処理（`pnpm scrape` の新着分はここで追加分類）。並列・途中保存つき
-- **手動修正**: コーデ詳細を開くと髪タグ（AI推定 or 手動）が出る。`pnpm dev` では各軸を直接編集して保存でき、`hair.manual` に入って AI 推定より優先される（「AI推定に戻す」で手動分を消せる）
-- データの持ち方: `{ "version": 1, "auto": { outfitKey: {color,style,hat} }, "manual": { ... } }`。スクリプトは `auto` だけ、UI は `manual` だけを書くので互いを上書きしない
+1. `hair:sheets` で `.cache/sheets/hair-1.png …`（5列×20枚）と `hair-manifest.json`（セル→記事キー対応）を生成。頭＋肩を広めにクロップするので髪型・帽子が分かる
+2. シートを Claude に見せて判定し、`.cache/sheets/hair-decisions.json` に書く。形式は **コーデの #番号をキーに `[髪色, 髪型, 帽子]`**（帽子なしは `null`、帽子で隠れて不明な軸も `null`）
+3. `hair:apply` が #番号→記事キーへ変換し、`hair.json` の `auto` に反映（帽子・不明は `null` に畳む）
+
+- **手動修正**: コーデ詳細を開くと髪タグ（判定 or 手動）が出る。`pnpm dev` では各軸を直接編集して保存でき、`hair.manual` に入って判定より優先される（「AI推定に戻す」で手動分を消せる）
+- データの持ち方: `{ "version": 1, "auto": { outfitKey: {color,style,hat} }, "manual": { ... } }`。シート判定は `auto` だけ、UI は `manual` だけを書くので互いを上書きしない
+- この人の髪は**色（黒/茶/金）と帽子**でよく分かれる一方、**長さはほぼ一定（ミディアム）**だったので、髪型軸の値はほぼ単一。判定の粒度を上げたい軸があればシートを見直して `hair-decisions.json` を編集 → `hair:apply` で更新する
 
 ## 衣替え前線（気温 × 着用記録）
 

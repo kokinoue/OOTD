@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "scrape": "node scripts/scrape.mjs && node scripts/fetch-weather.mjs",
     "weather": "node scripts/fetch-weather.mjs",
-    "hair": "node scripts/classify-hair.mjs",
+    "hair:sheets": "node scripts/hair-sheets.mjs",
+    "hair:apply": "node scripts/apply-hair.mjs",
     "timelapse": "node scripts/timelapse.mjs"
   },
   "dependencies": {
