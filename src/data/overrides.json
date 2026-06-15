@@ -14,12 +14,24 @@
     "jacket|amachi": "19aw · amachi. · Meeting Jacket",
     "jacket|call#pink": "22aw · Call · レザー",
     "jacket|call#beige": "21aw · Call · ロングジャケット",
-    "jacket|call#lime": "23ss · Call · ライムイエロー"
+    "jacket|call#lime": "23ss · Call · ライムイエロー",
+    "pants|amachi#black-dark": "24ss · amachi. · コットンワイド",
+    "pants|amachi#white": "19aw · amachi. · ウール",
+    "pants|amachi#u-22ss-amachi-セットアップ": "22ss · amachi. · セットアップ",
+    "pants|amachi#u-23aw-amachi-ウール": "23aw · amachi. · ウール",
+    "pants|amachi#u-22aw-amachi-メルトン": "22aw · amachi. · メルトン"
   },
   "categories": {},
   "merges": {
     "pants|maisonmartinmargiela#grey-slacks": "pants|maisonmartinmargiela#grey-wide"
   },
   "hidden": [],
-  "colors": {}
+  "colors": {
+    "pants|maisonmartinmargiela#indigo-flare": "blue",
+    "pants|amachi#black-dark": "navy",
+    "pants|amachi#white": "white",
+    "pants|amachi#u-22aw-amachi-メルトン": "gray",
+    "pants|amachi#u-22ss-amachi-セットアップ": "navy",
+    "pants|amachi#u-23aw-amachi-ウール": "white"
+  }
 }
