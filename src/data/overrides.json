@@ -4,11 +4,14 @@
     "pants|maisonmartinmargiela#grey-wide": "00ss · Maison Martin Margiela · アーティザナル",
     "pants|maisonmartinmargiela#light": "03aw · Maison Martin Margiela · デニム",
     "pants|maisonmartinmargiela#blue-denim": "04ss · Maison Martin Margiela · アーティザナル",
-    "pants|used#black-dark": "used · 黒・スラックス"
+    "pants|used#black-dark": "used · 黒・スラックス",
+    "pants|60s": "60's • us • 茶 • スラックス",
+    "pants|60slee": "60's • Lee"
   },
   "categories": {},
   "merges": {
     "pants|maisonmartinmargiela#grey-slacks": "pants|maisonmartinmargiela#grey-wide"
   },
-  "hidden": []
+  "hidden": [],
+  "colors": {}
 }
