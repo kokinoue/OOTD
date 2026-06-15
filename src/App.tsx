@@ -1,5 +1,6 @@
 import FitsView from './components/FitsView'
 import ItemsView from './components/ItemsView'
+import MemoryGameView from './components/MemoryGameView'
 import RankingView from './components/RankingView'
 import WeatherView from './components/WeatherView'
 import { useOverrides } from './lib/store'
@@ -7,7 +8,7 @@ import { useSplits } from './lib/splitsStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
-export type View = 'fits' | 'items' | 'ranking' | 'weather'
+export type View = 'fits' | 'items' | 'ranking' | 'weather' | 'game'
 
 export type Filters = {
   from: string
@@ -83,6 +84,12 @@ export default function App() {
           >
             衣替え
           </button>
+          <button
+            className={view === 'game' ? 'tab active' : 'tab'}
+            onClick={() => setView('game')}
+          >
+            神経衰弱
+          </button>
         </nav>
       </header>
 
@@ -109,6 +116,7 @@ export default function App() {
         />
       )}
       {view === 'weather' && <WeatherView />}
+      {view === 'game' && <MemoryGameView data={data} />}
 
       {saveState === 'error' && (
         <div className="save-error jp">

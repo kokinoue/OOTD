@@ -1432,3 +1432,528 @@ a {
     padding: 10px 14px 14px;
   }
 }
+
+/* ===================== 神経衰弱ゲーム ===================== */
+:root {
+  --card-back-a: #2a2e48;
+  --card-back-b: #181a2b;
+}
+
+/* ---------- setup / finished ---------- */
+.g-setup,
+.g-finished {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 40px;
+}
+
+.g-setup-card {
+  width: min(540px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  padding: 30px 30px 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.05);
+}
+
+.g-setup-title {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.g-setup-lead {
+  margin: 0 0 16px;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--text);
+}
+
+.g-rules {
+  margin: 0 0 24px;
+  padding-left: 1.2em;
+  font-size: 12.5px;
+  line-height: 2;
+  color: var(--text-sub);
+}
+
+.g-rules li::marker {
+  color: #c9c9c7;
+}
+
+.g-pt {
+  color: var(--text);
+}
+
+.g-setup-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.g-setup-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-sub);
+}
+
+.g-num-pick {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.g-start {
+  width: 100%;
+  padding: 13px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.g-start:hover {
+  opacity: 0.88;
+}
+
+.g-start:active {
+  transform: scale(0.99);
+}
+
+.g-winner {
+  margin: 0 0 18px;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+}
+
+.g-result-list {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.g-result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.g-result-row:last-child {
+  border-bottom: none;
+}
+
+.g-result-row.top {
+  background: color-mix(in srgb, #d8a200 8%, transparent);
+}
+
+.g-result-rank {
+  width: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.g-result-name {
+  flex: 1;
+  font-size: 13.5px;
+}
+
+.g-result-score {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.g-pt-unit {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.g-finished-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.g-finished-actions .chip {
+  align-self: center;
+}
+
+.g-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  flex: none;
+}
+
+/* ---------- playing: scoreboard ---------- */
+.g-play {
+  padding-top: 6px;
+}
+
+.g-scoreboard {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 0 14px;
+}
+
+.g-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+  transition: all 0.15s ease;
+}
+
+.g-score.current {
+  border-color: var(--pc);
+  box-shadow: 0 0 0 1px var(--pc);
+  background: color-mix(in srgb, var(--pc) 7%, var(--surface));
+}
+
+.g-score-name {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.g-score-val {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.g-turn-tag {
+  font-size: 10.5px;
+  color: var(--text-sub);
+}
+
+.g-remaining {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+/* ---------- playing: stage ---------- */
+.g-stage {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 16px;
+  margin-bottom: 18px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.g-stage.hit {
+  border-color: color-mix(in srgb, #0b8457 50%, var(--border));
+  background: color-mix(in srgb, #0b8457 6%, var(--surface));
+}
+
+.g-stage.miss {
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+  background: color-mix(in srgb, var(--danger) 5%, var(--surface));
+}
+
+.g-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.g-slot {
+  display: flex;
+  gap: 12px;
+  min-height: 132px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.g-slot-img {
+  width: 110px;
+  height: 110px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f0f0ee;
+}
+
+.g-slot-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+  max-height: 112px;
+  overflow-y: auto;
+}
+
+.g-slot-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 12px;
+  color: #bdbdbb;
+  letter-spacing: 0.08em;
+}
+
+.g-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.g-chip.matched {
+  background: #0b8457;
+  border-color: #0b8457;
+  color: #fff;
+  font-weight: 600;
+}
+
+.g-chip-cat {
+  font-size: 8.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+}
+
+.g-verdict {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  min-height: 34px;
+}
+
+.g-verdict-turn {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.g-verdict-pt {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0b8457;
+  letter-spacing: 0.02em;
+}
+
+.g-verdict-detail {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.g-verdict-miss {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--danger);
+  letter-spacing: 0.04em;
+}
+
+.g-next {
+  margin-left: auto;
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.g-next:hover {
+  opacity: 0.88;
+}
+
+/* ---------- playing: board (52枚を散らす) ---------- */
+.g-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 12px 10px;
+  padding: 6px 2px;
+}
+
+.g-card {
+  position: relative;
+  aspect-ratio: 5 / 7;
+  perspective: 800px;
+  transform: translate(var(--dx), var(--dy)) rotate(var(--rot));
+  transition: transform 0.18s ease, filter 0.2s ease;
+}
+
+.g-card:not(:disabled) {
+  cursor: pointer;
+}
+
+.g-card:not(:disabled):hover {
+  z-index: 6;
+}
+
+.g-card-inner {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.4, 0.1, 0.2, 1);
+}
+
+.g-card.down .g-card-inner {
+  transform: rotateY(180deg);
+}
+
+.g-card:not(:disabled):hover .g-card-inner {
+  transform: rotateY(180deg) scale(1.07);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
+.g-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.g-card-front {
+  background: #f0f0ee;
+}
+
+.g-card-front img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* トランプ風の裏面 */
+.g-card-back {
+  transform: rotateY(180deg);
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 5px,
+      rgba(255, 255, 255, 0.045) 5px 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 5px,
+      rgba(255, 255, 255, 0.045) 5px 10px
+    ),
+    linear-gradient(135deg, var(--card-back-a), var(--card-back-b));
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.16),
+    inset 0 0 0 3px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.g-card-back-motif {
+  width: 42%;
+  height: 30%;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  transform: rotate(45deg);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+/* 獲得済み */
+.g-card.taken {
+  filter: saturate(0.7);
+}
+
+.g-card.taken .g-card-front {
+  box-shadow: inset 0 0 0 3px var(--owner);
+}
+
+.g-card.taken .g-card-front img {
+  opacity: 0.42;
+}
+
+.g-claim {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  padding: 1px 6px;
+  border-radius: 7px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.g-play-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.g-play-foot-note {
+  font-size: 11px;
+  color: var(--text-sub);
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 640px) {
+  .g-setup-card {
+    padding: 22px 20px 20px;
+  }
+
+  .g-slots {
+    gap: 8px;
+  }
+
+  .g-slot {
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .g-slot-img {
+    width: 100%;
+    height: 84px;
+  }
+
+  .g-slot-items {
+    max-height: 72px;
+  }
+
+  .g-board {
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 9px 7px;
+  }
+
+  .g-verdict {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

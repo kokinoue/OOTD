@@ -32,7 +32,9 @@ export function decodeHash(hash: string): Route {
         ? 'weather'
         : path === 'ranking'
           ? 'ranking'
-          : 'fits'
+          : path === 'game'
+            ? 'game'
+            : 'fits'
   const p = new URLSearchParams(query ?? '')
   const filters: Filters = {
     ...defaultFilters,
