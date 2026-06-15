@@ -50,6 +50,24 @@ export type EffectiveItem = {
   rep?: { url: string; outfitKey: string }
 }
 
+/** 1コーデの髪まわりタグ（髪色・髪型・帽子）。各フィールドは null=未設定/該当なし */
+export type HairTag = {
+  color: string | null // 髪色（例: 黒 / 茶 / 明るめ / 白髪まじり）。帽子で隠れて不明なら null
+  style: string | null // 髪型（例: ショート / ミディアム / パーマ / 刈り上げ / 結び）
+  hat: string | null // 帽子（例: キャップ / ニット帽 / ハット）。かぶっていなければ null
+}
+
+/**
+ * 髪タグの保存ファイル（src/data/hair.json）。
+ * auto = 画像AIの推定（scripts/classify-hair.mjs が書き込む）
+ * manual = UIでの手動修正（auto より優先。outfit.key 単位）
+ */
+export type HairFile = {
+  version: number
+  auto: Record<string, HairTag>
+  manual: Record<string, HairTag>
+}
+
 export type Meta = {
   scrapedAt: string
   outfitCount: number

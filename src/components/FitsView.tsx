@@ -3,7 +3,8 @@ import type { Filters } from '../App'
 import { defaultFilters } from '../App'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
-import type { SplitsFile } from '../types'
+import { buildHairFacets, effectiveHair, HAIR_FIELDS } from '../lib/hair'
+import type { HairFile, HairTag, SplitsFile } from '../types'
 import OutfitModal from './OutfitModal'
 import TimelapsePlayer, { type TimelapseFrame } from './TimelapsePlayer'
 
@@ -17,12 +18,31 @@ type Props = {
   filters: Filters
   setFilters: (f: Filters) => void
   splits: SplitsFile
+  hair: HairFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
+  onSetHair: (outfitKey: string, tag: HairTag) => void
 }
 
-export default function FitsView({ data, filters, setFilters, splits, onAssign, onCreateSub, onMoveOutfit }: Props) {
+// 髪フィルタ各軸を Filters のキーへ対応づける
+const HAIR_FILTER_KEY = {
+  color: 'hairColor',
+  style: 'hairStyle',
+  hat: 'hat',
+} as const
+
+export default function FitsView({
+  data,
+  filters,
+  setFilters,
+  splits,
+  hair,
+  onAssign,
+  onCreateSub,
+  onMoveOutfit,
+  onSetHair,
+}: Props) {
   const years = useMemo(() => {
     const ys = new Set<number>()
     for (const o of outfits) ys.add(Number(o.date.slice(0, 4)))
@@ -37,6 +57,11 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
     }
     return [...ms].sort((a, b) => a - b)
   }, [filters.year])
+
+  const hairFacets = useMemo(
+    () => buildHairFacets(hair, outfits.map((o) => o.key)),
+    [hair],
+  )
 
   const filtered = useMemo(() => {
     const q = norm(filters.q.trim())
@@ -53,6 +78,12 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
       if (filters.itemId != null) {
         if (!data.outfitItemIds.get(o.key)?.has(filters.itemId)) return false
       }
+      if (filters.hairColor || filters.hairStyle || filters.hat) {
+        const tag = effectiveHair(hair, o.key)
+        if (filters.hairColor && tag.color !== filters.hairColor) return false
+        if (filters.hairStyle && tag.style !== filters.hairStyle) return false
+        if (filters.hat && tag.hat !== filters.hat) return false
+      }
       if (q) {
         const labels = [...(data.outfitItemIds.get(o.key) ?? [])]
           .map((id) => data.itemMap.get(id)?.label ?? '')
@@ -66,7 +97,7 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
     })
     if (filters.order === 'asc') list.reverse()
     return list
-  }, [data, filters])
+  }, [data, filters, hair])
 
   const [shown, setShown] = useState(PAGE)
   const [openIndex, setOpenIndex] = useState<number | null>(null)
@@ -108,7 +139,14 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
 
   const activeItem = filters.itemId ? data.itemMap.get(filters.itemId) : null
   const hasFilter =
-    filters.from || filters.to || filters.year != null || filters.itemId || filters.q
+    filters.from ||
+    filters.to ||
+    filters.year != null ||
+    filters.itemId ||
+    filters.hairColor ||
+    filters.hairStyle ||
+    filters.hat ||
+    filters.q
 
   return (
     <main>
@@ -191,6 +229,36 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
           </button>
         </div>
 
+        {hairFacets.length > 0 && (
+          <div className="filter-row hair-row">
+            {hairFacets.map((facet) => {
+              const filterKey = HAIR_FILTER_KEY[facet.field]
+              const active = filters[filterKey]
+              const label = HAIR_FIELDS.find((f) => f.key === facet.field)!.label
+              return (
+                <span key={facet.field} className="hair-group">
+                  <span className="hair-group-label jp">{label}</span>
+                  {facet.values.map(({ value, count }) => (
+                    <button
+                      key={value}
+                      className={active === value ? 'chip sm active' : 'chip sm'}
+                      onClick={() =>
+                        setFilters({
+                          ...filters,
+                          [filterKey]: active === value ? null : value,
+                        })
+                      }
+                    >
+                      <span className="jp">{value}</span>
+                      <span className="chip-count mono">{count}</span>
+                    </button>
+                  ))}
+                </span>
+              )
+            })}
+          </div>
+        )}
+
         <div className="filter-row status-row">
           {activeItem && (
             <button
@@ -257,9 +325,11 @@ export default function FitsView({ data, filters, setFilters, splits, onAssign, 
           outfit={filtered[openIndex]}
           data={data}
           splits={splits}
+          hair={hair}
           onAssign={onAssign}
           onCreateSub={onCreateSub}
           onMoveOutfit={onMoveOutfit}
+          onSetHair={onSetHair}
           onClose={() => setOpenIndex(null)}
           onPrev={openIndex > 0 ? () => setOpenIndex(openIndex - 1) : undefined}
           onNext={

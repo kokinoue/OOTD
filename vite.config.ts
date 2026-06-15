@@ -17,6 +17,12 @@ function dataWriteApi(): Plugin {
       file: path.resolve(__dirname, 'src/data/overrides.json'),
       valid: (v) => typeof v === 'object' && v !== null && 'renames' in (v as any),
     },
+    {
+      route: '/api/hair',
+      file: path.resolve(__dirname, 'src/data/hair.json'),
+      valid: (v) =>
+        typeof v === 'object' && v !== null && typeof (v as any).manual === 'object',
+    },
   ]
   return {
     name: 'data-write-api',
@@ -56,7 +62,11 @@ export default defineConfig(({ command, isPreview }) => ({
   server: {
     watch: {
       // UI編集の保存でページがリロードされないようにする（手動リロードで反映）
-      ignored: ['**/src/data/splits.json', '**/src/data/overrides.json'],
+      ignored: [
+        '**/src/data/splits.json',
+        '**/src/data/overrides.json',
+        '**/src/data/hair.json',
+      ],
     },
   },
 }))
