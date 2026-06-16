@@ -280,6 +280,8 @@ function AssignDialog({
   const [newLabel, setNewLabel] = useState('')
   const [moving, setMoving] = useState(false)
   const [moveQ, setMoveQ] = useState('')
+  // インラインで名前を編集中の対象id（ベースなら baseId、個体なら `${baseId}#${subKey}`）
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     const dialog = ref.current
@@ -372,10 +374,30 @@ function AssignDialog({
         <header className="modal-head">
           <div>
             <h2 className="modal-title jp">この日の着用をどの個体にする？</h2>
-            <p className="modal-sub">
-              <span className="chip-cat mono">{category}</span> {baseLabel} ·{' '}
-              <span className="mono">{fmtDate(outfit.date)}</span>
-            </p>
+            <div className="modal-sub">
+              {editingId === baseId ? (
+                <RenameEditor
+                  initial={baseLabel}
+                  onSave={(v) => {
+                    overrideActions.rename(baseId, v)
+                    setEditingId(null)
+                  }}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <>
+                  <span className="chip-cat mono">{category}</span> {baseLabel}
+                  <button
+                    className="assign-rename"
+                    onClick={() => setEditingId(baseId)}
+                    title="アイテム名を変更"
+                  >
+                    ✎
+                  </button>{' '}
+                  · <span className="mono">{fmtDate(outfit.date)}</span>
+                </>
+              )}
+            </div>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="閉じる">
             ✕
@@ -388,20 +410,40 @@ function AssignDialog({
             const count = data.itemMap.get(subId)?.count ?? sub.outfits.length
             return (
               <li key={sub.key}>
-                <button
-                  className={
-                    !currentMove && sub.key === currentSubKey
-                      ? 'assign-option current'
-                      : 'assign-option'
-                  }
-                  onClick={() => choose(sub.key)}
-                >
-                  <span className="assign-radio">
-                    {!currentMove && sub.key === currentSubKey ? '●' : '○'}
-                  </span>
-                  <span className="assign-label jp">{subLabelOf(sub.key, sub.label)}</span>
-                  <span className="item-meta mono dim">{count}回</span>
-                </button>
+                {editingId === subId ? (
+                  <RenameEditor
+                    initial={subLabelOf(sub.key, sub.label)}
+                    onSave={(v) => {
+                      overrideActions.rename(subId, v)
+                      setEditingId(null)
+                    }}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
+                  <div className="assign-row">
+                    <button
+                      className={
+                        !currentMove && sub.key === currentSubKey
+                          ? 'assign-option current'
+                          : 'assign-option'
+                      }
+                      onClick={() => choose(sub.key)}
+                    >
+                      <span className="assign-radio">
+                        {!currentMove && sub.key === currentSubKey ? '●' : '○'}
+                      </span>
+                      <span className="assign-label jp">{subLabelOf(sub.key, sub.label)}</span>
+                      <span className="item-meta mono dim">{count}回</span>
+                    </button>
+                    <button
+                      className="assign-rename"
+                      onClick={() => setEditingId(subId)}
+                      title="この個体名を変更"
+                    >
+                      ✎
+                    </button>
+                  </div>
+                )}
               </li>
             )
           })}
@@ -494,5 +536,39 @@ function AssignDialog({
         </div>
       </article>
     </dialog>
+  )
+}
+
+/** 名前のインライン編集。空のまま保存すると上書きが消えて自動ラベルに戻る */
+function RenameEditor({
+  initial,
+  onSave,
+  onCancel,
+}: {
+  initial: string
+  onSave: (label: string) => void
+  onCancel: () => void
+}) {
+  const [value, setValue] = useState(initial)
+  return (
+    <span className="assign-edit">
+      <input
+        className="search jp"
+        type="text"
+        autoFocus
+        value={value}
+        placeholder="名前（空で自動に戻す）"
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onSave(value)
+        }}
+      />
+      <button className="chip sm primary" onClick={() => onSave(value)}>
+        <span className="jp">保存</span>
+      </button>
+      <button className="chip sm" onClick={onCancel}>
+        <span className="jp">取消</span>
+      </button>
+    </span>
   )
 }
