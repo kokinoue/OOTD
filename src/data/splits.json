@@ -956,9 +956,6 @@
           "key": "black-dark",
           "label": "黒・ダーク系",
           "outfits": [
-            "n074c120a5879",
-            "n43e9108b1c5e",
-            "n9702c8bea8e8",
             "n98d4a9cbc98c",
             "ne3e61a7dfd06",
             "ndf27c8a97e45",
@@ -966,26 +963,11 @@
             "naa4fbcfd1d6a",
             "n2dab6628e917",
             "n1e1be159a322",
-            "n6ac7cb99fa63",
             "n1016e47ad313",
-            "na2f7cfc7d656",
-            "nc542161a1f21",
             "n0df311324458",
             "nd70929df71d2",
             "ne2154f22418b",
-            "nd57dcd3727c4",
-            "nff81ef51bb3e",
-            "n84902e72fba9",
-            "n6834fd707932",
-            "nb015dce5d0b4",
-            "n9960eff06894",
-            "nfe8360ce1504",
-            "n23ea03ac142a",
-            "naaecc03e2f85",
-            "n8d6ee884b0ed",
-            "neeb05bf8e857",
-            "nf852fa028008",
-            "n48d0710c5e2b"
+            "nd57dcd3727c4"
           ]
         },
         {
@@ -994,8 +976,44 @@
           "outfits": [
             "n690281bea880",
             "n6ba00297761d",
-            "n1f3ce9ea120b",
             "n9490b4f0619a",
+            "n6834fd707932",
+            "naaecc03e2f85",
+            "n48d0710c5e2b"
+          ]
+        },
+        {
+          "key": "u-22aw-amachi-メルトン",
+          "label": "22aw · amachi. · メルトン",
+          "outfits": [
+            "n074c120a5879",
+            "n43e9108b1c5e",
+            "n9702c8bea8e8",
+            "n6ac7cb99fa63",
+            "nff81ef51bb3e",
+            "n84902e72fba9",
+            "nb015dce5d0b4",
+            "n23ea03ac142a",
+            "n8d6ee884b0ed",
+            "nf852fa028008"
+          ]
+        },
+        {
+          "key": "u-22ss-amachi-セットアップ",
+          "label": "22ss · amachi. · セットアップ",
+          "outfits": [
+            "na2f7cfc7d656",
+            "nc542161a1f21",
+            "nfe8360ce1504",
+            "neeb05bf8e857"
+          ]
+        },
+        {
+          "key": "u-23aw-amachi-ウール",
+          "label": "23aw · amachi. · ウール",
+          "outfits": [
+            "n9960eff06894",
+            "n1f3ce9ea120b",
             "nfda17991e1d0"
           ]
         }
