@@ -1902,6 +1902,13 @@
       "ncd6d2ed4ad9b": "pants|60s",
       "n043fe19be86e": "pants|60s",
       "ne6438b6a4624": "pants|60s"
+    },
+    "t-shirt|awwmagazine": {
+      "na54b266cc98c": "t-shirt|awwraintee",
+      "n87be482c43e6": "t-shirt|aww"
+    },
+    "t-shirt|aww": {
+      "n27a69d25540f": "t-shirt|awwraintee"
     }
   }
 }

@@ -2,7 +2,15 @@
   "renames": {
     "pants|26ssgeorgia": "26ss · GEORGIA · デニム",
     "shoes|stefancooke": "21ss · Stefan Cooke · derby shoes",
-    "knit|call": "23ss · Call · サマーニット"
+    "knit|call": "23ss · Call · サマーニット",
+    "pants|90slevis": "90's · Levi's · 501",
+    "shirt|nahyat": "25aw · NAHYAT · 柄シャツ",
+    "shirt|ensou": "26ss · ensou · リネン",
+    "shoes|jmweston#black-loafer": "J.M.WESTON · 180",
+    "shoes|jmweston": "J.M.WESTON · 180",
+    "t-shirt|awwraintee": "22ss · AWW magazine",
+    "t-shirt|aww": "24ss · AWW magazine",
+    "t-shirt|awwmagazine": "26ss · AWW magazine"
   },
   "categories": {},
   "merges": {
@@ -11,6 +19,11 @@
   "hidden": [],
   "colors": {
     "shoes|stefancooke": "black",
-    "knit|call": "black"
+    "knit|call": "black",
+    "shoes|jmweston#black-loafer": "black",
+    "shoes|jmweston#red": "red",
+    "t-shirt|aww": "white",
+    "t-shirt|awwraintee": "white",
+    "t-shirt|awwmagazine": "white"
   }
 }
