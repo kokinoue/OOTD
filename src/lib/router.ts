@@ -20,7 +20,7 @@ export function encodeHash({ view, filters }: Route): string {
   if (filters.from) p.set('from', filters.from)
   if (filters.to) p.set('to', filters.to)
   if (filters.q) p.set('q', filters.q)
-  if (filters.order !== 'desc') p.set('order', filters.order)
+  if (filters.sort !== 'new') p.set('sort', filters.sort)
   const qs = p.toString()
   return view === 'fits' && qs ? `/fits?${qs}` : `/${view}`
 }
@@ -33,14 +33,15 @@ export function decodeHash(hash: string): Route {
       ? 'items'
       : path === 'weather'
         ? 'weather'
-        : path === 'ranking'
-          ? 'ranking'
-          : path === 'game'
-            ? 'game'
+        : path === 'game'
+          ? 'game'
+          : path === 'memory'
+            ? 'memory'
             : path === 'duel'
               ? 'duel'
               : 'fits'
   const p = new URLSearchParams(query ?? '')
+  const sortParam = p.get('sort')
   const filters: Filters = {
     ...defaultFilters,
     itemId: p.get('item') || null,
@@ -52,7 +53,7 @@ export function decodeHash(hash: string): Route {
     from: p.get('from') ?? '',
     to: p.get('to') ?? '',
     q: p.get('q') ?? '',
-    order: p.get('order') === 'asc' ? 'asc' : 'desc',
+    sort: sortParam === 'old' || sortParam === 'like' ? sortParam : 'new',
   }
   return { view, filters }
 }

@@ -52,7 +52,7 @@ function hasMatch(down: GameCard[]): boolean {
   return false
 }
 
-export default function MemoryGameView({ data }: { data: Data }) {
+export default function MemoryGameView({ data, onBack }: { data: Data; onBack: () => void }) {
   // 画像とアイテムが揃っているコーデだけを場札の候補にする
   const pool = useMemo(
     () =>
@@ -227,6 +227,9 @@ export default function MemoryGameView({ data }: { data: Data }) {
     return (
       <main className="g-setup">
         <div className="g-setup-card">
+          <button className="game-back jp" onClick={onBack}>
+            ← ゲームを選ぶ
+          </button>
           <h2 className="g-setup-title jp">出勤服 神経衰弱</h2>
           <p className="g-setup-lead jp">
             場札は {Math.min(BOARD_SIZE, pool.length)} 枚の出勤服。2枚めくって、

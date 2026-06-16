@@ -95,7 +95,10 @@ export default function FitsView({
       }
       return true
     })
-    if (filters.order === 'asc') list.reverse()
+    // outfits は新しい順が基準。古い順は反転、スキ順はスキ数降順（同数は新しい順）
+    if (filters.sort === 'old') list.reverse()
+    else if (filters.sort === 'like')
+      list.sort((a, b) => b.like - a.like || (a.date < b.date ? 1 : -1))
     return list
   }, [data, filters, hair])
 
@@ -218,15 +221,16 @@ export default function FitsView({
             value={filters.q}
             onChange={(e) => setFilters({ ...filters, q: e.target.value })}
           />
-          <button
-            className="chip"
-            onClick={() =>
-              setFilters({ ...filters, order: filters.order === 'desc' ? 'asc' : 'desc' })
-            }
-            title="並び順を切り替え"
+          <select
+            className="select"
+            value={filters.sort}
+            onChange={(e) => setFilters({ ...filters, sort: e.target.value as Filters['sort'] })}
+            title="並び替え"
           >
-            {filters.order === 'desc' ? '新しい順 ↓' : '古い順 ↑'}
-          </button>
+            <option value="new">新しい順</option>
+            <option value="old">古い順</option>
+            <option value="like">スキ順</option>
+          </select>
         </div>
 
         {hairFacets.length > 0 && (
@@ -294,24 +298,43 @@ export default function FitsView({
         <p className="empty jp">条件に合うコーデがありません</p>
       ) : (
         <div className="grid">
-          {filtered.slice(0, shown).map((o, i) => (
-            <button key={o.key} className="card" onClick={() => setOpenIndex(i)}>
-              {o.images[0] ? (
-                <img
-                  src={thumb(o.images[0].url, 480)}
-                  alt={o.title}
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <span className="card-placeholder jp">no image</span>
-              )}
-              <span className="card-meta mono">
-                <span>{fmtDate(o.date)}</span>
-                {o.no != null && <span className="card-no">#{o.no}</span>}
-              </span>
-            </button>
-          ))}
+          {filtered.slice(0, shown).map((o, i) => {
+            const byLike = filters.sort === 'like'
+            return (
+              <button
+                key={o.key}
+                className={byLike ? 'card rank-card' : 'card'}
+                onClick={() => setOpenIndex(i)}
+              >
+                {byLike && (
+                  <span className={'rank-badge mono' + (i < 3 ? ' rank-top' : '')}>{i + 1}</span>
+                )}
+                {o.images[0] ? (
+                  <img
+                    src={thumb(o.images[0].url, 480)}
+                    alt={o.title}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span className="card-placeholder jp">no image</span>
+                )}
+                <span className="card-meta mono">
+                  {byLike ? (
+                    <>
+                      <span className="rank-like">♡ {o.like}</span>
+                      <span className="card-no">{fmtDate(o.date)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{fmtDate(o.date)}</span>
+                      {o.no != null && <span className="card-no">#{o.no}</span>}
+                    </>
+                  )}
+                </span>
+              </button>
+            )
+          })}
         </div>
       )}
       {shown < filtered.length && <div ref={sentinelRef} className="sentinel" />}
