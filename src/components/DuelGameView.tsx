@@ -160,7 +160,7 @@ function CardView({
 // ---------------------------------------------------------------------------
 // メイン
 // ---------------------------------------------------------------------------
-export default function DuelGameView({ data }: { data: Data }) {
+export default function DuelGameView({ data, onBack }: { data: Data; onBack: () => void }) {
   const pool = useMemo(() => buildPool(data), [data])
   const [phase, setPhase] = useState<Phase>('setup')
   const [deckMonsters, setDeckMonsters] = useState<MonsterTemplate[]>(() => buildAutoDeck(pool))
@@ -249,6 +249,9 @@ export default function DuelGameView({ data }: { data: Data }) {
     return (
       <main className="d-setup">
         <div className="d-setup-card">
+          <button className="game-back jp" onClick={onBack}>
+            ← ゲームを選ぶ
+          </button>
           <h2 className="d-setup-title jp">出勤服デュエル</h2>
           <p className="d-setup-lead jp">
             出勤服1着が1体のモンスター。<b>スキ数＝攻撃力</b>、<b>着用回数＝守備力</b>、<b>季節＝属性</b>。
