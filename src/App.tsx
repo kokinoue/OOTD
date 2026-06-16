@@ -1,3 +1,4 @@
+import DuelGameView from './components/DuelGameView'
 import FitsView from './components/FitsView'
 import ItemsView from './components/ItemsView'
 import MemoryGameView from './components/MemoryGameView'
@@ -9,7 +10,7 @@ import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
-export type View = 'fits' | 'items' | 'ranking' | 'weather' | 'game'
+export type View = 'fits' | 'items' | 'ranking' | 'weather' | 'game' | 'duel'
 
 export type Filters = {
   from: string
@@ -98,6 +99,12 @@ export default function App() {
           >
             神経衰弱
           </button>
+          <button
+            className={view === 'duel' ? 'tab active' : 'tab'}
+            onClick={() => setView('duel')}
+          >
+            デュエル
+          </button>
         </nav>
       </header>
 
@@ -129,6 +136,7 @@ export default function App() {
       )}
       {view === 'weather' && <WeatherView />}
       {view === 'game' && <MemoryGameView data={data} />}
+      {view === 'duel' && <DuelGameView data={data} />}
 
       {(saveState === 'error' || hairSaveState === 'error') && (
         <div className="save-error jp">
