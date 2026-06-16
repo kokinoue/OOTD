@@ -1,37 +1,16 @@
 {
   "renames": {
-    "pants|maisonmartinmargiela#indigo-flare": "03ss · Maison Martin Margiela · デニム",
-    "pants|maisonmartinmargiela#grey-wide": "00ss · Maison Martin Margiela · アーティザナル",
-    "pants|maisonmartinmargiela#light": "03aw · Maison Martin Margiela · デニム",
-    "pants|maisonmartinmargiela#blue-denim": "04ss · Maison Martin Margiela · アーティザナル",
-    "pants|used#black-dark": "used · 黒・スラックス",
-    "pants|60s": "60's • us • 茶 • スラックス",
-    "pants|60slee": "60's • Lee",
-    "jacket|call#black-dark": "22aw · Call · ウールジャケット",
-    "jacket|levis506xx": "50's · LEVI'S · 506XX",
-    "jacket|gauche": "23ss · Gauche · リネンジャケット",
-    "jacket|wildfraulein#dark": "24aw · WILDFRÄULEIN · ファーブルゾン",
-    "jacket|amachi": "19aw · amachi. · Meeting Jacket",
-    "jacket|call#pink": "22aw · Call · レザー",
-    "jacket|call#beige": "21aw · Call · ロングジャケット",
-    "jacket|call#lime": "23ss · Call · ライムイエロー",
-    "pants|amachi#black-dark": "24ss · amachi. · コットンワイド",
-    "pants|amachi#white": "19aw · amachi. · ウール",
-    "pants|amachi#u-22ss-amachi-セットアップ": "22ss · amachi. · セットアップ",
-    "pants|amachi#u-23aw-amachi-ウール": "23aw · amachi. · ウール",
-    "pants|amachi#u-22aw-amachi-メルトン": "22aw · amachi. · メルトン"
+    "pants|26ssgeorgia": "26ss · GEORGIA · デニム",
+    "shoes|stefancooke": "21ss · Stefan Cooke · derby shoes",
+    "knit|call": "23ss · Call · サマーニット"
   },
   "categories": {},
   "merges": {
-    "pants|maisonmartinmargiela#grey-slacks": "pants|maisonmartinmargiela#grey-wide"
+    "pants|georgia": "pants|26ssgeorgia"
   },
   "hidden": [],
   "colors": {
-    "pants|maisonmartinmargiela#indigo-flare": "blue",
-    "pants|amachi#black-dark": "navy",
-    "pants|amachi#white": "white",
-    "pants|amachi#u-22aw-amachi-メルトン": "gray",
-    "pants|amachi#u-22ss-amachi-セットアップ": "navy",
-    "pants|amachi#u-23aw-amachi-ウール": "white"
+    "shoes|stefancooke": "black",
+    "knit|call": "black"
   }
 }
