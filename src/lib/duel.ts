@@ -157,6 +157,10 @@ export type BattleFlash = {
   result: 'destroy-target' | 'destroy-attacker' | 'both' | 'recoil' | 'bounce' | 'negate' | 'direct' | 'none'
   damageTo: Side | null
   damage: number
+  // 演出用: どのゾーンからどのゾーンへ攻撃したか（UIアニメーションが参照する）
+  attackerSide: Side
+  attackerZone: number
+  targetZone: number | null
 }
 
 export type GameState = {
@@ -240,43 +244,122 @@ const RACE_LABEL: Record<Group, string> = {
   acc: '装具族',
 }
 
-function levelOf(atk: number): number {
-  if (atk >= 2600) return 8
-  if (atk >= 2300) return 7
-  if (atk >= 1900) return 6
-  if (atk >= 1500) return 5
-  if (atk >= 1100) return 4
-  if (atk >= 700) return 3
-  if (atk >= 400) return 2
-  return 1
-}
 export function tributesNeeded(level: number): number {
   if (level >= 7) return 2
   if (level >= 5) return 1
   return 0
 }
 
+// ---- レアリティ（★レベル）は「スキ数の人気ランク」で決める ----
+// note のスキ数は実測で 1〜31（中央値4）に収まり、絶対値だと ★6 以上が出ない。
+// そこで母集団内の順位（パーセンタイル）で格付けし、★1〜★8 のピラミッドを作る。
+// 同スキ数はキーのハッシュで決定的に散らし、どの帯も必ず埋まるようにする。
+const LEVEL_BANDS: { level: number; top: number }[] = [
+  { level: 1, top: 0.12 },
+  { level: 2, top: 0.30 },
+  { level: 3, top: 0.52 },
+  { level: 4, top: 0.71 },
+  { level: 5, top: 0.83 },
+  { level: 6, top: 0.92 },
+  { level: 7, top: 0.97 },
+  { level: 8, top: 1.0 },
+]
+
+/** 母集団（key+スキ数）からカードごとの★レベル(1-8)を決める決定的マップを作る */
+export function buildLevelScale(pop: { key: string; like: number }[]): Map<string, number> {
+  const sorted = [...pop].sort((a, b) => a.like - b.like || hash(a.key) - hash(b.key))
+  const n = Math.max(1, sorted.length)
+  const map = new Map<string, number>()
+  sorted.forEach((p, i) => {
+    const frac = (i + 0.5) / n
+    const band = LEVEL_BANDS.find((b) => frac <= b.top) ?? LEVEL_BANDS[LEVEL_BANDS.length - 1]
+    map.set(p.key, band.level)
+  })
+  return map
+}
+
+// レベル → ATK の基準値。キー由来のジッタを足して同レベルでも少し散らす。
+const ATK_BASE: Record<number, number> = { 1: 300, 2: 700, 3: 1100, 4: 1500, 5: 1900, 6: 2200, 7: 2500, 8: 2800 }
+function atkForLevel(level: number, key: string): number {
+  const base = ATK_BASE[level] ?? 1100
+  const jitter = (hash(key + 'atk') % 9) * 50 // 0〜400
+  return Math.min(3000, base + jitter)
+}
+// スキ数だけからの簡易レベル（母集団が無いときのフォールバック）
+function levelFromLike(like: number): number {
+  if (like >= 16) return 8
+  if (like >= 11) return 7
+  if (like >= 8) return 6
+  if (like >= 6) return 5
+  if (like >= 4) return 4
+  if (like >= 3) return 3
+  if (like >= 2) return 2
+  return 1
+}
+
 // ---- カード名ジェネレータ ----
+// 画像の特徴（季節・色・主役カテゴリ・帽子・髪色）を素材に中二病ネームを組む。
+// outfit.key で安定。素材プールを厚くし、最後に ensureUniqueNames で重複を散らす。
 const SEASON_WORDS: Record<Season, string[]> = {
-  spring: ['芽吹', '桜花', '萌黄', '春陽', '若草'],
-  summer: ['灼熱', '碧波', '陽炎', '常夏', '深緑'],
-  autumn: ['黄昏', '紅葉', '錦秋', '枯野', '実りの'],
-  winter: ['氷結', '凍て', '白雪', '極寒', '霜枯れ'],
+  spring: ['芽吹', '桜花', '萌黄', '春陽', '若草', '霞', '花風'],
+  summer: ['灼熱', '碧波', '陽炎', '常夏', '深緑', '驟雨', '南風'],
+  autumn: ['黄昏', '紅葉', '錦秋', '枯野', '実りの', '月夜', '落葉'],
+  winter: ['氷結', '凍て', '白雪', '極寒', '霜枯れ', '吹雪', '寒月'],
 }
 const COLOR_WORDS: Record<string, string[]> = {
-  white: ['純白', '白銀'],
-  beige: ['砂漠', '琥珀'],
-  gray: ['灰銀', '霧幻'],
-  black: ['漆黒', '闇夜'],
-  brown: ['土塊', '黄土'],
-  navy: ['紺碧', '深淵'],
-  blue: ['蒼天', '碧海'],
-  green: ['翠緑', '常磐'],
-  yellow: ['金色', '向日'],
-  orange: ['夕焼', '焔'],
-  red: ['緋色', '紅蓮'],
-  pink: ['桜色', '薄紅'],
-  purple: ['紫紺', '菫'],
+  white: ['純白', '白銀', '雪白'],
+  beige: ['砂漠', '琥珀', '亜麻'],
+  gray: ['灰銀', '霧幻', '鈍色'],
+  black: ['漆黒', '闇夜', '黒曜', '烏羽'],
+  brown: ['土塊', '黄土', '鳶色'],
+  navy: ['紺碧', '深淵', '濃紺'],
+  blue: ['蒼天', '碧海', '群青'],
+  green: ['翠緑', '常磐', '若苗'],
+  yellow: ['金色', '向日', '山吹'],
+  orange: ['夕焼', '焔', '橙'],
+  red: ['緋色', '紅蓮', '朱'],
+  pink: ['桜色', '薄紅', '撫子'],
+  purple: ['紫紺', '菫', '藤'],
+}
+// 主役アイテムの「具体カテゴリ」を核名に反映（無ければグループ既定にフォールバック）
+const CATEGORY_NOUN: Record<string, string[]> = {
+  coat: ['外套', '羅紗', '長衣'],
+  jacket: ['戦衣', '陣羽織', '上衣'],
+  blouson: ['飛行衣', '風纏'],
+  outer: ['鎧纏', '重衣'],
+  'down vest': ['羽毛胴', '綿胴'],
+  cardigan: ['編羽織', '柔衣'],
+  setup: ['正装', '揃衣'],
+  suit: ['礼装', '甲冑'],
+  vest: ['胴衣', '胸当'],
+  smock: ['作務衣', '前掛'],
+  biaude: ['異邦衣'],
+  knit: ['編衣', '毛織', '綟り'],
+  sweat: ['綿鎧', '汗衣'],
+  hoodie: ['頭巾衣', '兜衣'],
+  't-shirt': ['布衣', '単衣'],
+  shirt: ['織衣', '襟衣'],
+  tops: ['上衣'],
+  inner: ['肌着', '内衣'],
+  tanktop: ['袖無'],
+  pants: ['脚甲', '袴', '疾風脚'],
+  shorts: ['短袴', '軽脚'],
+  jumpsuit: ['全身衣', '一張羅'],
+  'all in one': ['一体衣'],
+  shoes: ['踏破者', '韋足', '軍靴'],
+  boots: ['鉄長靴', '長靴聖'],
+  bag: ['宝袋', '荷霊', '背嚢'],
+  cap: ['鍔帽', '庇兜'],
+  hat: ['広鍔', '中折'],
+  beanie: ['丸帽'],
+  'knit cap': ['毛糸頭巾'],
+  glasses: ['透鏡', '眼鏡'],
+  scarf: ['首巻', '襟巻'],
+  stole: ['肩掛'],
+  snood: ['輪巻'],
+  gloves: ['手甲'],
+  tie: ['首結'],
+  'knit tie': ['編首結'],
 }
 const CORE_NOUN: Record<Group, string[]> = {
   outer: ['鎧纏', '外套', '戦衣', '陣羽織'],
@@ -285,40 +368,98 @@ const CORE_NOUN: Record<Group, string[]> = {
   shoes: ['踏破者', '歩哨', '靴聖', '韋足'],
   acc: ['宝物', '護符', '装具', '小物霊'],
 }
-const TITLE_HIGH = ['皇', '覇王', '龍', '神', '帝']
-const TITLE_MID = ['騎士', '戦士', '使徒', '番人']
-const TITLE_LOW = ['兵', '従者', '見習', '童子']
-const KATAKANA = ['・ノワール', '・ブラン', '・レックス', '・ジエンド', '・グランデ', '・ザ・ラスト', '・ルージュ', '・ヴェント']
+const TITLE_HIGH = ['皇', '覇王', '龍帝', '神', '帝', '大魔', '天王']
+const TITLE_MID = ['騎士', '戦士', '使徒', '番人', '将', '剣聖']
+const TITLE_LOW = ['兵', '従者', '見習', '童子', '足軽', '小姓']
+const KATAKANA = ['・ノワール', '・ブラン', '・レックス', '・ジエンド', '・グランデ', '・ザ・ラスト', '・ルージュ', '・ヴェント', '・ネロ', '・ビアンコ', '・テラ', '・ソレイユ', '・ルーナ', '・フィナーレ']
+// 帽子は見た目の象徴 → 冠詞に反映
+const HAT_WORDS: Record<string, string[]> = {
+  キャップ: ['鍔付', '庇'],
+  ニット帽: ['毛糸冠', '丸頭巾'],
+  ハット: ['広鍔', '中折れ'],
+}
+// 髪色（黒は多数派なので冠には使わない＝特徴の薄い名前を避ける）
+const HAIR_WORDS: Record<string, string[]> = {
+  金: ['金獅子', '黄金'],
+  茶: ['鳶色', '栗毛'],
+}
 
-function genName(key: string, season: Season, group: Group, color: string | undefined, atk: number): string {
+export type NameFeatures = {
+  season: Season
+  group: Group
+  category: string
+  color?: string
+  color2?: string
+  hat?: string | null
+  hairColor?: string | null
+  level: number
+}
+
+function genName(key: string, f: NameFeatures): string {
   const h = hash(key)
-  const useColor = color && COLOR_WORDS[color] && (h & 1) === 0
-  const crown = useColor ? pick(COLOR_WORDS[color!], hash(key + 'c')) : pick(SEASON_WORDS[season], hash(key + 's'))
-  const core = pick(CORE_NOUN[group], hash(key + 'n'))
-  const titlePool = atk >= 2300 ? TITLE_HIGH : atk >= 1300 ? TITLE_MID : TITLE_LOW
+  const cores = CATEGORY_NOUN[f.category] ?? CORE_NOUN[f.group]
+  const core = pick(cores, hash(key + 'n'))
+  const titlePool = f.level >= 7 ? TITLE_HIGH : f.level >= 4 ? TITLE_MID : TITLE_LOW
   const title = pick(titlePool, hash(key + 't'))
   const kata = pick(KATAKANA, hash(key + 'k'))
-  switch (h % 4) {
+  // 冠（プレフィックス）: 帽子＞色＞髪色＞季節 の優先で、見た目の特徴を前に出す
+  let crown: string
+  if (f.hat && HAT_WORDS[f.hat] && (h & 3) !== 0) crown = pick(HAT_WORDS[f.hat], hash(key + 'c'))
+  else if (f.color && COLOR_WORDS[f.color] && (h & 1) === 0) crown = pick(COLOR_WORDS[f.color], hash(key + 'c'))
+  else if (f.hairColor && HAIR_WORDS[f.hairColor] && h % 5 === 0) crown = pick(HAIR_WORDS[f.hairColor], hash(key + 'c'))
+  else crown = pick(SEASON_WORDS[f.season], hash(key + 'c'))
+  const twoTone = f.color && f.color2 && f.color !== f.color2 && COLOR_WORDS[f.color] && COLOR_WORDS[f.color2]
+  switch (h % 7) {
     case 0:
       return `${crown}の${core}`
     case 1:
       return `${crown}の${core}・${title}`
     case 2:
       return `${core}${title}${kata}`
-    default:
+    case 3:
       return `${crown}${core}${kata}`
+    case 4: {
+      const hatW = f.hat && HAT_WORDS[f.hat] ? pick(HAT_WORDS[f.hat], hash(key + 'h')) : crown
+      return `${hatW}${core}・${title}`
+    }
+    case 5:
+      if (twoTone) {
+        const a = pick(COLOR_WORDS[f.color!], hash(key + 'c'))
+        const b = pick(COLOR_WORDS[f.color2!], hash(key + 'c2'))
+        return `${a}と${b}の${core}`
+      }
+      return `${crown}${core}${title}`
+    default:
+      return `${title}${kata}・${core}`
+  }
+}
+
+// 重複名を決定的に散らす（同名にだけ漢数字の連番を付ける）
+const KANJI_NUM = ['', '弐', '参', '肆', '伍', '陸', '漆', '捌', '玖', '拾']
+export function ensureUniqueNames(list: MonsterTemplate[]): void {
+  const seen = new Map<string, number>()
+  for (const m of list) {
+    const n = (seen.get(m.name) ?? 0) + 1
+    seen.set(m.name, n)
+    if (n >= 2) m.name = `${m.name} ${KANJI_NUM[n - 1] ?? n}`
   }
 }
 
 export type ItemInfo = { category: string; count: number; color?: string }
+export type DeriveContext = {
+  /** 人気ランクで決めた★レベル（buildLevelScale）。無ければスキ数から簡易算出 */
+  level?: number
+  hat?: string | null
+  hairColor?: string | null
+}
 
 /** 1出勤服を1モンスターカードのテンプレートに変換する */
-export function deriveMonster(outfit: Outfit, items: ItemInfo[]): MonsterTemplate {
-  // スキ数は概ね小さいので sqrt で持ち上げ、遊戯王らしい 400〜3000 のレンジに乗せる
-  const atk = Math.min(3000, Math.max(400, round50(500 + Math.sqrt(Math.max(0, outfit.like)) * 240)))
+export function deriveMonster(outfit: Outfit, items: ItemInfo[], ctx?: DeriveContext): MonsterTemplate {
+  // ★レベルは人気ランク（ctx.level）で決め、ATKはレベルから引く＝高レベルほど大きい
+  const level = ctx?.level ?? levelFromLike(outfit.like)
+  const atk = atkForLevel(level, outfit.key)
   const avgWear = items.length ? items.reduce((s, it) => s + (it.count || 0), 0) / items.length : 1
   const def = Math.min(2800, Math.max(300, round50(400 + Math.sqrt(Math.max(1, avgWear)) * 150)))
-  const level = levelOf(atk)
   const season = seasonOf(outfit.date)
 
   // 主役アイテム: グループ優先度 → 着用回数 の順で1つ選ぶ
@@ -328,18 +469,26 @@ export function deriveMonster(outfit: Outfit, items: ItemInfo[]): MonsterTemplat
     return pa - pb || (b.count || 0) - (a.count || 0)
   })[0]
   const group = main ? groupOf(main.category) : 'acc'
-  // 代表色: 主役アイテムの色 → 無ければ最頻色
-  let color = main?.color
-  if (!color) {
-    const freq = new Map<string, number>()
-    for (const it of items) if (it.color) freq.set(it.color, (freq.get(it.color) ?? 0) + 1)
-    color = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]
-  }
+  // 色の頻度（代表色＝主役の色 or 最頻色、副色＝2番目に多い色）
+  const freq = new Map<string, number>()
+  for (const it of items) if (it.color) freq.set(it.color, (freq.get(it.color) ?? 0) + 1)
+  const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c)
+  const color = main?.color ?? ranked[0]
+  const color2 = ranked.find((c) => c !== color)
 
   return {
     kind: 'monster',
     outfitKey: outfit.key,
-    name: genName(outfit.key, season, group, color, atk),
+    name: genName(outfit.key, {
+      season,
+      group,
+      category: main?.category ?? 'other',
+      color,
+      color2,
+      hat: ctx?.hat,
+      hairColor: ctx?.hairColor,
+      level,
+    }),
     img: outfit.images[0]?.url ?? '',
     title: outfit.title,
     date: outfit.date,
@@ -365,15 +514,34 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-/** おまかせ40枚: 強さの偏りを抑えてモンスター32 + 魔法罠8 を組む */
+// おまかせデッキの理想カーブ（合計＝MONSTER_COUNT=32）。少数の大型＋厚い中低層。
+const DECK_CURVE: Record<number, number> = { 8: 1, 7: 2, 6: 3, 5: 5, 4: 7, 3: 8, 2: 4, 1: 2 }
+
+/** おまかせ40枚: レベルカーブに沿ってモンスター32 + 魔法罠8 を組む */
 export function buildAutoDeck(pool: MonsterTemplate[]): MonsterTemplate[] {
-  // レベル帯ごとに散らして引く（高レベル＝リリース必須の爆弾は少なめに）
-  const byBomb = (m: MonsterTemplate) => m.level >= 7
-  const bombs = shuffle(pool.filter(byBomb)).slice(0, 4)
-  const rest = shuffle(pool.filter((m) => !byBomb(m)))
-  const monsters = [...bombs, ...rest].slice(0, MONSTER_COUNT)
-  // 念のため不足時は重複なしの範囲で
-  return monsters
+  const byLevel = new Map<number, MonsterTemplate[]>()
+  for (const m of pool) {
+    const a = byLevel.get(m.level) ?? []
+    a.push(m)
+    byLevel.set(m.level, a)
+  }
+  for (const a of byLevel.values()) {
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[a[i], a[j]] = [a[j], a[i]]
+    }
+  }
+  const out: MonsterTemplate[] = []
+  for (let lv = 8; lv >= 1; lv--) {
+    const want = DECK_CURVE[lv] ?? 0
+    out.push(...(byLevel.get(lv) ?? []).slice(0, want))
+  }
+  // 端数はプールの残りから埋める（カーブどおりに揃わない／プールが小さい場合の保険）
+  if (out.length < MONSTER_COUNT) {
+    const used = new Set(out.map((m) => m.outfitKey))
+    out.push(...shuffle(pool.filter((m) => !used.has(m.outfitKey))).slice(0, MONSTER_COUNT - out.length))
+  }
+  return shuffle(out).slice(0, MONSTER_COUNT)
 }
 
 let uidSeq = 0
@@ -617,6 +785,9 @@ export function applyAction(state: GameState, action: Action): GameState {
           result: tr.trapName === 'タグ付き返品' ? 'bounce' : 'negate',
           damageTo: null,
           damage: 0,
+          attackerSide: action.side,
+          attackerZone: action.attackerZone,
+          targetZone: action.targetZone,
         }
         return s
       }
@@ -640,6 +811,9 @@ export function applyAction(state: GameState, action: Action): GameState {
           result: 'direct',
           damageTo: other(action.side),
           damage: value,
+          attackerSide: action.side,
+          attackerZone: action.attackerZone,
+          targetZone: null,
         }
         log(s, action.side, `ダイレクトアタック — ${value} ダメージ`)
         checkWin(s)
@@ -710,6 +884,9 @@ export function applyAction(state: GameState, action: Action): GameState {
         result,
         damageTo,
         damage,
+        attackerSide: action.side,
+        attackerZone: action.attackerZone,
+        targetZone: action.targetZone,
       }
       const matchTxt = m === 1 ? `（相性○ +${ATTR_BONUS}）` : m === -1 ? `（相性× -${ATTR_BONUS}）` : ''
       log(s, action.side, `「${aSlot.card.name}」が「${target.card.name}」へ攻撃 ${matchTxt}`)
