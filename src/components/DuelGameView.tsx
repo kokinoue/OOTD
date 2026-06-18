@@ -2,13 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Data } from '../lib/useData'
 import { outfits, thumb } from '../lib/useData'
+import hairJson from '../data/hair.json'
+import type { HairFile } from '../types'
 import {
   applyAction,
   buildAutoDeck,
+  buildLevelScale,
   canSummon,
   cpuNextAction,
   createGame,
   deriveMonster,
+  ensureUniqueNames,
   isMonster,
   materializeDeck,
   MONSTER_COUNT,
@@ -24,8 +28,26 @@ import {
   type Side,
 } from '../lib/duel'
 
+// 髪まわりタグ（帽子・髪色）はカード名の素材に使う。manual が auto を上書き。
+const hairFile = hairJson as HairFile
+const hairOf = (key: string) => hairFile.manual[key] ?? hairFile.auto[key]
+
 const SEASONS: Season[] = ['spring', 'summer', 'autumn', 'winter']
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const prefersReduced = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+// 攻撃モーション中の演出
+type Lunge = { side: Side; zone: number } | null
+type Fx = {
+  id: number
+  shake: boolean
+  dmg: number
+  dmgTo: Side | null
+  struckSide: Side | null
+  struckZone: number | null
+} | null
+type Banner = { id: number; text: string; tone: 'you' | 'cpu' | 'battle' } | null
 
 type Phase = 'setup' | 'deck' | 'playing'
 
@@ -39,11 +61,13 @@ type UIMode =
 
 // 出勤服 → モンスターテンプレートのプールを作る
 function buildPool(data: Data): MonsterTemplate[] {
+  // 対象コーデ（画像＋アイテムあり）を集める
+  const eligible = outfits.filter((o) => o.images[0]?.url && (data.outfitItemIds.get(o.key)?.size ?? 0) > 0)
+  // ★レベルは母集団のスキ数ランクで決める
+  const scale = buildLevelScale(eligible.map((o) => ({ key: o.key, like: o.like })))
   const out: MonsterTemplate[] = []
-  for (const o of outfits) {
-    if (!o.images[0]?.url) continue
-    const ids = data.outfitItemIds.get(o.key)
-    if (!ids || ids.size === 0) continue
+  for (const o of eligible) {
+    const ids = data.outfitItemIds.get(o.key)!
     const items: ItemInfo[] = [...ids].map((id) => {
       const it = data.itemMap.get(id)
       return {
@@ -52,8 +76,10 @@ function buildPool(data: Data): MonsterTemplate[] {
         color: it?.color,
       }
     })
-    out.push(deriveMonster(o, items))
+    const hair = hairOf(o.key)
+    out.push(deriveMonster(o, items, { level: scale.get(o.key), hat: hair?.hat, hairColor: hair?.color }))
   }
+  ensureUniqueNames(out)
   return out
 }
 
@@ -169,8 +195,18 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const [busy, setBusy] = useState(false)
   const [showLog, setShowLog] = useState(false)
 
+  // ---- 演出用の状態 ----
+  const [lunge, setLunge] = useState<Lunge>(null) // 突進中のモンスター
+  const [fx, setFx] = useState<Fx>(null) // 着弾エフェクト（揺れ・被ダメ数字）
+  const [banner, setBanner] = useState<Banner>(null) // ターン/フェイズの大バナー
+  const [animating, setAnimating] = useState(false) // 攻撃モーション中は操作ロック
+
   const gameRef = useRef<GameState | null>(null)
   const busyRef = useRef(false)
+  const animatingRef = useRef(false)
+  const fxSeq = useRef(0)
+  const bannerSeq = useRef(0)
+  const prevRef = useRef<{ turn: Side; phase: GameState['phase']; turnNo: number } | null>(null)
 
   const commit = useCallback((s: GameState) => {
     gameRef.current = s
@@ -191,14 +227,23 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
     if (busyRef.current) return
     busyRef.current = true
     setBusy(true)
+    const reduce = prefersReduced()
     let guard = 0
     while (guard++ < 100) {
       const s = gameRef.current
       if (!s || s.winner !== null || s.turn !== 1) break
       const action = cpuNextAction(s, 1)
       if (!action) break
-      await sleep(action.type === 'attack' ? 1000 : action.type === 'endTurn' ? 500 : 700)
-      commit(applyAction(gameRef.current!, action))
+      if (action.type === 'attack') {
+        // 突進 → 着弾（解決）の順に見せる
+        setLunge({ side: 1, zone: action.attackerZone })
+        await sleep(reduce ? 0 : 360)
+        setLunge(null)
+        commit(applyAction(gameRef.current!, action))
+      } else {
+        await sleep(action.type === 'endTurn' ? 500 : 700)
+        commit(applyAction(gameRef.current!, action))
+      }
       if (gameRef.current!.winner !== null) break
       if (action.type === 'endTurn') break
     }
@@ -211,6 +256,50 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       void runCpuTurn()
     }
   }, [phase, game, runCpuTurn])
+
+  // ---- 戦闘解決（flash）→ 着弾エフェクト ----
+  const flashFx = game?.flash
+  useEffect(() => {
+    if (!flashFx) return
+    const id = ++fxSeq.current
+    const struckSide: Side | null = flashFx.targetZone != null ? (flashFx.attackerSide === 0 ? 1 : 0) : null
+    setFx({
+      id,
+      shake: flashFx.damage > 0 || flashFx.result === 'direct',
+      dmg: flashFx.damage,
+      dmgTo: flashFx.damageTo,
+      struckSide,
+      struckZone: flashFx.targetZone,
+    })
+    const t = setTimeout(() => setFx((cur) => (cur && cur.id === id ? null : cur)), 850)
+    return () => clearTimeout(t)
+  }, [flashFx])
+
+  // ---- ターン/フェイズの切り替わりで大バナーを一瞬出す ----
+  useEffect(() => {
+    if (!game || game.winner !== null) {
+      prevRef.current = game ? { turn: game.turn, phase: game.phase, turnNo: game.turnNo } : null
+      return
+    }
+    const prev = prevRef.current
+    const cur = { turn: game.turn, phase: game.phase, turnNo: game.turnNo }
+    prevRef.current = cur
+    if (!prev) return
+    let text = ''
+    let tone: 'you' | 'cpu' | 'battle' = 'you'
+    if (prev.turnNo !== cur.turnNo || prev.turn !== cur.turn) {
+      text = cur.turn === 0 ? 'あなたのターン' : 'CPのターン'
+      tone = cur.turn === 0 ? 'you' : 'cpu'
+    } else if (prev.phase !== cur.phase && cur.phase === 'battle') {
+      text = 'バトル！'
+      tone = 'battle'
+    }
+    if (!text) return
+    const id = ++bannerSeq.current
+    setBanner({ id, text, tone })
+    const t = setTimeout(() => setBanner((b) => (b && b.id === id ? null : b)), 950)
+    return () => clearTimeout(t)
+  }, [game])
 
   // ---- ゲーム開始 ----
   const startDuel = useCallback(() => {
@@ -254,7 +343,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
           </button>
           <h2 className="d-setup-title jp">出勤服デュエル</h2>
           <p className="d-setup-lead jp">
-            出勤服1着が1体のモンスター。<b>スキ数＝攻撃力</b>、<b>着用回数＝守備力</b>、<b>季節＝属性</b>。
+            出勤服1着が1体のモンスター。<b>スキ数の人気順でレベル（★）と攻撃力</b>、<b>着用回数＝守備力</b>、<b>季節＝属性</b>。
             40枚デッキを引き合い、ライフ <span className="mono">8000</span> を先に削りきったほうが勝ち。
           </p>
           <ul className="d-rules jp">
@@ -338,7 +427,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   if (!game) return null
   const you = game.sides[0]
   const cpu = game.sides[1]
-  const myTurn = game.turn === 0 && game.winner === null && !busy
+  const myTurn = game.turn === 0 && game.winner === null && !busy && !animating
   const inMain = game.phase === 'main'
   const inBattle = game.phase === 'battle'
 
@@ -346,6 +435,22 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const onHandClick = (handIndex: number) => {
     if (!myTurn || !inMain) return
     setUi({ kind: 'handMenu', handIndex })
+  }
+
+  // 攻撃: 突進モーション → 解決（着弾エフェクトは flash 監視の useEffect が出す）
+  const performAttack = async (attackerZone: number, targetZone: number | null) => {
+    if (animatingRef.current) return
+    animatingRef.current = true
+    setAnimating(true)
+    setUi({ kind: 'idle' })
+    const reduce = prefersReduced()
+    setLunge({ side: 0, zone: attackerZone })
+    await sleep(reduce ? 0 : 340)
+    setLunge(null)
+    act({ type: 'attack', side: 0, attackerZone, targetZone })
+    await sleep(reduce ? 0 : 140)
+    animatingRef.current = false
+    setAnimating(false)
   }
 
   const closeMenu = () => setUi({ kind: 'idle' })
@@ -396,8 +501,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
     }
     // 攻撃対象（敵モンスター）
     if (ui.kind === 'attackFrom' && side === 1 && slot) {
-      act({ type: 'attack', side: 0, attackerZone: ui.zone, targetZone: zone })
-      setUi({ kind: 'idle' })
+      void performAttack(ui.zone, zone)
       return
     }
     // 攻撃宣言（自分の攻撃表示モンスターを選ぶ）
@@ -409,8 +513,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
 
   const directAttack = () => {
     if (ui.kind !== 'attackFrom') return
-    act({ type: 'attack', side: 0, attackerZone: ui.zone, targetZone: null })
-    setUi({ kind: 'idle' })
+    void performAttack(ui.zone, null)
   }
 
   const endTurn = () => {
@@ -429,7 +532,24 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const lpPct = (lp: number) => Math.max(0, Math.min(100, (lp / 8000) * 100))
 
   return (
-    <main className="d-play">
+    <main className={'d-play' + (fx?.shake ? ' shaking' : '')}>
+      {/* ターン/フェイズの大バナー */}
+      {banner && (
+        <div className={'d-banner ' + banner.tone} key={banner.id}>
+          <span className="jp">{banner.text}</span>
+        </div>
+      )}
+      {/* 被ダメージのフラッシュ（受けた側を赤く光らせる） */}
+      {fx && fx.dmgTo != null && (
+        <div className={'d-hit-overlay ' + (fx.dmgTo === 0 ? 'you' : 'cpu')} key={'ov' + fx.id} />
+      )}
+      {/* 飛び出すダメージ数値 */}
+      {fx && fx.dmg > 0 && fx.dmgTo != null && (
+        <div className={'d-dmg-float ' + (fx.dmgTo === 0 ? 'bottom' : 'top')} key={'dm' + fx.id}>
+          −{fx.dmg}
+        </div>
+      )}
+
       {/* ===== 相手（CP） ===== */}
       <section className={'d-side cpu' + (game.turn === 1 ? ' active' : '')}>
         <div className="d-side-head">
@@ -458,15 +578,18 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
         <div className="d-field">
           {cpu.field.map((slot, z) => {
             const targetable = ui.kind === 'attackFrom' && !!slot
+            const struck = fx?.struckSide === 1 && fx?.struckZone === z
+            const lungeHere = lunge?.side === 1 && lunge.zone === z
             return (
               <div
-                className={'d-zone' + (targetable ? ' targetable' : '')}
+                className={'d-zone' + (targetable ? ' targetable' : '') + (struck ? ' struck' : '')}
                 key={z}
                 onClick={() => onFieldClick(1, z)}
                 role={targetable ? 'button' : undefined}
               >
                 {slot && (
                   <CardView
+                    key={slot.card.uid}
                     card={slot.card}
                     faceDown={slot.faceDown}
                     orientation={slot.orientation}
@@ -474,6 +597,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                     season={slot.season}
                     size="sm"
                     compact
+                    className={'d-onfield' + (lungeHere ? ' lunge-down' : '')}
                   />
                 )}
               </div>
@@ -575,6 +699,8 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             const spellTargetable = ui.kind === 'spellTarget' && !!slot
             const attackReady = myTurn && inBattle && !!slot && slot.orientation === 'attack' && !slot.faceDown && !slot.hasAttacked
             const attacking = ui.kind === 'attackFrom' && ui.zone === z
+            const struck = fx?.struckSide === 0 && fx?.struckZone === z
+            const lungeHere = lunge?.side === 0 && lunge.zone === z
             return (
               <div
                 className={
@@ -582,7 +708,8 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                   (tributable || spellTargetable ? ' targetable' : '') +
                   (tributeSel ? ' selected' : '') +
                   (attackReady ? ' ready' : '') +
-                  (attacking ? ' attacking' : '')
+                  (attacking ? ' attacking' : '') +
+                  (struck ? ' struck' : '')
                 }
                 key={z}
                 onClick={() => onFieldClick(0, z)}
@@ -590,6 +717,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
               >
                 {slot && (
                   <CardView
+                    key={slot.card.uid}
                     card={slot.card}
                     faceDown={slot.faceDown}
                     orientation={slot.orientation}
@@ -597,6 +725,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                     season={slot.season}
                     size="sm"
                     compact
+                    className={'d-onfield' + (lungeHere ? ' lunge-up' : '')}
                   />
                 )}
                 {slot?.hasAttacked && <span className="d-tapped jp">攻撃済</span>}
@@ -769,7 +898,16 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       {/* 勝敗 */}
       {game.winner !== null && (
         <div className="d-modal-back">
-          <div className="d-result">
+          <div className={'d-result ' + (game.winner === 0 ? 'win' : 'lose')}>
+            {game.winner === 0 && (
+              <div className="d-result-burst" aria-hidden>
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <span key={i} style={{ '--i': i } as CSSProperties}>
+                    ★
+                  </span>
+                ))}
+              </div>
+            )}
             <h2 className="d-setup-title jp">{game.winner === 0 ? '勝利！' : '敗北…'}</h2>
             <p className="jp d-result-lead">
               {game.winner === 0 ? 'デッキを率いてCPを下した。' : 'CPに敗れた。デッキを組み直して再挑戦。'}
