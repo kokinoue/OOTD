@@ -1,3 +1,4 @@
+import ClosetDashboardView from './components/ClosetDashboardView'
 import DuelGameView from './components/DuelGameView'
 import FitsView from './components/FitsView'
 import GameHubView from './components/GameHubView'
@@ -10,7 +11,7 @@ import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
-export type View = 'fits' | 'items' | 'weather' | 'game' | 'memory' | 'duel'
+export type View = 'fits' | 'items' | 'closet' | 'weather' | 'game' | 'memory' | 'duel'
 
 export type Filters = {
   from: string
@@ -82,6 +83,12 @@ export default function App() {
             ITEMS <span className="tab-count mono">{visibleItemCount}</span>
           </button>
           <button
+            className={view === 'closet' ? 'tab active' : 'tab'}
+            onClick={() => setView('closet')}
+          >
+            稼働率
+          </button>
+          <button
             className={view === 'weather' ? 'tab active' : 'tab'}
             onClick={() => setView('weather')}
           >
@@ -112,6 +119,7 @@ export default function App() {
         />
       )}
       {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
+      {view === 'closet' && <ClosetDashboardView data={data} onShowFits={showFitsForItem} />}
       {view === 'weather' && <WeatherView />}
       {view === 'game' && <GameHubView onSelect={setView} />}
       {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
