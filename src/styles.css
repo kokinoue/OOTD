@@ -1496,6 +1496,233 @@ a {
   }
 }
 
+/* ---------- closet dashboard / 稼働率 ---------- */
+.closet-hero {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 4px 0 24px;
+}
+
+.closet-metric {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.closet-metric-label {
+  font-size: 11px;
+  color: var(--text-sub);
+  letter-spacing: 0.08em;
+}
+
+.closet-metric-value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.closet-metric-sub {
+  font-size: 10.5px;
+  color: var(--text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.closet-section {
+  margin-bottom: 24px;
+}
+
+.closet-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.closet-category-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.closet-category {
+  display: grid;
+  grid-template-columns: minmax(76px, 0.7fr) minmax(72px, 1fr) 42px;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.closet-category:hover {
+  border-color: #c8c8c6;
+}
+
+.closet-category.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.closet-category-name {
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closet-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #ececea;
+  overflow: hidden;
+}
+
+.closet-bar span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.closet-category-stat {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.closet-category-sub {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.closet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.closet-panel {
+  min-width: 0;
+}
+
+.closet-empty {
+  margin: 0;
+  padding: 20px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.closet-item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.closet-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--border);
+}
+
+.closet-item:last-child {
+  border-bottom: none;
+}
+
+.closet-item-thumb {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: #f0f0ee;
+  transition: transform 0.15s ease;
+}
+
+.closet-item-thumb:hover {
+  transform: scale(1.06);
+}
+
+.closet-item-thumb.empty {
+  cursor: default;
+}
+
+.closet-item-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.closet-item-label {
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closet-item-main:hover .closet-item-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.closet-item-meta {
+  font-size: 10.5px;
+  color: var(--text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 940px) {
+  .closet-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .closet-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .closet-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .closet-category-list {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- footer ---------- */
 .footer {
   margin-top: 48px;
