@@ -1,11 +1,11 @@
 name: Daily scrape
 
-# 毎日 18:00 JST（= 09:00 UTC）に note から最新の出勤服を取得する。
+# 平日 18:00 JST（= 09:00 UTC）に note から最新の出勤服を取得する。
 # 新着があれば src/data を更新コミットし、デプロイを起動して公開サイトを更新する。
 # 手動実行も可（Actions タブの Run workflow）。
 on:
   schedule:
-    - cron: '0 9 * * *'
+    - cron: '0 9 * * 1-5' # 月〜金のみ
   workflow_dispatch:
 
 permissions:

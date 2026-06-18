@@ -454,12 +454,12 @@ export default function ItemsView({ data, onShowFits }: Props) {
               setBakeMsg(ok ? '公開用データに焼き込みました' : '保存に失敗しました')
               setTimeout(() => setBakeMsg(''), 4000)
             }}
-            title="名前変更・統合・カテゴリ・非表示を overrides.json に書き込み、公開ビルドに反映する"
+            title="保留中の自動保存を待たず、いますぐ overrides.json に書き込む"
           >
-            公開用に確定
+            いますぐ保存
           </button>
           <span className="tools-note">
-            {bakeMsg || '編集はこのブラウザに保存。「公開用に確定」で overrides.json に焼き込む'}
+            {bakeMsg || '編集すると自動で overrides.json に保存されます（公開ビルドに反映）'}
           </span>
         </div>
       )}
