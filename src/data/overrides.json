@@ -10,9 +10,14 @@
     "shoes|jmweston": "J.M.WESTON · 180",
     "t-shirt|awwraintee": "22ss · AWW magazine",
     "t-shirt|aww": "24ss · AWW magazine",
-    "t-shirt|awwmagazine": "26ss · AWW magazine"
+    "t-shirt|awwmagazine": "26ss · AWW magazine",
+    "shirt|gimcontext": "23ss · gim context · スキッパー",
+    "pants|maisonmartinmargiela#indigo-flare": "Maison Martin Margiela · 紺フレアデニム",
+    "knit|gimcontext": "25ss · gim context · ニットT"
   },
-  "categories": {},
+  "categories": {
+    "shirt|gimcontext": "knit"
+  },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia"
   },
