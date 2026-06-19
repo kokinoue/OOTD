@@ -12,8 +12,11 @@
     "t-shirt|aww": "24ss · AWW magazine",
     "t-shirt|awwmagazine": "26ss · AWW magazine",
     "shirt|gimcontext": "23ss · gim context · スキッパー",
-    "pants|maisonmartinmargiela#indigo-flare": "Maison Martin Margiela · 紺フレアデニム",
-    "knit|gimcontext": "25ss · gim context · ニットT"
+    "pants|maisonmartinmargiela#indigo-flare": "03ss · Maison Martin Margiela · デニム",
+    "knit|gimcontext": "25ss · gim context · ニットT",
+    "pants|maisonmartinmargiela#grey-wide": "00ss · Maison Martin Margiela · アーティザナル",
+    "pants|maisonmartinmargiela#blue-denim": "04ss · Maison Martin Margiela · アーティザナル",
+    "pants|maisonmartinmargiela#light": "03aw · Maison Martin Margiela · デニム"
   },
   "categories": {
     "shirt|gimcontext": "knit"

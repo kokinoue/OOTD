@@ -49,7 +49,8 @@
             "nadd8956d05d8",
             "n759c6e2333be",
             "n7450cdc33885",
-            "n3cb2cb06c80f"
+            "n3cb2cb06c80f",
+            "n4bab1395db13"
           ]
         },
         {
@@ -60,10 +61,7 @@
         {
           "key": "grey-slacks",
           "label": "グレースラックス",
-          "outfits": [
-            "n4bab1395db13",
-            "ncbda492213a4"
-          ]
+          "outfits": []
         },
         {
           "key": "light",
@@ -75,7 +73,8 @@
             "ne7d396af8aa9",
             "n4a3debe25086",
             "n7cbd005b8433",
-            "n94560f75e423"
+            "n94560f75e423",
+            "ncbda492213a4"
           ]
         },
         {
