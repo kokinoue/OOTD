@@ -36,6 +36,29 @@ function save(next: Overrides) {
   cache = next
   localStorage.setItem(KEY, JSON.stringify(next))
   listeners.forEach((fn) => fn())
+  scheduleBake() // 編集のたびに公開用 overrides.json へ自動保存（splits と同じ挙動）
+}
+
+// 現在の編集を src/data/overrides.json に書き戻す（dev サーバー経由・公開用）
+function postOverrides(data: Overrides): Promise<boolean> {
+  return fetch('/api/overrides', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+    .then((res) => res.ok)
+    .catch(() => false)
+}
+
+// 連続編集をまとめて1回保存する（400msデバウンス）
+let bakeTimer: ReturnType<typeof setTimeout> | null = null
+function scheduleBake() {
+  if (READONLY) return
+  if (bakeTimer) clearTimeout(bakeTimer)
+  bakeTimer = setTimeout(() => {
+    bakeTimer = null
+    void postOverrides(cache)
+  }, 400)
 }
 
 export function useOverrides(): Overrides {
@@ -97,18 +120,13 @@ export const overrideActions = {
   reset() {
     save(emptyOverrides())
   },
-  /** 現在の編集を src/data/overrides.json に焼き込む（dev サーバー経由・公開用） */
+  /** 保留中の自動保存を待たず、いますぐ src/data/overrides.json に焼き込む（公開用） */
   async bake(): Promise<boolean> {
-    try {
-      const res = await fetch('/api/overrides', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cache),
-      })
-      return res.ok
-    } catch {
-      return false
+    if (bakeTimer) {
+      clearTimeout(bakeTimer)
+      bakeTimer = null
     }
+    return postOverrides(cache)
   },
 }
 
