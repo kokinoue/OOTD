@@ -3,7 +3,26 @@ import splitsJson from '../data/splits.json'
 import { READONLY } from './env'
 import type { SplitsFile } from '../types'
 
-const INITIAL: SplitsFile = splitsJson as SplitsFile
+const KEY = 'fits-splits-v1'
+
+// ビルドに焼き込まれた確定編集（公開サイトはこれを表示する）
+const baked = (): SplitsFile => splitsJson as SplitsFile
+
+// dev は localStorage を下敷きに編集を継続する（overrides と同じ挙動）。
+// vite.config.ts が splits.json を監視除外しているため、リロード時に Vite は古い
+// モジュールを返す。localStorage を真実として読み直すことでリロード後も編集が残る。
+function load(): SplitsFile {
+  if (READONLY) return baked() // 公開ビルドは焼き込み済みデータのみ
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (!raw) return baked() // 初回は焼き込み済みを下敷きに編集開始
+    return { ...baked(), ...(JSON.parse(raw) as Partial<SplitsFile>) }
+  } catch {
+    return baked()
+  }
+}
+
+const INITIAL: SplitsFile = load()
 
 /** 個体分割の編集。状態はReactで持ち、devサーバー経由で src/data/splits.json に書き戻す */
 export function useSplits() {
@@ -15,6 +34,12 @@ export function useSplits() {
   const persist = useCallback((next: SplitsFile) => {
     if (READONLY) return // 公開ビルドは保存しない（編集UIも隠れている）
     latest.current = next
+    // リロードしても残るよう localStorage にも即時保存（ファイル書き戻しはデバウンス）
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next))
+    } catch {
+      // localStorage が使えない環境ではファイル書き戻しのみに委ねる
+    }
     if (timer.current) clearTimeout(timer.current)
     setSaveState('saving')
     timer.current = setTimeout(async () => {
