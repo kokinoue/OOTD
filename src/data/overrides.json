@@ -16,13 +16,25 @@
     "knit|gimcontext": "25ss · gim context · ニットT",
     "pants|maisonmartinmargiela#grey-wide": "00ss · Maison Martin Margiela · アーティザナル",
     "pants|maisonmartinmargiela#blue-denim": "04ss · Maison Martin Margiela · アーティザナル",
-    "pants|maisonmartinmargiela#light": "03aw · Maison Martin Margiela · デニム"
+    "pants|maisonmartinmargiela#light": "03aw · Maison Martin Margiela · デニム",
+    "shirt|masnoudesign": "25ss · Masnou design",
+    "pants|currentage": "26ss · CURRENTAGE",
+    "shirt|currentage": "25ss · CURRENTAGE",
+    "jacket|90ssalvatoreferragamo": "90's · Salvatore Ferragamo",
+    "jacket|90spoloralphlauren": "90's · POLO RALPH LAUREN",
+    "jacket|90sbananarepublic": "90's · BANANA REPUBLIC",
+    "jacket|90semporioarmani": "90's · EMPORIO ARMANI",
+    "jacket|90s": "90's · INVERTERE",
+    "pants|nahyat": "23aw · Nahyat",
+    "pants|nahyat#black-navy": "23aw · Nahyat · W-009",
+    "pants|nahyat#grey-tweed": "24aw · Nahyat · W-015"
   },
   "categories": {
     "shirt|gimcontext": "knit"
   },
   "merges": {
-    "pants|georgia": "pants|26ssgeorgia"
+    "pants|georgia": "pants|26ssgeorgia",
+    "pants|nahyat#beige-knit": "pants|nahyat#grey-tweed"
   },
   "hidden": [],
   "colors": {
@@ -32,6 +44,14 @@
     "shoes|jmweston#red": "red",
     "t-shirt|aww": "white",
     "t-shirt|awwraintee": "white",
-    "t-shirt|awwmagazine": "white"
+    "t-shirt|awwmagazine": "white",
+    "pants|maisonmartinmargiela#grey-wide": "gray",
+    "pants|maisonmartinmargiela#indigo-flare": "navy",
+    "pants|isseymiyake#black": "black",
+    "shirt|currentage": "blue",
+    "jacket|90ssalvatoreferragamo": "navy",
+    "jacket|90spoloralphlauren": "navy",
+    "pants|nahyat#black-navy": "navy",
+    "pants|nahyat#grey-tweed": "black"
   }
 }
