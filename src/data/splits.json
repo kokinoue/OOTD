@@ -369,7 +369,8 @@
             "n0b21fb7e06c8",
             "n0ffcd70d4199",
             "n757c9e9e465d",
-            "n47ced4abece6"
+            "n47ced4abece6",
+            "n13b8501c8ebf"
           ]
         },
         {
@@ -1798,7 +1799,21 @@
           "label": "グリーンボーダー",
           "outfits": [
             "nfda17991e1d0",
-            "n322a470e4464"
+            "n322a470e4464",
+            "n30b2d0707580",
+            "n0df311324458",
+            "nfba541fd9d08",
+            "n7dc2ceba173b"
+          ]
+        },
+        {
+          "key": "u-21aw-amachi-rainy-patter",
+          "label": "21aw · amachi · Rainy Pattern Knit Hoodie",
+          "outfits": [
+            "n282c25a38535",
+            "nabaa9be595fb",
+            "nb885c3cbcc8b",
+            "n9494db4e9d88"
           ]
         }
       ]
@@ -1855,6 +1870,40 @@
             "n56bbe9fbef19",
             "n7fe11fb4f007",
             "nf7f08734f6ea"
+          ]
+        }
+      ]
+    },
+    "shirt|amachi": {
+      "subs": [
+        {
+          "key": "u-24ss-amachi-コットン",
+          "label": "24ss · amachi. · コットン",
+          "outfits": [
+            "n774b987b395e",
+            "n8efb31dbef0a"
+          ]
+        },
+        {
+          "key": "u-25ss-amachi",
+          "label": "25ss · amachi.",
+          "outfits": [
+            "ndf27c8a97e45"
+          ]
+        }
+      ]
+    },
+    "jacket|amachi": {
+      "subs": [
+        {
+          "key": "u-24aw-amachi-double-layer",
+          "label": "24aw · amachi. · Double Layer Work Jacket",
+          "outfits": [
+            "n9624e856acba",
+            "n1e1be159a322",
+            "ne0ca5bcbc40c",
+            "nccc47c8d7ad2",
+            "n7d4f4c8a1850"
           ]
         }
       ]

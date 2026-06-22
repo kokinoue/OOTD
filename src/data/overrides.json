@@ -27,14 +27,33 @@
     "jacket|90s": "90's · INVERTERE",
     "pants|nahyat": "23aw · Nahyat",
     "pants|nahyat#black-navy": "23aw · Nahyat · W-009",
-    "pants|nahyat#grey-tweed": "24aw · Nahyat · W-015"
+    "pants|nahyat#grey-tweed": "24aw · Nahyat · W-015",
+    "shirt|amachi": "26ss · amachi. · Kashmir Silk Shirt",
+    "shirt|amachi#u-24ss-amachi-コットン": "24ss · amachi. · Phenomenal Check Shirts",
+    "shirt|amachi#u-25ss-amachi": "25ss · amachi. · Gradation Linen Coat Shirt",
+    "jacket|amachi": "19aw · amachi. · Meeting Jacket",
+    "jacket|amachi#u-24aw-amachi-double-layer": "24aw · amachi. · Double Layer Work Jacket",
+    "pants|amachi#u-22ss-amachi-セットアップ": "22ss · amachi. · Ripple Pants",
+    "pants|amachi#u-23aw-amachi-ウール": "23aw · amachi. · Double Hem Pants",
+    "setup|amachi": "22ss · amachi. · Ripple Jacket & Pants",
+    "knit|amachi": "25aw · amachi. · Gradation TOR Cardigan",
+    "knit|amachi#green-border": "23ss · amachi. · Horizontal Knit",
+    "pants|amachi#black-dark": "24ss · amachi. · Fabric Forming Baggy",
+    "pants|amachi#u-22aw-amachi-メルトン": "22aw · amachi. · Melton Baggy",
+    "knit|amachi#u-21aw-amachi-rainy-patter": "21aw · amachi · Rainy Pattern Knit Hoodie",
+    "bag|amachi": "21ss · amachi. · Paesina Stone Knit Pochette",
+    "cap|amachi": "20aw · amachi. · Silk Nordic Cap",
+    "t-shirt|amachi": "20ss · amachi. · Contour Line T-Shirt",
+    "pants|amachi#white": "19aw · amachi. · Solar Pants"
   },
   "categories": {
     "shirt|gimcontext": "knit"
   },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia",
-    "pants|nahyat#beige-knit": "pants|nahyat#grey-tweed"
+    "pants|nahyat#beige-knit": "pants|nahyat#grey-tweed",
+    "knit cap|amachi": "cap|amachi",
+    "outer|amachi": "jacket|amachi"
   },
   "hidden": [],
   "colors": {
@@ -52,6 +71,18 @@
     "jacket|90ssalvatoreferragamo": "navy",
     "jacket|90spoloralphlauren": "navy",
     "pants|nahyat#black-navy": "navy",
-    "pants|nahyat#grey-tweed": "black"
+    "pants|nahyat#grey-tweed": "black",
+    "shirt|amachi": "gray",
+    "shirt|amachi#u-25ss-amachi": "black",
+    "shirt|amachi#u-24ss-amachi-コットン": "white",
+    "knit|amachi": "gray",
+    "pants|amachi#black-dark": "navy",
+    "pants|amachi#u-23aw-amachi-ウール": "white",
+    "pants|amachi#u-22aw-amachi-メルトン": "gray",
+    "knit|amachi#u-21aw-amachi-rainy-patter": "blue",
+    "knit|amachi#green-border": "green",
+    "t-shirt|amachi": "white",
+    "pants|amachi#u-22ss-amachi-セットアップ": "navy",
+    "pants|amachi#white": "white"
   }
 }
