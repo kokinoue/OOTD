@@ -3,7 +3,7 @@ import { defaultFilters, type Filters, type View } from '../App'
 
 // 画面状態を URL hash に載せる軽量ルーティング（A案: タブ＋主要フィルタ）。
 // 例: #/fits?item=shoes%7Cjmweston%23black-loafer&year=2024&month=3&q=...&order=asc
-//     #/items  #/closet  #/weather
+//     #/items  #/closet  #/palette  #/weather
 // フィルタは fits ビューのみ載せる。モーダルや ITEMS/衣替えの内部状態は対象外。
 
 export type Route = { view: View; filters: Filters }
@@ -33,15 +33,17 @@ export function decodeHash(hash: string): Route {
       ? 'items'
       : path === 'closet'
         ? 'closet'
-        : path === 'weather'
-          ? 'weather'
-          : path === 'game'
-            ? 'game'
-            : path === 'memory'
-              ? 'memory'
-              : path === 'duel'
-                ? 'duel'
-                : 'fits'
+        : path === 'palette'
+          ? 'palette'
+          : path === 'weather'
+            ? 'weather'
+            : path === 'game'
+              ? 'game'
+              : path === 'memory'
+                ? 'memory'
+                : path === 'duel'
+                  ? 'duel'
+                  : 'fits'
   const p = new URLSearchParams(query ?? '')
   const sortParam = p.get('sort')
   const filters: Filters = {
