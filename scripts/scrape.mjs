@@ -52,12 +52,17 @@ async function listMagazineNotes() {
 }
 
 // --- 2. 各記事の本文を取得（キャッシュあり） ---
+// 公開直後に取得すると note 側の画像処理が未完了で本文に画像が無いことがある。
+// 出勤服記事は必ず写真を含むので、画像なしの本文はキャッシュとして確定させず取り直す。
+const bodyHasImage = (body) => /<figure[^>]*>[\s\S]*?<img[^>]*src=/i.test(body || '')
+
 async function fetchNote(key) {
   const cacheFile = path.join(CACHE_DIR, `${key}.json`)
   if (!FORCE) {
     try {
       await access(cacheFile)
-      return JSON.parse(await readFile(cacheFile, 'utf8'))
+      const cached = JSON.parse(await readFile(cacheFile, 'utf8'))
+      if (bodyHasImage(cached.body)) return cached
     } catch {}
   }
   const j = await fetchJson(`https://note.com/api/v3/notes/${key}`)
