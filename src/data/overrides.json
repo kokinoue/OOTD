@@ -53,13 +53,29 @@
     "knit|nahyat#u-nahyat-n-041": "N-041",
     "jacket|nahyat": "Nahyat · N-052",
     "down vest|erto": "ERTO",
-    "bag|gabrielacollgarments": "Gabriela Coll Garments"
+    "bag|gabrielacollgarments": "Gabriela Coll Garments",
+    "pants|call#navy-black": "22aw · Call · Back Zip Trousers",
+    "pants|isseymiyake#black": "ISSEY MIYAKE · プリーツ",
+    "pants|used#black-dark": "used · スラックス",
+    "pants|60s": "60's · us · ウール",
+    "pants|80s#olive-grey": "80's · us・グレースラックス",
+    "pants|agnesb": "90's · agnès b · ウール",
+    "pants|50s": "50's · us · 玉蟲",
+    "pants|morganekrischer": "22ss · Morgane Krischer · curve pants",
+    "pants|unitedarrowssons#brown-cord": "21ss · UNITED ARROWS & SONS · コーデュロイショーツ",
+    "pants|helmutlang#light-denim": "90's · HELMUT LANG · ライトブルーデニム",
+    "pants|levis501xx": "50's · Levi's · 501XX",
+    "pants|helmutlang#black-dark": "90's · HELMUT LANG · コーティングデニム",
+    "pants|rafsimons": "99aw · RAF SIMONS · スラックス",
+    "pants|gimcontext": "25aw · gim context · ニットパンツ",
+    "pants|90s#blue-denim": "90's · ブルーデニム"
   },
   "categories": {
     "shirt|gimcontext": "knit",
     "tops|wildfraulein": "t-shirt",
     "blouson|suesada": "jacket",
-    "down vest|erto": "vest"
+    "down vest|erto": "vest",
+    "pants|unitedarrowssons#brown-cord": "shorts"
   },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia",
@@ -104,6 +120,17 @@
     "knit|nahyat#cream": "beige",
     "knit|nahyat#brown": "brown",
     "bag|gabrielacollgarments": "black",
-    "bag|youngolsen": "red"
+    "bag|youngolsen": "red",
+    "pants|call#navy-black": "black",
+    "pants|used#black-dark": "black",
+    "pants|60s": "brown",
+    "pants|thecrookedtailor": "brown",
+    "pants|80s#olive-grey": "black",
+    "pants|50s": "green",
+    "pants|morganekrischer": "green",
+    "pants|unitedarrowssons#brown-cord": "brown",
+    "pants|helmutlang#light-denim": "blue",
+    "pants|levis501xx": "blue",
+    "pants|helmutlang#black-dark": "black"
   }
 }
