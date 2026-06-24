@@ -68,14 +68,29 @@
     "pants|helmutlang#black-dark": "90's · HELMUT LANG · コーティングデニム",
     "pants|rafsimons": "99aw · RAF SIMONS · スラックス",
     "pants|gimcontext": "25aw · gim context · ニットパンツ",
-    "pants|90s#blue-denim": "90's · ブルーデニム"
+    "pants|90s#blue-denim": "90's · Levi's · ブラックデニム",
+    "pants|wildfraulein#navy-dark": "25ss・WILDFRÄULEIN · スラックス",
+    "pants|wildfraulein#grey-beige": "WILDFRÄULEIN · セットアップ パンツ",
+    "pants|wildfraulein#khaki": "WILDFRÄULEIN · ジャージ",
+    "pants|bottegaveneta": "21AW・BOTTEGA VENETA・パラキートパンツ",
+    "pants|80spaulstuart": "80's・Paul Stuart・スラックス",
+    "pants|randy#olive-mustard": "19ss · RANDY · スリット",
+    "pants|call#light-blue": "24ss · Call · ストライプ",
+    "pants|call#khaki": "23ss · Call · ナイロン",
+    "pants|nhoolywood": "N.HOOLYWOOD · コーデュロイ",
+    "pants|50s#beige-tan": "50's · us · ベージュ"
   },
   "categories": {
     "shirt|gimcontext": "knit",
     "tops|wildfraulein": "t-shirt",
     "blouson|suesada": "jacket",
     "down vest|erto": "vest",
-    "pants|unitedarrowssons#brown-cord": "shorts"
+    "pants|unitedarrowssons#brown-cord": "shorts",
+    "biaude|vintage": "shirt",
+    "beanie|used": "knit cap",
+    "pants|sacai": "shorts",
+    "pants|used#black-shorts": "shorts",
+    "pants|conveniencewear": "shorts"
   },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia",
@@ -131,6 +146,12 @@
     "pants|unitedarrowssons#brown-cord": "brown",
     "pants|helmutlang#light-denim": "blue",
     "pants|levis501xx": "blue",
-    "pants|helmutlang#black-dark": "black"
+    "pants|helmutlang#black-dark": "black",
+    "pants|wildfraulein#navy-dark": "navy",
+    "pants|wildfraulein#grey-beige": "brown",
+    "pants|wildfraulein#khaki": "navy",
+    "pants|90s#blue-denim": "black",
+    "pants|randy#olive-mustard": "green",
+    "pants|nhoolywood": "black"
   }
 }

@@ -1266,7 +1266,6 @@
           "label": "ブルーデニム",
           "outfits": [
             "n5394ff26ea2c",
-            "n001569d08a3c",
             "n928cfa0f5fc3"
           ]
         },
@@ -1305,7 +1304,8 @@
             "nc78ed8746155",
             "nc86924266e36",
             "nb670aded0baa",
-            "nfe0dc6513511"
+            "nfe0dc6513511",
+            "n7a0b3416e221"
           ]
         },
         {
@@ -1322,7 +1322,6 @@
             "na0de4b22b0cb",
             "n608b359c1562",
             "ne30a9cd9e791",
-            "n7a0b3416e221",
             "n07be63c4b7c2"
           ]
         },
@@ -2010,6 +2009,15 @@
     },
     "bag|salomon": {
       "nf1435a57c742": "shoes|salomon"
+    },
+    "pants|50s": {
+      "n5394ff26ea2c": "pants|levis501xx",
+      "n928cfa0f5fc3": "pants|levis501xx"
+    },
+    "pants|90s": {
+      "n9a473eed171e": "pants|90slevis",
+      "nf4c8d5f627ab": "pants|90slevis",
+      "n8f766289e6fb": "pants|50s"
     }
   }
 }
