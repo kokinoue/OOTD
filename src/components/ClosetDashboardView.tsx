@@ -207,11 +207,33 @@ export default function ClosetDashboardView({ data, onShowFits }: Props) {
           label="180日稼働率"
           value={pct(snapshot.usageRate)}
           sub={`${snapshot.activeCount}/${snapshot.visibleCount} items`}
+          title="基準日から180日以内に1回以上着たアイテムの割合"
         />
-        <Metric label="90日着用数" value={String(snapshot.recentWears)} sub="resolved wears" />
-        <Metric label="365日休眠" value={String(snapshot.dormantCount)} sub="items" />
-        <Metric label={`${snapshot.year} 初登場`} value={String(snapshot.firstThisYear)} sub="items" />
+        <Metric
+          label="90日着用数"
+          value={String(snapshot.recentWears)}
+          sub="resolved wears"
+          title="基準日から90日以内の着用回数の合計"
+        />
+        <Metric
+          label="365日休眠"
+          value={String(snapshot.dormantCount)}
+          sub="items"
+          title="最後の着用から365日以上たったアイテム数"
+        />
+        <Metric
+          label={`${snapshot.year} 初登場`}
+          value={String(snapshot.firstThisYear)}
+          sub="items"
+          title={`初めて着たのが${snapshot.year}年のアイテム数`}
+        />
       </section>
+      <p className="closet-note jp">
+        <strong>稼働率</strong>
+        は基準日（最終記録日{' '}
+        <span className="mono">{fmtDate(snapshot.asOf)}</span>
+        ）から180日以内に1回以上着たアイテムの割合です。個体に分けた服はそれぞれ1点として数え、非表示アイテムは母数から除きます。並び替えの「90日稼働」は直近90日の着用回数、「年間稼働密度」は年あたりの着用回数を指します。
+      </p>
 
       <section className="closet-section">
         <div className="closet-section-head">
@@ -270,9 +292,19 @@ export default function ClosetDashboardView({ data, onShowFits }: Props) {
   )
 }
 
-function Metric({ label, value, sub }: { label: string; value: string; sub: string }) {
+function Metric({
+  label,
+  value,
+  sub,
+  title,
+}: {
+  label: string
+  value: string
+  sub: string
+  title?: string
+}) {
   return (
-    <div className="closet-metric">
+    <div className="closet-metric" title={title}>
       <span className="closet-metric-label jp">{label}</span>
       <span className="closet-metric-value mono">{value}</span>
       <span className="closet-metric-sub mono">{sub}</span>

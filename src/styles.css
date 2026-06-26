@@ -1535,6 +1535,19 @@ a {
   text-overflow: ellipsis;
 }
 
+.closet-note {
+  margin: -12px 0 24px;
+  font-size: 12px;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+}
+
+.closet-note strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
 .closet-section {
   margin-bottom: 24px;
 }
