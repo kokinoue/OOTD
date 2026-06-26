@@ -3,7 +3,7 @@
     "pants|26ssgeorgia": "26ss · GEORGIA · デニム",
     "shoes|stefancooke": "21ss · Stefan Cooke · derby shoes",
     "knit|call": "23ss · Call · サマーニット",
-    "pants|90slevis": "90's · Levi's · 501",
+    "pants|90slevis": "80's · Levi's · 501",
     "shirt|nahyat": "Nahyat · W-028",
     "shirt|ensou": "26ss · ensou · リネン",
     "shoes|jmweston#black-loafer": "J.M.WESTON · 180",
@@ -78,7 +78,8 @@
     "pants|call#light-blue": "24ss · Call · ストライプ",
     "pants|call#khaki": "23ss · Call · ナイロン",
     "pants|nhoolywood": "N.HOOLYWOOD · コーデュロイ",
-    "pants|50s#beige-tan": "50's · us · ベージュ"
+    "pants|50s#beige-tan": "50's · us · チノ",
+    "pants|50sfrench": "50's · french"
   },
   "categories": {
     "shirt|gimcontext": "knit",
@@ -90,14 +91,20 @@
     "beanie|used": "knit cap",
     "pants|sacai": "shorts",
     "pants|used#black-shorts": "shorts",
-    "pants|conveniencewear": "shorts"
+    "pants|conveniencewear": "shorts",
+    "pants|80s#shorts": "shorts",
+    "pants|80sbananarepublic": "shorts",
+    "pants|unitedarrowssons#mint": "shorts"
   },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia",
     "pants|nahyat#beige-knit": "pants|nahyat#grey-tweed",
     "knit cap|amachi": "cap|amachi",
     "outer|amachi": "jacket|amachi",
-    "blouson|nahyat": "jacket|nahyat"
+    "blouson|nahyat": "jacket|nahyat",
+    "pants|50susarmy": "pants|50s#beige-tan",
+    "pants|80s#blue-denim": "pants|90slevis",
+    "pants|50slevis": "pants|levis501xx"
   },
   "hidden": [],
   "colors": {
