@@ -48,7 +48,7 @@ export default function App() {
   const [{ view, filters }, navigate] = useHashRoute()
 
   const setView = (v: View) => navigate({ view: v, filters })
-  const setFilters = (f: Filters) => navigate({ view: 'fits', filters: f })
+  const setFilters = (f: Filters) => navigate({ view: 'fits', filters: f }, { replace: true })
 
   const showFitsForItem = (itemId: string) => {
     navigate({ view: 'fits', filters: { ...defaultFilters, itemId } })
