@@ -4,6 +4,7 @@ import { baseItems, fmtDate, thumb } from '../lib/useData'
 import { overrideActions, resolveId, useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
 import { effectiveHair, HAIR_FIELDS } from '../lib/hair'
+import type { SimilarOutfit } from '../lib/similar'
 import type { HairFile, HairTag, Outfit, SplitsFile } from '../types'
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
@@ -14,6 +15,8 @@ type Props = {
   data: Data
   splits: SplitsFile
   hair: HairFile
+  similarOutfits: SimilarOutfit[]
+  onOpenSimilar: (key: string) => void
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
@@ -29,6 +32,8 @@ export default function OutfitModal({
   data,
   splits,
   hair,
+  similarOutfits,
+  onOpenSimilar,
   onAssign,
   onCreateSub,
   onMoveOutfit,
@@ -142,6 +147,8 @@ export default function OutfitModal({
 
         <HairSection hair={hair} outfitKey={outfit.key} onSetHair={onSetHair} />
 
+        <SimilarOutfitsSection items={similarOutfits} onOpenSimilar={onOpenSimilar} />
+
         <footer className="modal-foot">
           <button className="chip" onClick={onPrev} disabled={!onPrev}>
             ← <span className="jp">前</span>
@@ -168,6 +175,52 @@ export default function OutfitModal({
         />
       )}
     </dialog>
+  )
+}
+
+function SimilarOutfitsSection({
+  items,
+  onOpenSimilar,
+}: {
+  items: SimilarOutfit[]
+  onOpenSimilar: (key: string) => void
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <section className="modal-similar">
+      <h3 className="modal-section-title jp">似ている出勤服</h3>
+      <div className="similar-strip">
+        {items.map(({ outfit, reasons }) => {
+          const image = outfit.images[0]
+          return (
+            <button
+              key={outfit.key}
+              className="similar-card"
+              onClick={() => onOpenSimilar(outfit.key)}
+              title={`${fmtDate(outfit.date)} のコーデを見る`}
+            >
+              <img
+                src={thumb(image.url, 240)}
+                alt={image.caption || outfit.title}
+                loading="lazy"
+                decoding="async"
+              />
+              <span className="similar-date mono">{fmtDate(outfit.date)}</span>
+              {reasons.length > 0 && (
+                <span className="similar-reasons">
+                  {reasons.map((reason, i) => (
+                    <span key={`${reason}-${i}`} className="similar-reason jp">
+                      {reason}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
