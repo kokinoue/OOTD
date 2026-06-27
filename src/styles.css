@@ -605,6 +605,74 @@ a {
   color: var(--text);
 }
 
+.modal-similar {
+  margin: 18px 0 2px;
+}
+
+.modal-section-title {
+  margin: 0 0 10px 2px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.similar-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 0 2px 8px;
+  scrollbar-width: thin;
+}
+
+.similar-card {
+  flex: 0 0 118px;
+  display: grid;
+  grid-template-rows: 142px auto 1fr;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.similar-card img {
+  display: block;
+  width: 100%;
+  height: 142px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f0f0ee;
+}
+
+.similar-card:hover img {
+  filter: brightness(0.96);
+}
+
+.similar-date {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.similar-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-content: flex-start;
+}
+
+.similar-reason {
+  max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-sub);
+  font-size: 10.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .modal-foot {
   display: flex;
   justify-content: space-between;
