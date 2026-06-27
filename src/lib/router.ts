@@ -62,25 +62,35 @@ export function decodeHash(hash: string): Route {
   return { view, filters }
 }
 
+type NavigateOptions = {
+  replace?: boolean
+}
+
 /** URL hash を単一の真実とする状態フック。リロード復元・共有・戻る/進むに対応 */
-export function useHashRoute(): [Route, (next: Route) => void] {
+export function useHashRoute(): [Route, (next: Route, options?: NavigateOptions) => void] {
   const [route, setRoute] = useState<Route>(() => decodeHash(window.location.hash))
 
   useEffect(() => {
     // ブラウザの戻る/進む、URL の手編集に追従
-    const onHash = () => {
+    const onRouteChange = () => {
       const next = decodeHash(window.location.hash)
       setRoute((cur) => (encodeHash(cur) === encodeHash(next) ? cur : next))
     }
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+    window.addEventListener('hashchange', onRouteChange)
+    window.addEventListener('popstate', onRouteChange)
+    return () => {
+      window.removeEventListener('hashchange', onRouteChange)
+      window.removeEventListener('popstate', onRouteChange)
+    }
   }, [])
 
-  const navigate = (next: Route) => {
+  const navigate = (next: Route, options: NavigateOptions = {}) => {
     setRoute(next)
     const h = `#${encodeHash(next)}`
-    // フィルタ変更で履歴を汚さないよう replaceState（リロード/共有には十分）
-    if (window.location.hash !== h) history.replaceState(null, '', h)
+    if (window.location.hash !== h) {
+      if (options.replace) history.replaceState(null, '', h)
+      else history.pushState(null, '', h)
+    }
   }
 
   return [route, navigate]
