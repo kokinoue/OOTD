@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
 import { regionBackgroundStyle } from '../lib/regions'
+import { buildItemNetwork } from '../lib/itemNetwork'
+import type { ItemNetwork, ItemNetworkNode } from '../lib/itemNetwork'
 import type { EffectiveItem } from '../types'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
@@ -32,6 +35,7 @@ type Sort = 'idle' | 'recent' | 'staple' | 'dormant'
 type Props = {
   data: Data
   onShowFits: (itemId: string) => void
+  onShowPairFits: (itemIds: string[]) => void
 }
 
 const parseDate = (date: string) => new Date(`${date}T00:00:00Z`).getTime()
@@ -39,9 +43,10 @@ const daysBetween = (from: string, to: string) =>
   Math.max(0, Math.round((parseDate(to) - parseDate(from)) / MS_PER_DAY))
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
-export default function ClosetDashboardView({ data, onShowFits }: Props) {
+export default function ClosetDashboardView({ data, onShowFits, onShowPairFits }: Props) {
   const [category, setCategory] = useState('all')
   const [sort, setSort] = useState<Sort>('idle')
+  const network = useMemo(() => buildItemNetwork(data), [data])
 
   const snapshot = useMemo(() => {
     const asOf = outfits.reduce((max, o) => (o.date > max ? o.date : max), '')
@@ -288,8 +293,202 @@ export default function ClosetDashboardView({ data, onShowFits }: Props) {
           onShowFits={onShowFits}
         />
       </div>
+
+      <ItemNetworkSection
+        network={network}
+        onShowFits={onShowFits}
+        onShowPairFits={onShowPairFits}
+      />
     </main>
   )
+}
+
+function ItemNetworkSection({
+  network,
+  onShowFits,
+  onShowPairFits,
+}: {
+  network: ItemNetwork
+  onShowFits: (itemId: string) => void
+  onShowPairFits: (itemIds: string[]) => void
+}) {
+  const positions = useMemo(() => buildNetworkPositions(network.nodes), [network.nodes])
+  const strengthRange = range(network.nodes.map((node) => node.strength))
+  const wearRange = range(network.nodes.map((node) => node.totalWears))
+  const edgeRange = range(network.edges.map((edge) => edge.count))
+  const strongest = network.metrics.strongestPair
+
+  return (
+    <section className="closet-section closet-network-section">
+      <div className="closet-section-head network-head">
+        <div>
+          <h2 className="section-title mono">
+            network <span className="section-count">{network.metrics.nodeCount}</span>
+          </h2>
+          <p className="network-scope mono">ALL PERIODS · ALL CATEGORIES</p>
+        </div>
+      </div>
+
+      <div className="network-metrics">
+        <Metric label="nodes" value={String(network.metrics.nodeCount)} sub="connected items" />
+        <Metric label="pairs" value={String(network.metrics.pairCount)} sub="2+ co-wears" />
+        <Metric
+          label="strongest pair"
+          value={strongest ? String(strongest.count) : '0'}
+          sub={strongest ? `${strongest.sourceItem.label} / ${strongest.targetItem.label}` : 'no pair'}
+        />
+      </div>
+
+      {network.edges.length === 0 ? (
+        <p className="closet-empty jp">
+          2回以上一緒に着られたアイテムペアがまだありません。
+        </p>
+      ) : (
+        <div className="network-layout">
+          <div className="network-canvas">
+            <svg
+              viewBox="0 0 720 420"
+              preserveAspectRatio="xMidYMid meet"
+              role="img"
+              aria-label="よく一緒に着られるアイテムのネットワーク"
+            >
+              <title>アイテム相関ネットワーク</title>
+              <g className="network-edges" aria-hidden="true">
+                {network.edges.map((edge) => {
+                  const source = positions.get(edge.source)
+                  const target = positions.get(edge.target)
+                  if (!source || !target) return null
+                  const width = scale(edge.count, edgeRange, 0.8, 3.8)
+                  return (
+                    <line
+                      key={edge.id}
+                      x1={source.x}
+                      y1={source.y}
+                      x2={target.x}
+                      y2={target.y}
+                      strokeWidth={width}
+                    />
+                  )
+                })}
+              </g>
+              <g className="network-nodes">
+                {network.nodes.map((node) => {
+                  const pos = positions.get(node.id)
+                  if (!pos) return null
+                  const radius =
+                    scale(node.strength, strengthRange, 13, 24) +
+                    scale(node.totalWears, wearRange, 0, 5)
+                  const label = shortLabel(node.item.label)
+                  const ariaLabel = `${node.item.label}、${node.item.category}、共起強度${node.strength}。FITSを見る`
+                  return (
+                    <g
+                      key={node.id}
+                      className="network-node"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={ariaLabel}
+                      transform={`translate(${pos.x} ${pos.y})`}
+                      onClick={() => onShowFits(node.id)}
+                      onKeyDown={(event) => handleNodeKey(event, () => onShowFits(node.id))}
+                    >
+                      <title>
+                        {node.item.label} / {node.item.category} / strength {node.strength} /{' '}
+                        {node.totalWears} wears
+                      </title>
+                      <circle r={radius} />
+                      <text className="network-node-label jp" y="4">
+                        {label}
+                      </text>
+                    </g>
+                  )
+                })}
+              </g>
+            </svg>
+          </div>
+
+          <div className="network-pairs">
+            <h3 className="network-pairs-title mono">
+              strong pairs <span className="section-count">{network.topPairs.length}</span>
+            </h3>
+            <ol className="network-pair-list">
+              {network.topPairs.map((pair) => (
+                <li key={pair.id} className="network-pair">
+                  <button
+                    className="network-pair-action"
+                    onClick={() => onShowPairFits([pair.source, pair.target])}
+                    aria-label={`${pair.sourceItem.label} と ${pair.targetItem.label} のFITSを見る`}
+                  >
+                    <span className="network-pair-items">
+                      <span className="network-pair-label jp">{pair.sourceItem.label}</span>
+                      <span className="chip-cat mono">{pair.sourceItem.category}</span>
+                      <span className="network-pair-label jp">{pair.targetItem.label}</span>
+                      <span className="chip-cat mono">{pair.targetItem.category}</span>
+                    </span>
+                    <span className="network-pair-count mono">{pair.count} fits</span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function buildNetworkPositions(nodes: ItemNetworkNode[]) {
+  const positions = new Map<string, { x: number; y: number }>()
+  const center = { x: 360, y: 210 }
+  const inner = nodes.slice(0, 8)
+  const outer = nodes.slice(8)
+  placeRing(positions, inner, center, 112, -Math.PI / 2)
+  placeRing(positions, outer, center, 176, -Math.PI / 2 + Math.PI / Math.max(outer.length, 1))
+  return positions
+}
+
+function placeRing(
+  positions: Map<string, { x: number; y: number }>,
+  nodes: ItemNetworkNode[],
+  center: { x: number; y: number },
+  radius: number,
+  offset: number,
+) {
+  if (nodes.length === 0) return
+  if (nodes.length === 1) {
+    positions.set(nodes[0].id, center)
+    return
+  }
+  nodes.forEach((node, index) => {
+    const angle = offset + (Math.PI * 2 * index) / nodes.length
+    positions.set(node.id, {
+      x: center.x + Math.cos(angle) * radius,
+      y: center.y + Math.sin(angle) * radius,
+    })
+  })
+}
+
+function range(values: number[]) {
+  if (values.length === 0) return { min: 0, max: 0 }
+  return {
+    min: Math.min(...values),
+    max: Math.max(...values),
+  }
+}
+
+function scale(value: number, limits: { min: number; max: number }, min: number, max: number) {
+  if (limits.max <= limits.min) return (min + max) / 2
+  return min + ((value - limits.min) / (limits.max - limits.min)) * (max - min)
+}
+
+function shortLabel(label: string) {
+  if (label.length <= 16) return label
+  return `${label.slice(0, 15)}…`
+}
+
+function handleNodeKey(event: KeyboardEvent<SVGGElement>, action: () => void) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  action()
 }
 
 function Metric({

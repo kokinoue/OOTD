@@ -12,6 +12,7 @@ export function encodeHash({ view, filters }: Route): string {
   const p = new URLSearchParams()
   // URLSearchParams が | → %7C, # → %23 を自動エンコードするので itemId をそのまま入れて安全
   if (filters.itemId) p.set('item', filters.itemId)
+  if (filters.itemIds.length > 0) p.set('items', filters.itemIds.join(','))
   if (filters.hairColor) p.set('hcolor', filters.hairColor)
   if (filters.hairStyle) p.set('hstyle', filters.hairStyle)
   if (filters.hat) p.set('hat', filters.hat)
@@ -49,6 +50,7 @@ export function decodeHash(hash: string): Route {
   const filters: Filters = {
     ...defaultFilters,
     itemId: p.get('item') || null,
+    itemIds: (p.get('items') ?? '').split(',').filter(Boolean),
     hairColor: p.get('hcolor') || null,
     hairStyle: p.get('hstyle') || null,
     hat: p.get('hat') || null,

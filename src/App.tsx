@@ -20,6 +20,7 @@ export type Filters = {
   year: number | null
   month: number | null
   itemId: string | null
+  itemIds: string[]
   hairColor: string | null
   hairStyle: string | null
   hat: string | null
@@ -33,6 +34,7 @@ export const defaultFilters: Filters = {
   year: null,
   month: null,
   itemId: null,
+  itemIds: [],
   hairColor: null,
   hairStyle: null,
   hat: null,
@@ -51,7 +53,12 @@ export default function App() {
   const setFilters = (f: Filters) => navigate({ view: 'fits', filters: f }, { replace: true })
 
   const showFitsForItem = (itemId: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId } })
+    navigate({ view: 'fits', filters: { ...defaultFilters, itemId, itemIds: [] } })
+    window.scrollTo({ top: 0 })
+  }
+
+  const showFitsForItems = (itemIds: string[]) => {
+    navigate({ view: 'fits', filters: { ...defaultFilters, itemId: null, itemIds } })
     window.scrollTo({ top: 0 })
   }
 
@@ -126,7 +133,13 @@ export default function App() {
         />
       )}
       {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
-      {view === 'closet' && <ClosetDashboardView data={data} onShowFits={showFitsForItem} />}
+      {view === 'closet' && (
+        <ClosetDashboardView
+          data={data}
+          onShowFits={showFitsForItem}
+          onShowPairFits={showFitsForItems}
+        />
+      )}
       {view === 'palette' && <ColorPaletteView data={data} onShowFits={showFitsForItem} />}
       {view === 'weather' && <WeatherView />}
       {view === 'game' && <GameHubView onSelect={setView} />}
