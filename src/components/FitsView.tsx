@@ -4,6 +4,7 @@ import { defaultFilters } from '../App'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
 import { buildHairFacets, effectiveHair, HAIR_FIELDS } from '../lib/hair'
+import { findSimilarOutfits } from '../lib/similar'
 import type { HairFile, HairTag, SplitsFile } from '../types'
 import OutfitModal from './OutfitModal'
 import TimelapsePlayer, { type TimelapseFrame } from './TimelapsePlayer'
@@ -107,9 +108,19 @@ export default function FitsView({
   }, [data, filters, hair])
 
   const [shown, setShown] = useState(PAGE)
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const [openOutfitKey, setOpenOutfitKey] = useState<string | null>(null)
   const [timelapseFrames, setTimelapseFrames] = useState<TimelapseFrame[] | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  const outfitMap = useMemo(() => new Map(outfits.map((o) => [o.key, o])), [])
+  const openOutfit = openOutfitKey ? outfitMap.get(openOutfitKey) : null
+  const openFilteredIndex = openOutfitKey
+    ? filtered.findIndex((o) => o.key === openOutfitKey)
+    : -1
+  const similarOutfits = useMemo(
+    () => (openOutfit ? findSimilarOutfits(openOutfit, data, hair, 6) : []),
+    [openOutfit, data, hair],
+  )
 
   const startTimelapse = () => {
     // 絞り込み結果を時系列昇順で再生（画像のないコーデは除外）
@@ -328,7 +339,7 @@ export default function FitsView({
               <button
                 key={o.key}
                 className={byLike ? 'card rank-card' : 'card'}
-                onClick={() => setOpenIndex(i)}
+                onClick={() => setOpenOutfitKey(o.key)}
               >
                 {byLike && (
                   <span className={'rank-badge mono' + (i < 3 ? ' rank-top' : '')}>{i + 1}</span>
@@ -367,24 +378,32 @@ export default function FitsView({
         <TimelapsePlayer frames={timelapseFrames} onClose={() => setTimelapseFrames(null)} />
       )}
 
-      {openIndex != null && filtered[openIndex] && (
+      {openOutfit && (
         <OutfitModal
-          outfit={filtered[openIndex]}
+          outfit={openOutfit}
           data={data}
           splits={splits}
           hair={hair}
+          similarOutfits={similarOutfits}
+          onOpenSimilar={(key) => setOpenOutfitKey(key)}
           onAssign={onAssign}
           onCreateSub={onCreateSub}
           onMoveOutfit={onMoveOutfit}
           onSetHair={onSetHair}
-          onClose={() => setOpenIndex(null)}
-          onPrev={openIndex > 0 ? () => setOpenIndex(openIndex - 1) : undefined}
+          onClose={() => setOpenOutfitKey(null)}
+          onPrev={
+            openFilteredIndex > 0
+              ? () => setOpenOutfitKey(filtered[openFilteredIndex - 1].key)
+              : undefined
+          }
           onNext={
-            openIndex < filtered.length - 1 ? () => setOpenIndex(openIndex + 1) : undefined
+            openFilteredIndex >= 0 && openFilteredIndex < filtered.length - 1
+              ? () => setOpenOutfitKey(filtered[openFilteredIndex + 1].key)
+              : undefined
           }
           onItemClick={(id) => {
             setFilters({ ...filters, itemId: id, itemIds: [] })
-            setOpenIndex(null)
+            setOpenOutfitKey(null)
             window.scrollTo({ top: 0 })
           }}
         />
