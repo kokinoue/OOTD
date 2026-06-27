@@ -78,6 +78,10 @@ export default function FitsView({
       if (filters.itemId != null) {
         if (!data.outfitItemIds.get(o.key)?.has(filters.itemId)) return false
       }
+      if (filters.itemIds.length > 0) {
+        const ids = data.outfitItemIds.get(o.key)
+        if (!ids || !filters.itemIds.every((id) => ids.has(id))) return false
+      }
       if (filters.hairColor || filters.hairStyle || filters.hat) {
         const tag = effectiveHair(hair, o.key)
         if (filters.hairColor && tag.color !== filters.hairColor) return false
@@ -141,11 +145,15 @@ export default function FitsView({
   }, [])
 
   const activeItem = filters.itemId ? data.itemMap.get(filters.itemId) : null
+  const activeItems = filters.itemIds
+    .map((id) => data.itemMap.get(id))
+    .filter((item): item is NonNullable<typeof item> => item != null)
   const hasFilter =
     filters.from ||
     filters.to ||
     filters.year != null ||
     filters.itemId ||
+    filters.itemIds.length > 0 ||
     filters.hairColor ||
     filters.hairStyle ||
     filters.hat ||
@@ -267,11 +275,27 @@ export default function FitsView({
           {activeItem && (
             <button
               className="chip item-chip active"
-              onClick={() => setFilters({ ...filters, itemId: null })}
+              onClick={() => setFilters({ ...filters, itemId: null, itemIds: [] })}
               title="アイテム絞り込みを解除"
             >
               <span className="chip-cat mono">{activeItem.category}</span>
               {activeItem.label} ✕
+            </button>
+          )}
+          {activeItems.length > 0 && (
+            <button
+              className="chip item-chip active"
+              onClick={() => setFilters({ ...filters, itemId: null, itemIds: [] })}
+              title="ペア絞り込みを解除"
+            >
+              {activeItems.map((item, index) => (
+                <span key={item.id} className="pair-chip-part">
+                  <span className="chip-cat mono">{item.category}</span>
+                  {item.label}
+                  {index < activeItems.length - 1 ? ' + ' : ''}
+                </span>
+              ))}
+              ✕
             </button>
           )}
           <span className="result-count">
@@ -359,7 +383,7 @@ export default function FitsView({
             openIndex < filtered.length - 1 ? () => setOpenIndex(openIndex + 1) : undefined
           }
           onItemClick={(id) => {
-            setFilters({ ...filters, itemId: id })
+            setFilters({ ...filters, itemId: id, itemIds: [] })
             setOpenIndex(null)
             window.scrollTo({ top: 0 })
           }}
