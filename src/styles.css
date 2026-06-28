@@ -4024,7 +4024,51 @@ a {
 }
 
 /* --- モーション控えめ設定では派手な動きを止める --- */
+/* ---------- 先頭へ戻るボタン ---------- */
+.scroll-top {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(8px) scale(0.92);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.scroll-top.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.scroll-top:hover {
+  border-color: #c8c8c6;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .scroll-top {
+    transition: opacity 0.2s ease;
+    transform: none;
+  }
+  .scroll-top.visible {
+    transform: none;
+  }
+
   .d-onfield,
   .d-onfield.lunge-up,
   .d-onfield.lunge-down,
