@@ -141,6 +141,17 @@ export default function FitsView({
     if (frames.length >= 2) setTimelapseFrames(frames)
   }
 
+  const openRandom = () => {
+    // 絞り込み結果から1枚をランダムに開く（鑑賞中の1枚は避けて確実に切り替える）
+    const pool =
+      openOutfitKey && filtered.length > 1
+        ? filtered.filter((o) => o.key !== openOutfitKey)
+        : filtered
+    if (pool.length === 0) return
+    const pick = pool[Math.floor(Math.random() * pool.length)]
+    setOpenOutfitKey(pick.key)
+  }
+
   useEffect(() => {
     setShown(PAGE)
   }, [filters])
@@ -318,6 +329,14 @@ export default function FitsView({
               </button>
             )}
           </span>
+          <button
+            className="chip"
+            onClick={openRandom}
+            disabled={filtered.length === 0}
+            title="絞り込んだ中からランダムに1枚開く"
+          >
+            🎲 <span className="jp">ランダム</span>
+          </button>
           <button
             className="chip"
             onClick={startTimelapse}
