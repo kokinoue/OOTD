@@ -9,6 +9,7 @@ import { useOverrides } from './lib/store'
 const ClosetDashboardView = lazy(() => import('./components/ClosetDashboardView'))
 const ColorPaletteView = lazy(() => import('./components/ColorPaletteView'))
 const WeatherView = lazy(() => import('./components/WeatherView'))
+const TodayPickView = lazy(() => import('./components/TodayPickView'))
 const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
 const DuelGameView = lazy(() => import('./components/DuelGameView'))
 import { useSplits } from './lib/splitsStore'
@@ -16,7 +17,16 @@ import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
 
-export type View = 'fits' | 'items' | 'closet' | 'palette' | 'weather' | 'game' | 'memory' | 'duel'
+export type View =
+  | 'fits'
+  | 'items'
+  | 'closet'
+  | 'palette'
+  | 'weather'
+  | 'today'
+  | 'game'
+  | 'memory'
+  | 'duel'
 
 export type Filters = {
   from: string
@@ -68,6 +78,11 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }
 
+  const showFitsForDate = (date: string) => {
+    navigate({ view: 'fits', filters: { ...defaultFilters, from: date, to: date } })
+    window.scrollTo({ top: 0 })
+  }
+
   const visibleItemCount = data.items.filter((it) => !it.hidden).length
 
   return (
@@ -115,6 +130,12 @@ export default function App() {
             衣替え
           </button>
           <button
+            className={view === 'today' ? 'tab active' : 'tab'}
+            onClick={() => setView('today')}
+          >
+            今日の服
+          </button>
+          <button
             className={
               view === 'game' || view === 'memory' || view === 'duel' ? 'tab active' : 'tab'
             }
@@ -150,6 +171,13 @@ export default function App() {
         )}
         {view === 'palette' && <ColorPaletteView data={data} onShowFits={showFitsForItem} />}
         {view === 'weather' && <WeatherView />}
+        {view === 'today' && (
+          <TodayPickView
+            data={data}
+            onShowFits={showFitsForItem}
+            onShowDate={showFitsForDate}
+          />
+        )}
         {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
         {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
       </Suspense>

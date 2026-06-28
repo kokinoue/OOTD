@@ -2032,6 +2032,106 @@ a {
   }
 }
 
+/* ---------- 今日の服 / 気温で選ぶ ---------- */
+.today-head {
+  margin: 4px 0 18px;
+}
+
+.today-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.today-lead {
+  margin: 0;
+  max-width: 640px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-sub);
+}
+
+.today-lead strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.today-control {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.today-temp {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.today-temp-value {
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.today-temp-unit {
+  font-size: 15px;
+  color: var(--text-sub);
+}
+
+.today-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.today-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.today-summary {
+  margin: 18px 2px 8px;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--text-sub);
+}
+
+.today-summary strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.today-staples {
+  margin: 8px 0 22px;
+}
+
+.today-section-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.today-staple-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.today-more {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
 /* ---------- color palette / 色 ---------- */
 .palette-hero {
   display: grid;

@@ -39,13 +39,15 @@ export function decodeHash(hash: string): Route {
           ? 'palette'
           : path === 'weather'
             ? 'weather'
-            : path === 'game'
-              ? 'game'
-              : path === 'memory'
-                ? 'memory'
-                : path === 'duel'
-                  ? 'duel'
-                  : 'fits'
+            : path === 'today'
+              ? 'today'
+              : path === 'game'
+                ? 'game'
+                : path === 'memory'
+                  ? 'memory'
+                  : path === 'duel'
+                    ? 'duel'
+                    : 'fits'
   const p = new URLSearchParams(query ?? '')
   const sortParam = p.get('sort')
   const filters: Filters = {
