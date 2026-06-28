@@ -22,6 +22,7 @@ export function encodeHash({ view, filters }: Route): string {
   if (filters.to) p.set('to', filters.to)
   if (filters.q) p.set('q', filters.q)
   if (filters.sort !== 'new') p.set('sort', filters.sort)
+  if (filters.anniv) p.set('anniv', '1')
   const qs = p.toString()
   return view === 'fits' && qs ? `/fits?${qs}` : `/${view}`
 }
@@ -60,6 +61,7 @@ export function decodeHash(hash: string): Route {
     to: p.get('to') ?? '',
     q: p.get('q') ?? '',
     sort: sortParam === 'old' || sortParam === 'like' ? sortParam : 'new',
+    anniv: p.get('anniv') === '1',
   }
   return { view, filters }
 }
