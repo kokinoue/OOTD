@@ -1,6 +1,7 @@
-// 東京の日次気温を Open-Meteo から取得して src/data/weather.json を生成する
+// 東京の日次気温＋天気を Open-Meteo から取得して src/data/weather.json を生成する
 // usage: node scripts/fetch-weather.mjs
-// 出力: { "2022-03-01": { max, min, mean }, ... }
+// 出力: { "2022-03-01": { max, min, mean, code }, ... }
+// code = WMO weather_code（晴/曇/雨/雪の判定に使う。気温・天気フィルタの共通基盤）
 //
 // archive API は確定値（数日のラグあり）。直近はラグで欠けるので forecast API の
 // past_days で補完する。気温(衣替え)機能の共通データ基盤。
@@ -27,12 +28,13 @@ const start = dates[0]
 const todayIso = new Date().toISOString().slice(0, 10)
 
 const daily = {}
-const put = (d, max, min, mean) => {
+const put = (d, max, min, mean, code) => {
   if (max == null && min == null) return
   daily[d] = {
     max: max ?? null,
     min: min ?? null,
     mean: mean ?? (max != null && min != null ? Math.round(((max + min) / 2) * 10) / 10 : null),
+    code: code ?? null,
   }
 }
 
@@ -41,11 +43,17 @@ const put = (d, max, min, mean) => {
   const url =
     `https://archive-api.open-meteo.com/v1/archive?latitude=${LAT}&longitude=${LON}` +
     `&start_date=${start}&end_date=${todayIso}` +
-    `&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean&timezone=Asia%2FTokyo`
+    `&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,weather_code&timezone=Asia%2FTokyo`
   const j = await fetchJson(url)
   const t = j.daily.time
   for (let i = 0; i < t.length; i++) {
-    put(t[i], j.daily.temperature_2m_max[i], j.daily.temperature_2m_min[i], j.daily.temperature_2m_mean[i])
+    put(
+      t[i],
+      j.daily.temperature_2m_max[i],
+      j.daily.temperature_2m_min[i],
+      j.daily.temperature_2m_mean[i],
+      j.daily.weather_code?.[i],
+    )
   }
   console.log(`archive: ${t.length}日分`)
 }
@@ -54,13 +62,19 @@ const put = (d, max, min, mean) => {
 {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
-    `&daily=temperature_2m_max,temperature_2m_min&past_days=30&forecast_days=1&timezone=Asia%2FTokyo`
+    `&daily=temperature_2m_max,temperature_2m_min,weather_code&past_days=30&forecast_days=1&timezone=Asia%2FTokyo`
   const j = await fetchJson(url)
   const t = j.daily.time
   let filled = 0
   for (let i = 0; i < t.length; i++) {
     if (!daily[t[i]] && j.daily.temperature_2m_max[i] != null) {
-      put(t[i], j.daily.temperature_2m_max[i], j.daily.temperature_2m_min[i])
+      put(
+        t[i],
+        j.daily.temperature_2m_max[i],
+        j.daily.temperature_2m_min[i],
+        undefined,
+        j.daily.weather_code?.[i],
+      )
       filled++
     }
   }
