@@ -145,6 +145,18 @@ a {
   padding: 10px 0 18px;
 }
 
+/* 絞り込み操作群のラッパ。PC では常に展開。スマホでは .filter-toggle で開閉する */
+.filter-collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* スマホ専用の開閉ボタン。PC では非表示 */
+.filter-toggle {
+  display: none;
+}
+
 .filter-row {
   display: flex;
   align-items: center;
@@ -2342,6 +2354,57 @@ a {
 
   .app {
     padding: 0 12px 60px;
+  }
+
+  /* スマホ: 絞り込み操作群を畳んで、写真グリッドをすぐ見せる */
+  .filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 9px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+
+  .filter-toggle-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .filter-toggle-caret {
+    font-size: 9px;
+    color: var(--text-sub);
+  }
+
+  /* 閉じている間は高さ0でアニメーション。開くと自然な高さに */
+  .filter-collapsible {
+    overflow: hidden;
+    max-height: 0;
+    gap: 0;
+    opacity: 0;
+    transition: max-height 0.28s ease, opacity 0.2s ease, gap 0.28s ease;
+  }
+
+  .filter-collapsible.open {
+    max-height: 960px;
+    gap: 10px;
+    opacity: 1;
+    margin-top: 4px;
   }
 
   .header {

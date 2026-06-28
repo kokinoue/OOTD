@@ -132,6 +132,8 @@ export default function FitsView({
   const [shown, setShown] = useState(PAGE)
   const [openOutfitKey, setOpenOutfitKey] = useState<string | null>(null)
   const [timelapseFrames, setTimelapseFrames] = useState<TimelapseFrame[] | null>(null)
+  // スマホでは絞り込み操作群を畳んで、写真グリッドをすぐ見られるようにする（PC では常に展開）
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const outfitMap = useMemo(() => new Map(outfits.map((o) => [o.key, o])), [])
@@ -204,9 +206,32 @@ export default function FitsView({
     filters.q ||
     filters.anniv
 
+  // スマホの「絞り込み」ボタンに出すバッジ用。期間・髪・検索など畳んだ操作群の中で有効な数
+  const collapsedFilterCount =
+    (filters.year != null || filters.from || filters.to || filters.anniv ? 1 : 0) +
+    (filters.q ? 1 : 0) +
+    (filters.hairColor ? 1 : 0) +
+    (filters.hairStyle ? 1 : 0) +
+    (filters.hat ? 1 : 0)
+
   return (
     <main>
       <div className="filterbar">
+        <button
+          className="filter-toggle"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((o) => !o)}
+        >
+          <span className="jp">絞り込み・検索</span>
+          {collapsedFilterCount > 0 && (
+            <span className="filter-toggle-count mono">{collapsedFilterCount}</span>
+          )}
+          <span className="filter-toggle-caret" aria-hidden="true">
+            {filtersOpen ? '▲' : '▼'}
+          </span>
+        </button>
+
+        <div className={filtersOpen ? 'filter-collapsible open' : 'filter-collapsible'}>
         <div className="filter-row">
           <button
             className={
@@ -338,6 +363,8 @@ export default function FitsView({
             })}
           </div>
         )}
+
+        </div>
 
         <div className="filter-row status-row">
           {activeItem && (
