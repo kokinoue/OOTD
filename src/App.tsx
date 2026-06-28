@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react'
 import FitsView from './components/FitsView'
 import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
+import ScrollToTopButton from './components/ScrollToTopButton'
 import { useOverrides } from './lib/store'
 
 // 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
@@ -167,6 +168,8 @@ export default function App() {
         </a>{' '}
         · {fmtDate(meta.scrapedAt.slice(0, 10))} 取得
       </footer>
+
+      <ScrollToTopButton />
     </div>
   )
 }
