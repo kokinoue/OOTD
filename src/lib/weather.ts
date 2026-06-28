@@ -2,7 +2,13 @@ import weatherJson from '../data/weather.json'
 import { outfits } from './useData'
 import type { Data } from './useData'
 
-export type DayTemp = { max: number | null; min: number | null; mean: number | null }
+export type DayTemp = {
+  max: number | null
+  min: number | null
+  mean: number | null
+  // WMO weather_code（晴/曇/雨/雪の判定に使う）。古いデータには無いので optional
+  code?: number | null
+}
 export const weather = weatherJson as Record<string, DayTemp>
 
 /** 直近の気温（weather.json の最終日） */
@@ -10,6 +16,30 @@ export function latestWeatherDate(): string {
   let last = ''
   for (const d of Object.keys(weather)) if (d > last) last = d
   return last
+}
+
+// 天気カテゴリ。WMO weather_code をざっくり4分類して天気フィルタに使う
+export type Sky = 'sunny' | 'cloudy' | 'rain' | 'snow'
+
+export const SKY_LABELS: Record<Sky, string> = {
+  sunny: '晴れ',
+  cloudy: 'くもり',
+  rain: '雨',
+  snow: '雪',
+}
+
+// 表示順（フィルタチップの並び）
+export const SKY_ORDER: Sky[] = ['sunny', 'cloudy', 'rain', 'snow']
+
+/** WMO weather_code → 天気カテゴリ。判定できなければ null */
+export function skyOf(code: number | null | undefined): Sky | null {
+  if (code == null) return null
+  if (code <= 1) return 'sunny' // 0:快晴 1:概ね晴れ
+  if (code <= 3 || code === 45 || code === 48) return 'cloudy' // 2,3:曇 45,48:霧
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow' // 雪
+  // 霧雨・雨・しゅう雨・雷雨（51〜67, 80〜82, 95〜99）
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) return 'rain'
+  return 'cloudy'
 }
 
 const doy = (date: string) => {

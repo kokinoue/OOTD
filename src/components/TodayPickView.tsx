@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
-import { weather } from '../lib/weather'
+import { SKY_LABELS, SKY_ORDER, type Sky, skyOf, weather } from '../lib/weather'
 
 type Props = {
   data: Data
@@ -50,9 +50,11 @@ function seasonalDefaultTemp(): number {
 export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
   const seasonal = useMemo(seasonalDefaultTemp, [])
   const [temp, setTemp] = useState(seasonal)
+  // 天気フィルタ（null = すべて）
+  const [sky, setSky] = useState<Sky | null>(null)
 
-  // 目標気温に近い陽気の日を、近い順に集める（画像のある日のみ）
-  const matches = useMemo(() => {
+  // 目標気温に近い日を、近い順に集める（画像のある日のみ）。天気フィルタ前の母集団
+  const tempMatches = useMemo(() => {
     return outfits
       .map((o) => ({ o, mean: weather[o.date]?.mean ?? null }))
       .filter((x): x is { o: (typeof outfits)[number]; mean: number } => x.mean != null)
@@ -64,7 +66,28 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
       )
   }, [temp])
 
-  // この陽気の「定番アイテム」: 該当日の中での出現回数が多い順
+  // この気温帯での天気の内訳。チップに件数を出し、0件の天気はチップを出さない
+  const skyCounts = useMemo(() => {
+    const c: Record<Sky, number> = { sunny: 0, cloudy: 0, rain: 0, snow: 0 }
+    for (const { o } of tempMatches) {
+      const s = skyOf(weather[o.date]?.code)
+      if (s) c[s]++
+    }
+    return c
+  }, [tempMatches])
+
+  // 選んだ天気で絞った最終結果
+  const matches = useMemo(
+    () => (sky == null ? tempMatches : tempMatches.filter((m) => skyOf(weather[m.o.date]?.code) === sky)),
+    [tempMatches, sky],
+  )
+
+  // 気温を変えて選択中の天気が0件になったら「すべて」に戻す
+  useEffect(() => {
+    if (sky != null && skyCounts[sky] === 0) setSky(null)
+  }, [sky, skyCounts])
+
+  // この条件の「定番アイテム」: 該当日の中での出現回数が多い順
   const staples = useMemo(() => {
     const tally = new Map<string, number>()
     for (const { o } of matches) {
@@ -91,7 +114,6 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
         <h2 className="today-title jp">気温で選ぶ、今日の一着</h2>
         <p className="today-lead jp">
           気温を合わせると、過去に<strong>同じくらいの陽気</strong>だった日の出勤服が並びます。
-          朝の「今日なに着よう」を、4年分の自分の記録から。
         </p>
       </div>
 
@@ -130,10 +152,32 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
             <span className="mono">{seasonal}℃</span>
           </button>
         </div>
+
+        <div className="today-weather">
+          <span className="today-weather-label jp">天気</span>
+          <button
+            className={sky == null ? 'chip sm active' : 'chip sm'}
+            onClick={() => setSky(null)}
+          >
+            <span className="jp">すべて</span>
+            <span className="chip-count mono">{tempMatches.length}</span>
+          </button>
+          {SKY_ORDER.filter((s) => skyCounts[s] > 0).map((s) => (
+            <button
+              key={s}
+              className={sky === s ? 'chip sm active' : 'chip sm'}
+              onClick={() => setSky(sky === s ? null : s)}
+            >
+              <span className="jp">{SKY_LABELS[s]}</span>
+              <span className="chip-count mono">{skyCounts[s]}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <p className="today-summary jp">
-        平均 <span className="mono">{temp}</span>℃ 前後（±{BAND}℃）の日は{' '}
+        平均 <span className="mono">{temp}</span>℃ 前後（±{BAND}℃）
+        {sky != null && <>・{SKY_LABELS[sky]}</>}の日は{' '}
         <strong className="mono">{matches.length}</strong> 件
         {matches.length > 0 && (
           <>
@@ -163,7 +207,7 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
       )}
 
       {matches.length === 0 ? (
-        <p className="empty jp">この気温に近い日が記録にありません。気温を変えてみてください</p>
+        <p className="empty jp">条件に合う日が記録にありません。気温や天気を変えてみてください</p>
       ) : (
         <div className="grid">
           {matches.slice(0, MAX_CARDS).map(({ o, mean }) => (
