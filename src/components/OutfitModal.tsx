@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import type { Data } from '../lib/useData'
 import { baseItems, fmtDate, thumb } from '../lib/useData'
 import { overrideActions, resolveId, useOverrides } from '../lib/store'
@@ -61,6 +61,28 @@ export default function OutfitModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onPrev, onNext, assigningBaseId])
 
+  // スマホ用: 左右スワイプで前後のコーデへ。縦スクロールを邪魔しないよう
+  // 横移動が縦移動より十分に大きいときだけ発火させる
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const onTouchStart = (e: ReactTouchEvent) => {
+    if (e.touches.length !== 1) {
+      touchStart.current = null // ピンチズーム等はスワイプ扱いしない
+      return
+    }
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start || assigningBaseId) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    if (dx > 0) onPrev?.()
+    else onNext?.()
+  }
+
   // 生のアイテムID（分割前）ごとに表示用アイテムを解決。表示が重複したら1つに
   const chips = useMemo(() => {
     const seen = new Set<string>()
@@ -86,7 +108,7 @@ export default function OutfitModal({
         if (e.target === ref.current) onClose() // backdropクリックで閉じる
       }}
     >
-      <article className="modal-body">
+      <article className="modal-body" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <header className="modal-head">
           <div>
             <h2 className="modal-title jp">{outfit.title}</h2>
@@ -148,6 +170,12 @@ export default function OutfitModal({
         <HairSection hair={hair} outfitKey={outfit.key} onSetHair={onSetHair} />
 
         <SimilarOutfitsSection items={similarOutfits} onOpenSimilar={onOpenSimilar} />
+
+        {(onPrev || onNext) && (
+          <p className="modal-swipe-hint jp" aria-hidden="true">
+            ← スワイプで前後のコーデ →
+          </p>
+        )}
 
         <footer className="modal-foot">
           <button className="chip" onClick={onPrev} disabled={!onPrev}>

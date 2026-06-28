@@ -683,6 +683,16 @@ a {
   border-top: 1px solid var(--border);
 }
 
+/* スワイプで前後移動できることのヒント。PC では非表示（矢印キーがある） */
+.modal-swipe-hint {
+  display: none;
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-sub);
+}
+
 .icon-btn {
   flex-shrink: 0;
   width: 30px;
@@ -2373,6 +2383,10 @@ a {
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 10px;
+  }
+
+  .modal-swipe-hint {
+    display: block;
   }
 
   .search {
