@@ -1,12 +1,16 @@
-import ClosetDashboardView from './components/ClosetDashboardView'
-import ColorPaletteView from './components/ColorPaletteView'
-import DuelGameView from './components/DuelGameView'
+import { Suspense, lazy } from 'react'
 import FitsView from './components/FitsView'
 import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
-import MemoryGameView from './components/MemoryGameView'
-import WeatherView from './components/WeatherView'
 import { useOverrides } from './lib/store'
+
+// 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
+// ゲーム（DuelGameView / MemoryGameView）と色解析は依存が重いので特に効果が大きい。
+const ClosetDashboardView = lazy(() => import('./components/ClosetDashboardView'))
+const ColorPaletteView = lazy(() => import('./components/ColorPaletteView'))
+const WeatherView = lazy(() => import('./components/WeatherView'))
+const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
+const DuelGameView = lazy(() => import('./components/DuelGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -133,18 +137,20 @@ export default function App() {
         />
       )}
       {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
-      {view === 'closet' && (
-        <ClosetDashboardView
-          data={data}
-          onShowFits={showFitsForItem}
-          onShowPairFits={showFitsForItems}
-        />
-      )}
-      {view === 'palette' && <ColorPaletteView data={data} onShowFits={showFitsForItem} />}
-      {view === 'weather' && <WeatherView />}
       {view === 'game' && <GameHubView onSelect={setView} />}
-      {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
-      {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
+      <Suspense fallback={<div className="view-loading jp">読み込み中…</div>}>
+        {view === 'closet' && (
+          <ClosetDashboardView
+            data={data}
+            onShowFits={showFitsForItem}
+            onShowPairFits={showFitsForItems}
+          />
+        )}
+        {view === 'palette' && <ColorPaletteView data={data} onShowFits={showFitsForItem} />}
+        {view === 'weather' && <WeatherView />}
+        {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
+        {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
+      </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (
         <div className="save-error jp">
