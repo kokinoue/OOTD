@@ -537,6 +537,40 @@ a {
   margin: 16px 0 4px;
 }
 
+/* ---------- ロック画面用に保存 ---------- */
+.modal-wallpaper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 2px;
+}
+
+.wallpaper-btn {
+  font-weight: 600;
+}
+
+.wallpaper-btn:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
+.wallpaper-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.wallpaper-msg {
+  flex: 1;
+  min-width: 180px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-sub);
+}
+
+.wallpaper-msg.error {
+  color: var(--danger);
+}
+
 .modal-comment {
   margin: 16px 2px 4px;
   font-size: 13.5px;

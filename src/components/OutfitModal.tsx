@@ -5,6 +5,7 @@ import { overrideActions, resolveId, useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
 import { effectiveHair, HAIR_FIELDS } from '../lib/hair'
 import type { SimilarOutfit } from '../lib/similar'
+import { shareAsWallpaper } from '../lib/wallpaper'
 import type { HairFile, HairTag, Outfit, SplitsFile } from '../types'
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
@@ -45,6 +46,35 @@ export default function OutfitModal({
 }: Props) {
   const ref = useRef<HTMLDialogElement>(null)
   const [assigningBaseId, setAssigningBaseId] = useState<string | null>(null)
+  // ロック画面用に整形した画像の共有/保存ステータス
+  const [wpState, setWpState] = useState<'idle' | 'busy' | 'shared' | 'downloaded' | 'error'>(
+    'idle',
+  )
+
+  // outfit が変わったらステータスをリセット
+  const lastWpKey = useRef(outfit.key)
+  if (lastWpKey.current !== outfit.key) {
+    lastWpKey.current = outfit.key
+    setWpState('idle')
+  }
+
+  const mainImage = outfit.images[0]
+  const onSaveWallpaper = async () => {
+    if (!mainImage || wpState === 'busy') return
+    setWpState('busy')
+    try {
+      // モーダルで既に表示済み（=キャッシュ済み）の幅を使い、共有時のユーザー操作判定切れを避ける
+      const res = await shareAsWallpaper({
+        imageUrl: thumb(mainImage.url, 1280),
+        dateLabel: fmtDate(outfit.date),
+        caption: outfit.no != null ? `#${outfit.no}` : undefined,
+        fileBase: `ootd-${outfit.date.replaceAll('-', '')}`,
+      })
+      setWpState(res)
+    } catch {
+      setWpState('error')
+    }
+  }
 
   useEffect(() => {
     const dialog = ref.current
@@ -137,6 +167,35 @@ export default function OutfitModal({
             {img.caption && <figcaption className="modal-caption">{img.caption}</figcaption>}
           </figure>
         ))}
+
+        {mainImage && (
+          <div className="modal-wallpaper">
+            <button
+              className="chip wallpaper-btn"
+              onClick={onSaveWallpaper}
+              disabled={wpState === 'busy'}
+              title="ロック画面用に整形した画像を保存・共有する"
+            >
+              <span aria-hidden="true">▢</span>{' '}
+              <span className="jp">
+                {wpState === 'busy' ? '画像を生成中…' : 'ロック画面用に保存'}
+              </span>
+            </button>
+            {wpState === 'shared' && (
+              <span className="wallpaper-msg jp">
+                共有メニューから「画像を保存」→ 写真アプリで壁紙に設定できます
+              </span>
+            )}
+            {wpState === 'downloaded' && (
+              <span className="wallpaper-msg jp">
+                画像を保存しました。写真アプリから壁紙／ロック画面に設定できます
+              </span>
+            )}
+            {wpState === 'error' && (
+              <span className="wallpaper-msg error jp">画像を生成できませんでした</span>
+            )}
+          </div>
+        )}
 
         {chips.length > 0 && (
           <div className="modal-items">
