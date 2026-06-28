@@ -10,9 +10,20 @@ import OutfitModal from './OutfitModal'
 import TimelapsePlayer, { type TimelapseFrame } from './TimelapsePlayer'
 
 const PAGE = 60
+// 「今日この頃」(anniv) で今日の前後何日まで含めるか。±3日 = 7日幅
+const ANNIV_WINDOW = 3
 
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
 const pad2 = (n: number) => String(n).padStart(2, '0')
+
+// 各月1日までの累積日数（非閏年基準）。月日→「年内通算日」変換に使う
+const CUM_DAYS = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+const dayOfYear = (month: number, day: number) => CUM_DAYS[month - 1] + day
+// 年をまたぐ最短日数差（12/31 と 1/1 を1日差として扱う）
+const circularDayDist = (a: number, b: number) => {
+  const d = Math.abs(a - b)
+  return Math.min(d, 365 - d)
+}
 
 type Props = {
   data: Data
@@ -64,9 +75,20 @@ export default function FitsView({
     [hair],
   )
 
+  // 「今日この頃」用に、ページを開いた日の年内通算日を基準にする
+  const todayDoy = useMemo(() => {
+    const now = new Date()
+    return dayOfYear(now.getMonth() + 1, now.getDate())
+  }, [])
+
   const filtered = useMemo(() => {
     const q = norm(filters.q.trim())
     const list = outfits.filter((o) => {
+      if (filters.anniv) {
+        const m = Number(o.date.slice(5, 7))
+        const d = Number(o.date.slice(8, 10))
+        if (circularDayDist(dayOfYear(m, d), todayDoy) > ANNIV_WINDOW) return false
+      }
       if (filters.from && o.date < filters.from) return false
       if (filters.to && o.date > filters.to) return false
       if (filters.year != null) {
@@ -105,7 +127,7 @@ export default function FitsView({
     else if (filters.sort === 'like')
       list.sort((a, b) => b.like - a.like || (a.date < b.date ? 1 : -1))
     return list
-  }, [data, filters, hair])
+  }, [data, filters, hair, todayDoy])
 
   const [shown, setShown] = useState(PAGE)
   const [openOutfitKey, setOpenOutfitKey] = useState<string | null>(null)
@@ -168,15 +190,22 @@ export default function FitsView({
     filters.hairColor ||
     filters.hairStyle ||
     filters.hat ||
-    filters.q
+    filters.q ||
+    filters.anniv
 
   return (
     <main>
       <div className="filterbar">
         <div className="filter-row">
           <button
-            className={filters.year == null && !filters.from && !filters.to ? 'chip active' : 'chip'}
-            onClick={() => setFilters({ ...filters, year: null, month: null, from: '', to: '' })}
+            className={
+              filters.year == null && !filters.from && !filters.to && !filters.anniv
+                ? 'chip active'
+                : 'chip'
+            }
+            onClick={() =>
+              setFilters({ ...filters, year: null, month: null, from: '', to: '', anniv: false })
+            }
           >
             ALL
           </button>
@@ -191,12 +220,29 @@ export default function FitsView({
                   month: null,
                   from: '',
                   to: '',
+                  anniv: false,
                 })
               }
             >
               <span className="mono">{y}</span>
             </button>
           ))}
+          <button
+            className={filters.anniv ? 'chip active' : 'chip'}
+            onClick={() =>
+              setFilters({
+                ...filters,
+                anniv: !filters.anniv,
+                year: null,
+                month: null,
+                from: '',
+                to: '',
+              })
+            }
+            title="過去の同じ時期（今日の前後3日）に着ていた服を横断"
+          >
+            <span className="jp">今日この頃</span>
+          </button>
           {filters.year != null && (
             <span className="month-chips">
               {monthsForYear.map((m) => (
@@ -221,7 +267,7 @@ export default function FitsView({
               type="date"
               value={filters.from}
               onChange={(e) =>
-                setFilters({ ...filters, from: e.target.value, year: null, month: null })
+                setFilters({ ...filters, from: e.target.value, year: null, month: null, anniv: false })
               }
             />
             <span className="range-sep">→</span>
@@ -229,7 +275,7 @@ export default function FitsView({
               type="date"
               value={filters.to}
               onChange={(e) =>
-                setFilters({ ...filters, to: e.target.value, year: null, month: null })
+                setFilters({ ...filters, to: e.target.value, year: null, month: null, anniv: false })
               }
             />
           </label>

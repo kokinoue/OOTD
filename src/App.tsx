@@ -26,6 +26,7 @@ export type Filters = {
   hat: string | null
   q: string
   sort: 'new' | 'old' | 'like'
+  anniv: boolean
 }
 
 export const defaultFilters: Filters = {
@@ -40,6 +41,7 @@ export const defaultFilters: Filters = {
   hat: null,
   q: '',
   sort: 'new',
+  anniv: false,
 }
 
 export default function App() {
