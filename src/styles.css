@@ -2379,6 +2379,17 @@ a {
     min-width: 140px;
   }
 
+  /* iOS Safari は font-size が16px未満の入力にフォーカスすると
+     ページ全体を自動ズームする。16pxにして意図しないズームを防ぐ */
+  .search,
+  .select,
+  .range input[type='date'],
+  input[type='text'],
+  input[type='search'],
+  textarea {
+    font-size: 16px;
+  }
+
   .item-row {
     flex-wrap: wrap;
     gap: 8px;
