@@ -2312,6 +2312,15 @@ a {
   }
 }
 
+/* ---------- 遅延ビューの読み込み中表示 ---------- */
+.view-loading {
+  padding: 64px 16px;
+  text-align: center;
+  color: var(--text-sub);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
 /* ---------- footer ---------- */
 .footer {
   margin-top: 48px;
