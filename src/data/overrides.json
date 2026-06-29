@@ -80,7 +80,12 @@
     "pants|nhoolywood": "N.HOOLYWOOD · コーデュロイ",
     "pants|50s#beige-tan": "50's · us · チノ",
     "pants|50sfrench": "50's · french",
-    "shirt|70s#u-70-s-us-しゃんぶれーn": "70's · us · シャンブレー"
+    "shirt|70s#u-70-s-us-しゃんぶれーn": "70's · us · シャンブレー",
+    "shirt|50s#white": "50's · us · TOWNCRAFT",
+    "shirt|50s#grey": "50's · us · 開襟ロング",
+    "shirt|50s#light-blue": "us · ウール開襟",
+    "shirt|brooksbrothers": "90's · Brooks Brothers",
+    "shirt|front11201": "front 11201 · 白ドットレーヨン"
   },
   "categories": {
     "shirt|gimcontext": "knit",
@@ -167,6 +172,7 @@
     "pants|randy#olive-mustard": "green",
     "pants|nhoolywood": "black",
     "tie|hermes": "navy",
-    "shirt|70s#u-70-s-us-しゃんぶれーn": "blue"
+    "shirt|70s#u-70-s-us-しゃんぶれーn": "blue",
+    "shirt|50s#white": "white"
   }
 }
