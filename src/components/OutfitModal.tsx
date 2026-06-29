@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { baseItems, fmtDate, thumb } from '../lib/useData'
 import { overrideActions, resolveId, useOverrides } from '../lib/store'
@@ -91,27 +91,144 @@ export default function OutfitModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onPrev, onNext, assigningBaseId])
 
-  // スマホ用: 左右スワイプで前後のコーデへ。縦スクロールを邪魔しないよう
-  // 横移動が縦移動より十分に大きいときだけ発火させる
-  const touchStart = useRef<{ x: number; y: number } | null>(null)
-  const onTouchStart = (e: ReactTouchEvent) => {
-    if (e.touches.length !== 1) {
-      touchStart.current = null // ピンチズーム等はスワイプ扱いしない
+  // スマホ用: マッチングアプリのカードのように、指の動きにカードが追従し、
+  // 一定量を超えると左右に飛んでいって前後のコーデへ切り替わる。
+  // 縦スクロールを邪魔しないよう、横移動が縦移動より大きいときだけ横ドラッグに入る。
+  const prevStampRef = useRef<HTMLDivElement>(null)
+  const nextStampRef = useRef<HTMLDivElement>(null)
+  // ドラッグ状態。再描画を挟むとカクつくので transform は ref 経由で直接当てる
+  const drag = useRef({ startX: 0, startY: 0, axis: 'none' as 'none' | 'x' | 'y', dx: 0, active: false })
+  const animating = useRef(false)
+  const reduceMotion = useRef(false)
+  // 最新の onPrev/onNext を native リスナーから参照するための受け皿
+  const navRef = useRef({ onPrev, onNext, assigningBaseId })
+  navRef.current = { onPrev, onNext, assigningBaseId }
+
+  const SWIPE_THRESHOLD = 80 // この距離を超えて離すと「飛んでいく」
+
+  // dx に応じてカード(=dialog)を移動・回転。0 のときは中央へ戻す
+  const applyTransform = (dx: number, animate: boolean) => {
+    const el = ref.current
+    if (!el) return
+    el.style.transition = animate ? 'transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none'
+    if (dx === 0) {
+      // none ではなく translateX(0) で止める。合成レイヤーを維持し、
+      // iOS でレイヤー破棄時に起きるちらつきを防ぐ
+      el.style.transform = 'translateX(0)'
+    } else {
+      const rot = Math.max(-10, Math.min(10, dx / 22))
+      el.style.transform = `translateX(${dx}px) rotate(${rot}deg)`
+    }
+  }
+  // 「前へ／次へ」スタンプの濃さをドラッグ量に合わせる
+  const setStamps = (dx: number) => {
+    const p = Math.min(Math.abs(dx) / SWIPE_THRESHOLD, 1)
+    if (prevStampRef.current) prevStampRef.current.style.opacity = dx > 0 ? String(p) : '0'
+    if (nextStampRef.current) nextStampRef.current.style.opacity = dx < 0 ? String(p) : '0'
+  }
+  const clearStamps = () => {
+    if (prevStampRef.current) prevStampRef.current.style.opacity = '0'
+    if (nextStampRef.current) nextStampRef.current.style.opacity = '0'
+  }
+  const resetCard = (animate: boolean) => {
+    applyTransform(0, animate)
+    clearStamps()
+  }
+
+  // dir: 1 = 右へ飛ばして前のコーデ / -1 = 左へ飛ばして次のコーデ
+  const flyAway = (dir: 1 | -1) => {
+    const el = ref.current
+    if (!el) return
+    const go = dir > 0 ? navRef.current.onPrev : navRef.current.onNext
+    if (!go) {
+      resetCard(true) // 端まで来ているので跳ね返す
       return
     }
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    if (reduceMotion.current) {
+      go()
+      el.scrollTop = 0
+      resetCard(false)
+      return
+    }
+    animating.current = true
+    const w = window.innerWidth
+    applyTransform(dir * (w + 80), true) // いったん画面外へ飛ばす
+    window.setTimeout(() => {
+      go() // コーデを切り替え（中身が差し替わる）
+      clearStamps()
+      applyTransform(-dir * (w + 80), false) // 反対側の画面外に瞬間移動
+      el.scrollTop = 0
+      // 2フレーム待ってから中央へ滑り込ませる
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          applyTransform(0, true)
+          window.setTimeout(() => {
+            animating.current = false
+          }, 340)
+        }),
+      )
+    }, 260)
   }
-  const onTouchEnd = (e: ReactTouchEvent) => {
-    const start = touchStart.current
-    touchStart.current = null
-    if (!start || assigningBaseId) return
-    const t = e.changedTouches[0]
-    const dx = t.clientX - start.x
-    const dy = t.clientY - start.y
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
-    if (dx > 0) onPrev?.()
-    else onNext?.()
-  }
+
+  useEffect(() => {
+    reduceMotion.current =
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+  }, [])
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const onStart = (e: TouchEvent) => {
+      if (animating.current || navRef.current.assigningBaseId) return
+      if (e.touches.length !== 1) {
+        drag.current.active = false // ピンチズーム等はスワイプ扱いしない
+        return
+      }
+      const t = e.touches[0]
+      drag.current = { startX: t.clientX, startY: t.clientY, axis: 'none', dx: 0, active: true }
+    }
+    const onMove = (e: TouchEvent) => {
+      const d = drag.current
+      if (!d.active || animating.current) return
+      const t = e.touches[0]
+      const dx = t.clientX - d.startX
+      const dy = t.clientY - d.startY
+      if (d.axis === 'none') {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        d.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+        if (d.axis === 'y') {
+          d.active = false // 縦方向なので通常スクロールに任せる
+          return
+        }
+      }
+      if (d.axis !== 'x') return
+      e.preventDefault() // 横ドラッグ中は縦スクロールを止める
+      // 行き先が無い方向は弱い手応え（ラバーバンド）で「これ以上ない」と伝える
+      const hasTarget = dx > 0 ? !!navRef.current.onPrev : !!navRef.current.onNext
+      const eff = hasTarget ? dx : dx * 0.3
+      d.dx = eff
+      applyTransform(eff, false)
+      setStamps(eff)
+    }
+    const onEnd = () => {
+      const d = drag.current
+      if (!d.active) return
+      d.active = false
+      if (d.axis !== 'x') return
+      if (Math.abs(d.dx) >= SWIPE_THRESHOLD) flyAway(d.dx > 0 ? 1 : -1)
+      else resetCard(true)
+    }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    el.addEventListener('touchcancel', onEnd)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onEnd)
+    }
+  }, [])
 
   // 生のアイテムID（分割前）ごとに表示用アイテムを解決。表示が重複したら1つに
   const chips = useMemo(() => {
@@ -138,7 +255,18 @@ export default function OutfitModal({
         if (e.target === ref.current) onClose() // backdropクリックで閉じる
       }}
     >
-      <article className="modal-body" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      {/* スワイプ中に出る方向スタンプ（カードと一緒に動く） */}
+      {onPrev && (
+        <div ref={prevStampRef} className="swipe-stamp prev jp" aria-hidden="true">
+          ← 前へ
+        </div>
+      )}
+      {onNext && (
+        <div ref={nextStampRef} className="swipe-stamp next jp" aria-hidden="true">
+          次へ →
+        </div>
+      )}
+      <article className="modal-body">
         <header className="modal-head">
           <div>
             <h2 className="modal-title jp">{outfit.title}</h2>
