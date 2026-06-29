@@ -79,7 +79,8 @@
     "pants|call#khaki": "23ss · Call · ナイロン",
     "pants|nhoolywood": "N.HOOLYWOOD · コーデュロイ",
     "pants|50s#beige-tan": "50's · us · チノ",
-    "pants|50sfrench": "50's · french"
+    "pants|50sfrench": "50's · french",
+    "shirt|70s#u-70-s-us-しゃんぶれーn": "70's · us · シャンブレー"
   },
   "categories": {
     "shirt|gimcontext": "knit",
@@ -94,7 +95,11 @@
     "pants|conveniencewear": "shorts",
     "pants|80s#shorts": "shorts",
     "pants|80sbananarepublic": "shorts",
-    "pants|unitedarrowssons#mint": "shorts"
+    "pants|unitedarrowssons#mint": "shorts",
+    "knit tie|hermes": "tie",
+    "shirt|wanshanling": "t-shirt",
+    "shirt|french30s40s": "jacket",
+    "shirt|awwmagazine": "t-shirt"
   },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia",
@@ -104,7 +109,8 @@
     "blouson|nahyat": "jacket|nahyat",
     "pants|50susarmy": "pants|50s#beige-tan",
     "pants|80s#blue-denim": "pants|90slevis",
-    "pants|50slevis": "pants|levis501xx"
+    "pants|50slevis": "pants|levis501xx",
+    "knit tie|hermes": "tie|hermes"
   },
   "hidden": [],
   "colors": {
@@ -159,6 +165,8 @@
     "pants|wildfraulein#khaki": "navy",
     "pants|90s#blue-denim": "black",
     "pants|randy#olive-mustard": "green",
-    "pants|nhoolywood": "black"
+    "pants|nhoolywood": "black",
+    "tie|hermes": "navy",
+    "shirt|70s#u-70-s-us-しゃんぶれーn": "blue"
   }
 }
