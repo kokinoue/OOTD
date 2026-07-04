@@ -17,7 +17,10 @@ note マガジン「[出勤服](https://note.com/kokinoue/m/m1e7ba6acb234)」か
 pnpm install
 pnpm dev        # http://localhost:5173（編集できる）
 pnpm build      # dist/ を生成（公開モード＝閲覧専用）
+pnpm test       # src/lib のロジックの単体テスト（vitest）
 ```
+
+PR を出すと [CI](.github/workflows/ci.yml) がテストとビルドを検証する。
 
 `pnpm dev` は編集モード（改名・統合・割当・非表示ができる）、`pnpm build` した成果物は閲覧専用。切り替えは `src/lib/env.ts` の `READONLY = import.meta.env.PROD`。
 
