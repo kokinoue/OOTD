@@ -23,6 +23,19 @@ export const ATTR_BONUS = 500 // 属性相性の有利／不利でATKに±
 // ----------------------------------------------------------------------------
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 
+export type RaceAbility = 'pierce' | 'formation' | 'sprint' | 'bulwark' | 'revenge'
+
+export const ABILITY_INFO: Record<RaceAbility, { name: string; text: string }> = {
+  pierce: { name: '貫通', text: '守備表示モンスターを戦闘で破壊したとき、守備力との差分を相手ライフに与える。' },
+  formation: { name: '連携', text: '自分フィールドに他の表側の織衣族がいるとき、攻撃力+300。' },
+  sprint: { name: '疾走', text: 'ダイレクトアタックのダメージ+300。' },
+  bulwark: { name: '重装', text: '守備表示モンスターへの攻撃で跳ね返りダメージを受けない。' },
+  revenge: { name: '道連れ', text: '戦闘で破壊されたとき、相手ライフに300ダメージ。' },
+}
+export const REVENGE_DAMAGE = 300
+export const SPRINT_BONUS = 300
+export const FORMATION_BONUS = 300
+
 export type MonsterTemplate = {
   kind: 'monster'
   outfitKey: string
@@ -36,6 +49,7 @@ export type MonsterTemplate = {
   level: number // 1-8
   season: Season
   race: string // 種族表示（例: 戦衣族）
+  ability: RaceAbility // 種族固有アビリティ
   colorBucket?: string
 }
 
@@ -43,9 +57,11 @@ export type SpellTrapId =
   | 'reward'
   | 'closet'
   | 'layering'
+  | 'storm'
   | 'downpour'
   | 'mismatch'
   | 'refund'
+  | 'moth'
 
 export type SpellTrapDef = {
   id: SpellTrapId
@@ -73,6 +89,12 @@ export const SPELL_TRAP_DEFS: Record<SpellTrapId, SpellTrapDef> = {
     name: '重ね着',
     text: '自分フィールドのモンスター1体の属性を、選んだ季節に変更する。',
   },
+  storm: {
+    id: 'storm',
+    kind: 'spell',
+    name: '大掃除',
+    text: '相手の伏せカードをすべて破壊する。',
+  },
   downpour: {
     id: 'downpour',
     kind: 'trap',
@@ -91,20 +113,28 @@ export const SPELL_TRAP_DEFS: Record<SpellTrapId, SpellTrapDef> = {
     name: 'タグ付き返品',
     text: '攻撃モンスターを持ち主の手札に戻す。その攻撃は無効になる。',
   },
+  moth: {
+    id: 'moth',
+    kind: 'trap',
+    name: '虫食い',
+    text: '攻撃モンスターの攻撃力を永続で500下げる。攻撃はそのまま続行される。',
+  },
 }
 
-// デッキ内訳（魔法・罠 8枚）
+// デッキ内訳（魔法・罠 10枚）
 const SPELL_TRAP_DECKLIST: SpellTrapId[] = [
   'closet',
   'closet',
   'reward',
   'reward',
   'layering',
+  'storm',
   'downpour',
   'mismatch',
   'refund',
+  'moth',
 ]
-export const MONSTER_COUNT = DECK_SIZE - SPELL_TRAP_DECKLIST.length // 32
+export const MONSTER_COUNT = DECK_SIZE - SPELL_TRAP_DECKLIST.length // 30
 
 export type Card =
   | (MonsterTemplate & { uid: string })
@@ -125,6 +155,7 @@ export type FieldSlot = {
   season: Season // 重ね着で変化しうるので実効値を持つ
   summonedThisTurn: boolean
   hasAttacked: boolean
+  posChangedThisTurn: boolean // 表示形式変更は1ターン1回
 }
 
 export type BackSlot = {
@@ -161,6 +192,10 @@ export type BattleFlash = {
   attackerSide: Side
   attackerZone: number
   targetZone: number | null
+  // 演出用: VSカットインに出すカード画像と、発動したアビリティの注記
+  attackerImg?: string
+  targetImg?: string
+  abilityNotes?: string[]
 }
 
 export type GameState = {
@@ -242,6 +277,14 @@ const RACE_LABEL: Record<Group, string> = {
   bottom: '脚装族',
   shoes: '踏破族',
   acc: '装具族',
+}
+// 種族ごとの固有アビリティ（複雑性の核。種族を見ればできることが分かる）
+const RACE_ABILITY: Record<Group, RaceAbility> = {
+  outer: 'pierce',
+  tops: 'formation',
+  bottom: 'sprint',
+  shoes: 'bulwark',
+  acc: 'revenge',
 }
 
 export function tributesNeeded(level: number): number {
@@ -498,6 +541,7 @@ export function deriveMonster(outfit: Outfit, items: ItemInfo[], ctx?: DeriveCon
     level,
     season,
     race: RACE_LABEL[group],
+    ability: RACE_ABILITY[group],
     colorBucket: color,
   }
 }
@@ -514,11 +558,14 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-// おまかせデッキの理想カーブ（合計＝MONSTER_COUNT=32）。少数の大型＋厚い中低層。
-const DECK_CURVE: Record<number, number> = { 8: 1, 7: 2, 6: 3, 5: 5, 4: 7, 3: 8, 2: 4, 1: 2 }
+// おまかせデッキの理想カーブ（合計＝MONSTER_COUNT=30）。少数の大型＋厚い中低層。
+const DECK_CURVE: Record<number, number> = { 8: 1, 7: 2, 6: 3, 5: 5, 4: 7, 3: 7, 2: 3, 1: 2 }
 
-/** おまかせ40枚: レベルカーブに沿ってモンスター32 + 魔法罠8 を組む */
-export function buildAutoDeck(pool: MonsterTemplate[]): MonsterTemplate[] {
+/**
+ * おまかせ40枚: レベルカーブに沿ってモンスター30 + 魔法罠10 を組む。
+ * strength > 0 で低レベル枠を高レベルに寄せる（連勝モードでCPUが強くなる）。
+ */
+export function buildAutoDeck(pool: MonsterTemplate[], strength = 0): MonsterTemplate[] {
   const byLevel = new Map<number, MonsterTemplate[]>()
   for (const m of pool) {
     const a = byLevel.get(m.level) ?? []
@@ -531,9 +578,18 @@ export function buildAutoDeck(pool: MonsterTemplate[]): MonsterTemplate[] {
       ;[a[i], a[j]] = [a[j], a[i]]
     }
   }
+  // 連勝ボーナス: strength ぶんだけ低レベル帯の枠を高レベル帯へ移す（最大8）
+  const curve = { ...DECK_CURVE }
+  for (let s = 0; s < Math.min(8, Math.max(0, strength)); s++) {
+    const low = [1, 2, 3, 4].find((lv) => (curve[lv] ?? 0) > 1)
+    const high = [8, 7, 6, 5][s % 4]
+    if (low == null) break
+    curve[low]! -= 1
+    curve[high] = (curve[high] ?? 0) + 1
+  }
   const out: MonsterTemplate[] = []
   for (let lv = 8; lv >= 1; lv--) {
-    const want = DECK_CURVE[lv] ?? 0
+    const want = curve[lv] ?? 0
     out.push(...(byLevel.get(lv) ?? []).slice(0, want))
   }
   // 端数はプールの残りから埋める（カーブどおりに揃わない／プールが小さい場合の保険）
@@ -596,6 +652,7 @@ export type Action =
   | { type: 'summon'; side: Side; handIndex: number; orientation: Orientation; faceDown: boolean; tributes: number[] }
   | { type: 'spell'; side: Side; handIndex: number; targetZone?: number; season?: Season }
   | { type: 'setTrap'; side: Side; handIndex: number }
+  | { type: 'changePosition'; side: Side; zone: number }
   | { type: 'attack'; side: Side; attackerZone: number; targetZone: number | null }
   | { type: 'toBattle'; side: Side }
   | { type: 'endTurn'; side: Side }
@@ -622,16 +679,26 @@ function drawN(s: GameState, side: Side, n: number) {
   }
 }
 
-// 攻撃側の実効ATK（バフ＋相性＋半減）
-function effAtk(slot: FieldSlot, opponent: FieldSlot | null, half: boolean): { value: number; m: -1 | 0 | 1 } {
+// 攻撃側の実効ATK（バフ＋連携＋相性＋半減）
+function effAtk(
+  slot: FieldSlot,
+  allies: (FieldSlot | null)[],
+  opponent: FieldSlot | null,
+  half: boolean,
+): { value: number; m: -1 | 0 | 1; formation: boolean } {
   let v = slot.card.atk + slot.atkBuff
   let m: -1 | 0 | 1 = 0
+  // 【連携】他の表側の織衣族がいれば +300
+  const formation =
+    slot.card.ability === 'formation' &&
+    allies.some((a) => a && a !== slot && !a.faceDown && a.card.ability === 'formation')
+  if (formation) v += FORMATION_BONUS
   if (opponent) {
     m = matchup(slot.season, opponent.season)
     v += m * ATTR_BONUS
   }
   if (half) v = Math.floor(v / 2)
-  return { value: Math.max(0, v), m }
+  return { value: Math.max(0, v), m, formation }
 }
 
 /** 防御側のバックローから発動可能な罠を1つ取り出して適用する（攻撃宣言時） */
@@ -668,6 +735,11 @@ function triggerTrap(
     case 'mismatch': {
       log(s, defender, `罠「サイズ違い」発動 — 攻撃力を半分に`)
       return { negate: false, half: true, trapName: trap.name }
+    }
+    case 'moth': {
+      if (aSlot) aSlot.atkBuff -= 500
+      log(s, defender, `罠「虫食い」発動 — 攻撃モンスターのATKを永続-500`)
+      return { negate: false, half: false, trapName: trap.name }
     }
     default:
       // 攻撃に反応しない罠は素通り（このゲームでは全部反応するが保険）
@@ -708,6 +780,7 @@ export function applyAction(state: GameState, action: Action): GameState {
         season: card.season,
         summonedThisTurn: true,
         hasAttacked: false,
+        posChangedThisTurn: false,
       }
       s.normalSummonUsed = true
       const how = need > 0 ? `${need}体をリリースして` : ''
@@ -745,6 +818,21 @@ export function applyAction(state: GameState, action: Action): GameState {
         log(s, action.side, `魔法「重ね着」 — 「${me.field[z]!.card.name}」を${SEASON_LABEL[action.season]}属性に`)
         return s
       }
+      if (id === 'storm') {
+        const count = opp.back.filter((b) => b).length
+        if (count === 0) return state
+        me.hand.splice(action.handIndex, 1)
+        me.graveyard.push(card)
+        for (let z = 0; z < opp.back.length; z++) {
+          const b = opp.back[z]
+          if (b) {
+            opp.graveyard.push(b.card)
+            opp.back[z] = null
+          }
+        }
+        log(s, action.side, `魔法「大掃除」 — 相手の伏せカード${count}枚を破壊`)
+        return s
+      }
       return state
     }
 
@@ -756,6 +844,25 @@ export function applyAction(state: GameState, action: Action): GameState {
       me.hand.splice(action.handIndex, 1)
       me.back[zone] = { card }
       log(s, action.side, `伏せカードをセット`)
+      return s
+    }
+
+    case 'changePosition': {
+      if (s.phase !== 'main') return state
+      const slot = me.field[action.zone]
+      if (!slot || slot.summonedThisTurn || slot.hasAttacked || slot.posChangedThisTurn) return state
+      if (slot.faceDown) {
+        slot.faceDown = false
+        slot.orientation = 'attack'
+        log(s, action.side, `「${slot.card.name}」を反転 — 攻撃表示に`)
+      } else if (slot.orientation === 'attack') {
+        slot.orientation = 'defense'
+        log(s, action.side, `「${slot.card.name}」を守備表示に変更`)
+      } else {
+        slot.orientation = 'attack'
+        log(s, action.side, `「${slot.card.name}」を攻撃表示に変更`)
+      }
+      slot.posChangedThisTurn = true
       return s
     }
 
@@ -789,18 +896,26 @@ export function applyAction(state: GameState, action: Action): GameState {
           attackerSide: action.side,
           attackerZone: action.attackerZone,
           targetZone: action.targetZone,
+          attackerImg: aSlot.card.img,
         }
         return s
       }
 
       const target = action.targetZone == null ? null : opp.field[action.targetZone]
+      const notes: string[] = []
 
       // ダイレクトアタック（相手フィールドにモンスターなし）
       if (target == null) {
         const hasMonster = opp.field.some((f) => f)
         if (hasMonster) return state // モンスターがいるならダイレクト不可
-        const { value } = effAtk(aSlot, null, tr.half)
-        opp.lp -= value
+        const { value, formation } = effAtk(aSlot, me.field, null, tr.half)
+        if (formation) notes.push(`【連携】ATK+${FORMATION_BONUS}`)
+        let dmg = value
+        if (aSlot.card.ability === 'sprint') {
+          dmg += SPRINT_BONUS
+          notes.push(`【疾走】ダメージ+${SPRINT_BONUS}`)
+        }
+        opp.lp -= dmg
         aSlot.hasAttacked = true
         s.flash = {
           attacker: aSlot.card.name,
@@ -811,21 +926,24 @@ export function applyAction(state: GameState, action: Action): GameState {
           trap: tr.trapName,
           result: 'direct',
           damageTo: other(action.side),
-          damage: value,
+          damage: dmg,
           attackerSide: action.side,
           attackerZone: action.attackerZone,
           targetZone: null,
+          attackerImg: aSlot.card.img,
+          abilityNotes: notes,
         }
-        log(s, action.side, `ダイレクトアタック — ${value} ダメージ`)
+        log(s, action.side, `ダイレクトアタック — ${dmg} ダメージ`)
         checkWin(s)
         return s
       }
 
       // モンスター同士の戦闘
-      const { value: atkVal, m } = effAtk(aSlot, target, tr.half)
+      const { value: atkVal, m, formation } = effAtk(aSlot, me.field, target, tr.half)
+      if (formation) notes.push(`【連携】ATK+${FORMATION_BONUS}`)
       const wasFaceDown = target.faceDown
       if (wasFaceDown) {
-        target.faceDown = false // リバース（このゲームに効果はないが表向きに）
+        target.faceDown = false // リバース（表向きにしてから戦闘）
       }
       const defending = target.orientation === 'defense'
       const targetVal = defending ? target.card.def : target.card.atk + target.atkBuff
@@ -833,17 +951,36 @@ export function applyAction(state: GameState, action: Action): GameState {
       let result: BattleFlash['result'] = 'none'
       let damageTo: Side | null = null
       let damage = 0
+      // 【道連れ】戦闘破壊されたモンスターが相手ライフを削る
+      const revenge = (destroyed: MonsterCard, owner: Side) => {
+        if (destroyed.ability !== 'revenge') return
+        s.sides[other(owner)].lp -= REVENGE_DAMAGE
+        notes.push(`【道連れ】「${destroyed.name}」が${REVENGE_DAMAGE}ダメージ`)
+        log(s, owner, `【道連れ】「${destroyed.name}」— 相手に${REVENGE_DAMAGE}ダメージ`)
+      }
 
       if (defending) {
         if (atkVal > targetVal) {
           opp.graveyard.push(target.card)
           opp.field[action.targetZone!] = null
           result = 'destroy-target'
+          // 【貫通】守備を踏み抜いた差分をライフへ
+          if (aSlot.card.ability === 'pierce') {
+            damage = atkVal - targetVal
+            opp.lp -= damage
+            damageTo = other(action.side)
+            notes.push(`【貫通】${damage}ダメージ`)
+          }
+          revenge(target.card, other(action.side))
         } else if (atkVal < targetVal) {
           // 守備モンスターより弱い攻撃: 攻撃側は破壊されず、差分を自分が受ける
-          damage = targetVal - atkVal
-          me.lp -= damage
-          damageTo = action.side
+          if (aSlot.card.ability === 'bulwark') {
+            notes.push('【重装】反動ダメージ無効')
+          } else {
+            damage = targetVal - atkVal
+            me.lp -= damage
+            damageTo = action.side
+          }
           result = 'recoil'
         } else {
           result = 'none'
@@ -857,6 +994,7 @@ export function applyAction(state: GameState, action: Action): GameState {
           opp.graveyard.push(target.card)
           opp.field[action.targetZone!] = null
           result = 'destroy-target'
+          revenge(target.card, other(action.side))
         } else if (atkVal < targetVal) {
           damage = targetVal - atkVal
           me.lp -= damage
@@ -864,6 +1002,7 @@ export function applyAction(state: GameState, action: Action): GameState {
           me.graveyard.push(aSlot.card)
           me.field[action.attackerZone] = null
           result = 'destroy-attacker'
+          revenge(aSlot.card, action.side)
         } else {
           // 相打ち
           opp.graveyard.push(target.card)
@@ -871,6 +1010,8 @@ export function applyAction(state: GameState, action: Action): GameState {
           me.graveyard.push(aSlot.card)
           me.field[action.attackerZone] = null
           result = 'both'
+          revenge(target.card, other(action.side))
+          revenge(aSlot.card, action.side)
         }
       }
 
@@ -888,6 +1029,9 @@ export function applyAction(state: GameState, action: Action): GameState {
         attackerSide: action.side,
         attackerZone: action.attackerZone,
         targetZone: action.targetZone,
+        attackerImg: aSlot.card.img,
+        targetImg: target.card.img,
+        abilityNotes: notes,
       }
       const matchTxt = m === 1 ? `（相性○ +${ATTR_BONUS}）` : m === -1 ? `（相性× -${ATTR_BONUS}）` : ''
       log(s, action.side, `「${aSlot.card.name}」が「${target.card.name}」へ攻撃 ${matchTxt}`)
@@ -906,6 +1050,7 @@ export function applyAction(state: GameState, action: Action): GameState {
         if (slot) {
           slot.hasAttacked = false
           slot.summonedThisTurn = false
+          slot.posChangedThisTurn = false
         }
       }
       log(s, null, `— ${s.sides[next].name} のターン（T${s.turnNo}）`)
@@ -932,6 +1077,14 @@ export function canSummon(s: GameState, side: Side, handIndex: number): boolean 
   // 空きゾーン（リリース後に置けるか）
   if (need === 0 && freeIndex(s.sides[side].field) < 0) return false
   return true
+}
+
+/** 表示形式変更が可能か（メインフェイズ・召喚ターン以外・攻撃前・1ターン1回） */
+export function canChangePos(s: GameState, side: Side, zone: number): boolean {
+  if (s.phase !== 'main' || s.turn !== side) return false
+  const slot = s.sides[side].field[zone]
+  if (!slot) return false
+  return !slot.summonedThisTurn && !slot.hasAttacked && !slot.posChangedThisTurn
 }
 
 // ----------------------------------------------------------------------------
@@ -980,10 +1133,40 @@ function cpuMainAction(s: GameState, side: Side): Action | null {
   const closet = handHas('closet')
   if (closet >= 0 && me.deck.length > 3) return { type: 'spell', side, handIndex: closet }
 
+  // 1.5) 大掃除（相手の伏せカードが2枚以上なら剥がす）
+  const storm = handHas('storm')
+  if (storm >= 0 && s.sides[other(side)].back.filter((b) => b).length >= 2) {
+    return { type: 'spell', side, handIndex: storm }
+  }
+
   // 2) 召喚（メインの主役）
   if (!s.normalSummonUsed) {
     const sum = bestSummonChoice(s, side)
     if (sum) return { type: 'summon', side, handIndex: sum.handIndex, orientation: sum.orientation, faceDown: sum.faceDown, tributes: sum.tributes }
+  }
+
+  // 2.5) 表示形式変更（脅威に合わせて構え直す）
+  {
+    const oppSlots = s.sides[other(side)].field.filter((f): f is FieldSlot => !!f)
+    const oppBestAtk = Math.max(
+      0,
+      ...oppSlots.filter((f) => !f.faceDown && f.orientation === 'attack').map((f) => f.card.atk + f.atkBuff),
+    )
+    for (let z = 0; z < me.field.length; z++) {
+      const f = me.field[z]
+      if (!f || !canChangePos(s, side, z)) continue
+      const myAtk = f.card.atk + f.atkBuff
+      // 裏守備を反転して殴りにいく（相手最強を上回る or 相手が空）
+      if (f.faceDown && (myAtk >= oppBestAtk || oppSlots.length === 0)) return { type: 'changePosition', side, zone: z }
+      // 押し負ける攻撃表示は、守備のほうが硬いなら守りに回る
+      if (!f.faceDown && f.orientation === 'attack' && myAtk + ATTR_BONUS < oppBestAtk && f.card.def > myAtk) {
+        return { type: 'changePosition', side, zone: z }
+      }
+      // 攻めきれる守備表示は立たせる
+      if (!f.faceDown && f.orientation === 'defense' && myAtk > oppBestAtk && oppSlots.length > 0) {
+        return { type: 'changePosition', side, zone: z }
+      }
+    }
   }
 
   // 3) ご褒美コーデ（攻撃表示の最強モンスターを強化）
@@ -1040,7 +1223,7 @@ function cpuBattleAction(s: GameState, side: Side): Action | null {
     // 各ターゲットの損得を評価（罠は見えない前提）
     let best: { zone: number; gain: number } | null = null
     for (const t of oppMonsters) {
-      const { value } = effAtk(atk.f, t.f, false)
+      const { value } = effAtk(atk.f, me.field, t.f, false)
       const defVal = t.f.orientation === 'defense' ? t.f.card.def : t.f.card.atk + t.f.atkBuff
       let gain: number
       if (t.f.orientation === 'defense') {
