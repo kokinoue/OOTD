@@ -71,7 +71,8 @@ export default function OutfitModal({
         fileBase: `ootd-${outfit.date.replaceAll('-', '')}`,
       })
       setWpState(res)
-    } catch {
+    } catch (err) {
+      console.error('壁紙の生成/共有に失敗:', err)
       setWpState('error')
     }
   }

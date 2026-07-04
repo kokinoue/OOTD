@@ -109,12 +109,12 @@ export async function composeWallpaper(opts: {
   // 4) 日付キャプション（前景画像の下）
   ctx.textAlign = 'center'
   ctx.fillStyle = 'rgba(255,255,255,0.96)'
-  ctx.font = '600 58px "Outfit", system-ui, -apple-system, sans-serif'
+  ctx.font = '600 58px "Outfit", "Hiragino Sans", "Noto Sans JP", system-ui, -apple-system, sans-serif'
   const capY = Math.min(dy + dh + 96, CANVAS_H - 70)
   ctx.fillText(opts.dateLabel, CANVAS_W / 2, capY)
   if (opts.caption) {
     ctx.fillStyle = 'rgba(255,255,255,0.6)'
-    ctx.font = '500 34px "JetBrains Mono", ui-monospace, monospace'
+    ctx.font = '500 34px "JetBrains Mono", ui-monospace, "Hiragino Sans", "Noto Sans JP", monospace'
     ctx.fillText(opts.caption, CANVAS_W / 2, capY + 46)
   }
 
