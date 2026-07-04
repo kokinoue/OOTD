@@ -16,7 +16,7 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     view: 'duel',
     title: 'デュエル',
     tag: 'CARD BATTLE',
-    lead: '出勤服40枚デッキでCPと戦うカードバトル。スキ数＝攻撃力、着用回数＝守備力、季節＝属性。',
+    lead: '出勤服40枚デッキでCPと戦うカードバトル。種族アビリティと季節相性を操り、連勝するほど強くなる相手に挑む。',
   },
 ]
 
