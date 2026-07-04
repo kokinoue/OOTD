@@ -2065,6 +2065,18 @@
           ]
         }
       ]
+    },
+    "vest|wanshanling": {
+      "subs": [
+        {
+          "key": "u-茶",
+          "label": "茶",
+          "outfits": [
+            "naaa738f7a333",
+            "nd46831cc4d6b"
+          ]
+        }
+      ]
     }
   },
   "noSplit": [
@@ -2142,6 +2154,10 @@
       "n9a473eed171e": "pants|90slevis",
       "nf4c8d5f627ab": "pants|90slevis",
       "n8f766289e6fb": "pants|50s"
+    },
+    "jacket|wanshanling": {
+      "n78b71ab00b9e": "outer|wanshanling",
+      "n013c0ab243b5": "outer|wanshanling"
     }
   }
 }

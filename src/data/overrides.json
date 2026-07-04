@@ -85,7 +85,9 @@
     "shirt|50s#grey": "50's · us · 開襟ロング",
     "shirt|50s#light-blue": "us · ウール開襟",
     "shirt|brooksbrothers": "90's · Brooks Brothers",
-    "shirt|front11201": "front 11201 · 白ドットレーヨン"
+    "shirt|front11201": "front 11201 · 白ドットレーヨン",
+    "outer|wanshanling": "wan shan ling · MA-1",
+    "vest|wanshanling": "wan shan ling · 青"
   },
   "categories": {
     "shirt|gimcontext": "knit",
@@ -104,7 +106,8 @@
     "knit tie|hermes": "tie",
     "shirt|wanshanling": "t-shirt",
     "shirt|french30s40s": "jacket",
-    "shirt|awwmagazine": "t-shirt"
+    "shirt|awwmagazine": "t-shirt",
+    "outer|wanshanling": "jacket"
   },
   "merges": {
     "pants|georgia": "pants|26ssgeorgia",
@@ -115,7 +118,8 @@
     "pants|50susarmy": "pants|50s#beige-tan",
     "pants|80s#blue-denim": "pants|90slevis",
     "pants|50slevis": "pants|levis501xx",
-    "knit tie|hermes": "tie|hermes"
+    "knit tie|hermes": "tie|hermes",
+    "shirt|wanshanling": "t-shirt|wanshanling"
   },
   "hidden": [],
   "colors": {
@@ -173,6 +177,12 @@
     "pants|nhoolywood": "black",
     "tie|hermes": "navy",
     "shirt|70s#u-70-s-us-しゃんぶれーn": "blue",
-    "shirt|50s#white": "white"
+    "shirt|50s#white": "white",
+    "outer|wanshanling": "green",
+    "vest|wanshanling#u-茶": "brown",
+    "vest|wanshanling": "blue",
+    "hoodie|wanshanling": "black",
+    "pants|wanshanling": "beige",
+    "t-shirt|wanshanling": "purple"
   }
 }
