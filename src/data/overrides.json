@@ -183,6 +183,10 @@
     "vest|wanshanling": "blue",
     "hoodie|wanshanling": "black",
     "pants|wanshanling": "beige",
-    "t-shirt|wanshanling": "purple"
+    "t-shirt|wanshanling": "purple",
+    "cap|idea#green": "green",
+    "cap|idea#black": "black",
+    "cap|idea#grey": "gray",
+    "cap|idea#blue": "blue"
   }
 }
