@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { ItemsFilters } from '../App'
 import type { Data } from '../lib/useData'
 import { colorBuckets, fmtDate, thumb } from '../lib/useData'
 import { regionBackgroundStyle } from '../lib/regions'
@@ -10,21 +11,26 @@ const norm = (s: string) => s.normalize('NFKC').toLowerCase()
 
 const colorMeta = new Map(colorBuckets.map((b) => [b.name, b]))
 
-type Sort = 'count' | 'recent' | 'name'
+type Sort = ItemsFilters['sort']
 type Layout = 'list' | 'grid'
 const LAYOUT_KEY = 'items-layout'
 
 type Props = {
   data: Data
+  filters: ItemsFilters
+  setFilters: (f: ItemsFilters) => void
   onShowFits: (itemId: string) => void
 }
 
-export default function ItemsView({ data, onShowFits }: Props) {
+export default function ItemsView({ data, filters, setFilters, onShowFits }: Props) {
   const ov = useOverrides()
-  const [q, setQ] = useState('')
-  const [cat, setCat] = useState<string>('all')
-  const [color, setColor] = useState<string>('all')
-  const [sort, setSort] = useState<Sort>('count')
+  // 検索・カテゴリ・色・並び順は URL（ItemsFilters）を単一の真実とする。
+  // 画面遷移してブラウザバックしても popstate 経由で復元される。
+  const { q, cat, color, sort } = filters
+  const setQ = (v: string) => setFilters({ ...filters, q: v })
+  const setCat = (v: string) => setFilters({ ...filters, cat: v })
+  const setColor = (v: string) => setFilters({ ...filters, color: v })
+  const setSort = (v: Sort) => setFilters({ ...filters, sort: v })
   const [layout, setLayout] = useState<Layout>(
     () => (localStorage.getItem(LAYOUT_KEY) as Layout) || 'list',
   )

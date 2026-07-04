@@ -59,28 +59,46 @@ export const defaultFilters: Filters = {
   anniv: false,
 }
 
+// ITEMS ビューの検索・絞り込み状態。FITS の Filters とは別物で、URL には items パス配下に載せる。
+export type ItemsFilters = {
+  q: string
+  cat: string
+  color: string
+  sort: 'count' | 'recent' | 'name'
+}
+
+export const defaultItemsFilters: ItemsFilters = {
+  q: '',
+  cat: 'all',
+  color: 'all',
+  sort: 'count',
+}
+
 export default function App() {
   const ov = useOverrides()
   const { splits, assign, createSub, moveOutfit, saveState } = useSplits()
   const { hair, setHair, saveState: hairSaveState } = useHair()
   const data = useData(ov, splits)
-  const [{ view, filters }, navigate] = useHashRoute()
+  const [{ view, filters, itemsFilters }, navigate] = useHashRoute()
 
-  const setView = (v: View) => navigate({ view: v, filters })
-  const setFilters = (f: Filters) => navigate({ view: 'fits', filters: f }, { replace: true })
+  const setView = (v: View) => navigate({ view: v, filters, itemsFilters })
+  const setFilters = (f: Filters) =>
+    navigate({ view: 'fits', filters: f, itemsFilters }, { replace: true })
+  const setItemsFilters = (f: ItemsFilters) =>
+    navigate({ view: 'items', filters, itemsFilters: f }, { replace: true })
 
   const showFitsForItem = (itemId: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId, itemIds: [] } })
+    navigate({ view: 'fits', filters: { ...defaultFilters, itemId, itemIds: [] }, itemsFilters })
     window.scrollTo({ top: 0 })
   }
 
   const showFitsForItems = (itemIds: string[]) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId: null, itemIds } })
+    navigate({ view: 'fits', filters: { ...defaultFilters, itemId: null, itemIds }, itemsFilters })
     window.scrollTo({ top: 0 })
   }
 
   const showFitsForDate = (date: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, from: date, to: date } })
+    navigate({ view: 'fits', filters: { ...defaultFilters, from: date, to: date }, itemsFilters })
     window.scrollTo({ top: 0 })
   }
 
@@ -92,7 +110,7 @@ export default function App() {
         <button
           className="brand"
           onClick={() => {
-            navigate({ view: 'fits', filters: defaultFilters })
+            navigate({ view: 'fits', filters: defaultFilters, itemsFilters })
             window.scrollTo({ top: 0 })
           }}
         >
@@ -160,7 +178,14 @@ export default function App() {
           onSetHair={setHair}
         />
       )}
-      {view === 'items' && <ItemsView data={data} onShowFits={showFitsForItem} />}
+      {view === 'items' && (
+        <ItemsView
+          data={data}
+          filters={itemsFilters}
+          setFilters={setItemsFilters}
+          onShowFits={showFitsForItem}
+        />
+      )}
       {view === 'game' && <GameHubView onSelect={setView} />}
       <Suspense fallback={<div className="view-loading jp">読み込み中…</div>}>
         {view === 'closet' && (

@@ -1,14 +1,24 @@
 import { useEffect, useState } from 'react'
-import { defaultFilters, type Filters, type View } from '../App'
+import { defaultFilters, defaultItemsFilters, type Filters, type ItemsFilters, type View } from '../App'
 
 // 画面状態を URL hash に載せる軽量ルーティング（A案: タブ＋主要フィルタ）。
 // 例: #/fits?item=shoes%7Cjmweston%23black-loafer&year=2024&month=3&q=...&order=asc
-//     #/items  #/closet  #/palette  #/weather
-// フィルタは fits ビューのみ載せる。モーダルや ITEMS/衣替えの内部状態は対象外。
+//     #/items?q=loafer&cat=shoes&color=black&sort=recent
+//     #/closet  #/palette  #/weather
+// FITS は Filters、ITEMS は ItemsFilters をそれぞれのパス配下に載せる。衣替え等の内部状態は対象外。
 
-export type Route = { view: View; filters: Filters }
+export type Route = { view: View; filters: Filters; itemsFilters: ItemsFilters }
 
-export function encodeHash({ view, filters }: Route): string {
+export function encodeHash({ view, filters, itemsFilters }: Route): string {
+  if (view === 'items') {
+    const ip = new URLSearchParams()
+    if (itemsFilters.q) ip.set('q', itemsFilters.q)
+    if (itemsFilters.cat !== 'all') ip.set('cat', itemsFilters.cat)
+    if (itemsFilters.color !== 'all') ip.set('color', itemsFilters.color)
+    if (itemsFilters.sort !== 'count') ip.set('sort', itemsFilters.sort)
+    const iqs = ip.toString()
+    return iqs ? `/items?${iqs}` : '/items'
+  }
   const p = new URLSearchParams()
   // URLSearchParams が | → %7C, # → %23 を自動エンコードするので itemId をそのまま入れて安全
   if (filters.itemId) p.set('item', filters.itemId)
@@ -49,23 +59,40 @@ export function decodeHash(hash: string): Route {
                     ? 'duel'
                     : 'fits'
   const p = new URLSearchParams(query ?? '')
+
+  // items パスのクエリは ItemsFilters に、それ以外（fits）は Filters に振り分ける。
+  // q / sort はどちらのパスでも使うため、パスごとに読み分けて取り違えを防ぐ。
+  const itemsSort = p.get('sort')
+  const itemsFilters: ItemsFilters =
+    view === 'items'
+      ? {
+          q: p.get('q') ?? '',
+          cat: p.get('cat') || 'all',
+          color: p.get('color') || 'all',
+          sort: itemsSort === 'recent' || itemsSort === 'name' ? itemsSort : 'count',
+        }
+      : { ...defaultItemsFilters }
+
   const sortParam = p.get('sort')
-  const filters: Filters = {
-    ...defaultFilters,
-    itemId: p.get('item') || null,
-    itemIds: (p.get('items') ?? '').split(',').filter(Boolean),
-    hairColor: p.get('hcolor') || null,
-    hairStyle: p.get('hstyle') || null,
-    hat: p.get('hat') || null,
-    year: p.has('year') ? Number(p.get('year')) : null,
-    month: p.has('month') ? Number(p.get('month')) : null,
-    from: p.get('from') ?? '',
-    to: p.get('to') ?? '',
-    q: p.get('q') ?? '',
-    sort: sortParam === 'old' || sortParam === 'like' ? sortParam : 'new',
-    anniv: p.get('anniv') === '1',
-  }
-  return { view, filters }
+  const filters: Filters =
+    view === 'fits'
+      ? {
+          ...defaultFilters,
+          itemId: p.get('item') || null,
+          itemIds: (p.get('items') ?? '').split(',').filter(Boolean),
+          hairColor: p.get('hcolor') || null,
+          hairStyle: p.get('hstyle') || null,
+          hat: p.get('hat') || null,
+          year: p.has('year') ? Number(p.get('year')) : null,
+          month: p.has('month') ? Number(p.get('month')) : null,
+          from: p.get('from') ?? '',
+          to: p.get('to') ?? '',
+          q: p.get('q') ?? '',
+          sort: sortParam === 'old' || sortParam === 'like' ? sortParam : 'new',
+          anniv: p.get('anniv') === '1',
+        }
+      : { ...defaultFilters }
+  return { view, filters, itemsFilters }
 }
 
 type NavigateOptions = {
