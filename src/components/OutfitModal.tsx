@@ -179,10 +179,27 @@ export default function OutfitModal({
   useEffect(() => {
     const el = ref.current
     if (!el) return
+    // タッチ開始点から親をたどり、横スクロールできる要素（「似ている出勤服」の
+    // ストリップなど）の中なら、カードのスワイプ切替より中身の横スクロールを優先する
+    const inHorizontalScroller = (start: EventTarget | null): boolean => {
+      let node = start instanceof Element ? start : null
+      while (node && node !== el) {
+        if (node instanceof HTMLElement && node.scrollWidth > node.clientWidth) {
+          const ox = getComputedStyle(node).overflowX
+          if (ox === 'auto' || ox === 'scroll') return true
+        }
+        node = node.parentElement
+      }
+      return false
+    }
     const onStart = (e: TouchEvent) => {
       if (animating.current || navRef.current.assigningBaseId) return
       if (e.touches.length !== 1) {
         drag.current.active = false // ピンチズーム等はスワイプ扱いしない
+        return
+      }
+      if (inHorizontalScroller(e.target)) {
+        drag.current.active = false // 横スクロール領域の中はスワイプ扱いしない
         return
       }
       const t = e.touches[0]
