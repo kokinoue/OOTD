@@ -686,6 +686,7 @@ export function applyAction(state: GameState, action: Action): GameState {
 
   switch (action.type) {
     case 'summon': {
+      if (s.normalSummonUsed) return state // 召喚権は1ターン1回
       const card = me.hand[action.handIndex]
       if (!card || !isMonster(card)) return state
       const need = tributesNeeded(card.level)

@@ -1,0 +1,28 @@
+name: CI
+
+# PR と main 以外への push で型チェック・テスト・ビルドを検証する。
+# main への push は deploy.yml がビルド（+テスト）を行うためここでは対象外。
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # バージョンは package.json の packageManager を参照
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build # tsc --noEmit を含む

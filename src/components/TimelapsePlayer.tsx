@@ -19,6 +19,8 @@ const SPEEDS = [
 const IMG_WIDTH = 900
 const PRELOAD_AHEAD = 12
 const KEEP_BEHIND = 20
+const LOAD_POLL_MS = 60
+const MAX_LOAD_WAIT_MS = 3000 // これ以上ロードを待たずに次フレームへ進む
 
 const seasonColor = (month: number) =>
   month === 12 || month <= 2
@@ -41,10 +43,19 @@ export default function TimelapsePlayer({ frames, onClose }: Props) {
   const [msPerFrame, setMsPerFrame] = useState<number>(SPEEDS[1].ms)
   const cache = useRef(new Map<number, HTMLImageElement>())
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const waitedMs = useRef(0)
+  const indexRef = useRef(index)
+  indexRef.current = index
 
   useEffect(() => {
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
+  }, [])
+
+  // アンマウント時に先読みキャッシュを解放
+  useEffect(() => {
+    const c = cache.current
+    return () => c.clear()
   }, [])
 
   const load = useCallback(
@@ -65,23 +76,26 @@ export default function TimelapsePlayer({ frames, onClose }: Props) {
     }
   }, [index, load])
 
-  // 再生ループ。次フレームが未ロードなら進めずに待つ
+  // 再生ループ。次フレームが未ロードなら進めずに待つ（上限つき）。
+  // setIndex の更新関数内で setTimeout を呼ぶと StrictMode の二重実行で
+  // タイマーが増殖するため、副作用は必ず更新関数の外に置く。
   useEffect(() => {
     if (!playing) return
     const tick = () => {
-      setIndex((cur) => {
-        if (cur >= frames.length - 1) {
-          setPlaying(false)
-          return cur
-        }
-        const next = cache.current.get(cur + 1)
-        if (next && !next.complete) {
-          timer.current = setTimeout(tick, 60) // ロード待ち
-          return cur
-        }
-        timer.current = setTimeout(tick, msPerFrame)
-        return cur + 1
-      })
+      const cur = indexRef.current
+      if (cur >= frames.length - 1) {
+        setPlaying(false)
+        return
+      }
+      const next = cache.current.get(cur + 1)
+      if (next && !next.complete && waitedMs.current < MAX_LOAD_WAIT_MS) {
+        waitedMs.current += LOAD_POLL_MS
+        timer.current = setTimeout(tick, LOAD_POLL_MS) // ロード待ち
+        return
+      }
+      waitedMs.current = 0
+      setIndex(cur + 1)
+      timer.current = setTimeout(tick, msPerFrame)
     }
     timer.current = setTimeout(tick, msPerFrame)
     return () => {

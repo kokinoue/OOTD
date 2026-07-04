@@ -6,22 +6,23 @@ import react from '@vitejs/plugin-react'
 // UIからの編集を src/data/*.json に書き戻す（devサーバー限定）。
 // 公開ビルドはこのAPIを持たないので、本番では編集が永続化されない＝閲覧専用になる。
 function dataWriteApi(): Plugin {
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null
   const endpoints: { route: string; file: string; valid: (v: unknown) => boolean }[] = [
     {
       route: '/api/splits',
       file: path.resolve(__dirname, 'src/data/splits.json'),
-      valid: (v) => typeof v === 'object' && v !== null && typeof (v as any).items === 'object',
+      valid: (v) => isRecord(v) && typeof v.items === 'object',
     },
     {
       route: '/api/overrides',
       file: path.resolve(__dirname, 'src/data/overrides.json'),
-      valid: (v) => typeof v === 'object' && v !== null && 'renames' in (v as any),
+      valid: (v) => isRecord(v) && 'renames' in v,
     },
     {
       route: '/api/hair',
       file: path.resolve(__dirname, 'src/data/hair.json'),
-      valid: (v) =>
-        typeof v === 'object' && v !== null && typeof (v as any).manual === 'object',
+      valid: (v) => isRecord(v) && typeof v.manual === 'object',
     },
   ]
   return {
@@ -59,6 +60,19 @@ function dataWriteApi(): Plugin {
 export default defineConfig(({ command, isPreview }) => ({
   base: command === 'build' || isPreview ? '/OOTD/' : '/',
   plugins: [react(), dataWriteApi()],
+  build: {
+    // data チャンク（同梱JSON）はコードではないので 500kB 警告の対象から外す
+    chunkSizeWarningLimit: 1024,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // 日次scrapeで変わるのはデータだけなので、コードと分離してキャッシュを保つ
+          if (id.includes('/src/data/')) return 'data'
+          if (id.includes('node_modules')) return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     watch: {
       // UI編集の保存でページがリロードされないようにする（手動リロードで反映）
