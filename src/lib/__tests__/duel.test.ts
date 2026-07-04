@@ -53,6 +53,7 @@ const mkMonster = (over: Partial<MonsterCard> = {}): MonsterCard => {
     level: 4,
     season: 'winter',
     race: '戦衣族',
+    ability: 'formation',
     uid: `u${n}`,
     ...over,
   }
@@ -71,6 +72,7 @@ const mkSlot = (card: MonsterCard, over: Partial<FieldSlot> = {}): FieldSlot => 
   season: card.season,
   summonedThisTurn: false,
   hasAttacked: false,
+  posChangedThisTurn: false,
   ...over,
 })
 
