@@ -62,6 +62,22 @@ node scripts/apply-splits.mjs                                  # decisions.json 
 
 `apply-splits.mjs` は splits.json を丸ごと上書きするので、**UIで修正したあとは基本使わない**こと。
 
+### 未分類の差分判定（追記マージ）
+
+`pnpm scrape` 後に増えた未割当だけを判定したいときは、上書きしない差分フローを使う:
+
+```sh
+node scripts/assign-sheet.mjs "pants|50s"      # 見本セル＋未分類セルだけのシートを生成
+node scripts/zoom-sheet.mjs "pants|50s" 634,573 zoom_pants  # 迷うセルを大きめに再確認
+node scripts/merge-assignments.mjs             # assignments.json → splits.json に追記
+```
+
+1. `assign-sheet.mjs` が各subの見本（青ラベル）と未分類（赤ラベル・#番号）を並べたシートを `.cache/sheets/assign_*.png` に生成する
+2. シートを Claude が見て判定し、`.cache/sheets/assignments.json` に書く。形式は `{ "<itemId>": { "<subKey>": [no, ...] } }`。`"key|ラベル"` と書くと新規subを作成する
+3. `merge-assignments.mjs` は**既存の割当を一切変更せず追記のみ**行う（着用していない・割当済みの番号は警告してスキップするので再実行しても安全）
+
+確信が持てないセルは割り当てず未分類に残すこと（誤割当はUIで直すコストの方が高い）。バッグのように本体が写らないアイテムは、そのコーデの着用バッグが1種だけか（`itemIds` の `bag|` を照合）を確認すると「写っているバッグ＝そのアイテム」と確定できる。
+
 ### 割当の修正（UIでできる）
 
 - **割り当て変更**: コーデ詳細を開き、アイテムチップ横の **⇄** をクリック → 既存の個体を選ぶ／「＋作成して割当」で新しい個体を作る／未分類に戻す。変更は `pnpm dev` のサーバー経由で `src/data/splits.json` に即保存される
