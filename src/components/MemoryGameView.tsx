@@ -11,7 +11,6 @@ import type { Outfit } from '../types'
 // ・場札は毎ゲーム 52 枚を全出勤服からランダムに選ぶ。プレイヤーは 1〜4 人。
 
 const BOARD_SIZE = 52
-const RESOLVE_MS = 1900 // 2枚めくってから結果を見せる時間（「つぎへ」で短縮可）
 const PLAYER_COLORS = ['#3b5bdb', '#c0392b', '#0b8457', '#b8860b'] // 藍 / 朱 / 緑 / 山吹
 
 type CardStatus = 'down' | 'up' | 'taken'
@@ -71,20 +70,11 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
   const [locked, setLocked] = useState(false) // 結果表示中は操作不可
   const [turnCount, setTurnCount] = useState(0)
 
-  const timer = useRef<number | null>(null)
   const pending = useRef<
     null | { aKey: string; bKey: string; miss: boolean; points: number; player: number }
   >(null)
 
   const cardByKey = useMemo(() => new Map(cards.map((c) => [c.key, c])), [cards])
-
-  const clearTimer = () => {
-    if (timer.current != null) {
-      clearTimeout(timer.current)
-      timer.current = null
-    }
-  }
-  useEffect(() => () => clearTimer(), [])
 
   const deal = useCallback((): GameCard[] => {
     const chosen = shuffle(pool).slice(0, Math.min(BOARD_SIZE, pool.length))
@@ -106,7 +96,6 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
 
   const startGame = useCallback(
     (n: number) => {
-      clearTimer()
       pending.current = null
       setNumPlayers(n)
       setCards(deal())
@@ -125,7 +114,6 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
     const p = pending.current
     if (!p) return
     pending.current = null
-    clearTimer()
     setCards((cs) =>
       cs.map((c) => {
         if (c.key !== p.aKey && c.key !== p.bKey) return c
@@ -165,12 +153,11 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
           points,
           player: current,
         }
+        // 自動では進めない。「つぎへ」を押すまで結果を表示したまま待つ
         setLocked(true)
-        clearTimer()
-        timer.current = window.setTimeout(commit, RESOLVE_MS)
       }
     },
-    [locked, selected, cardByKey, current, commit],
+    [locked, selected, cardByKey, current],
   )
 
   // 終了判定: 場が尽きる or これ以上一致を出せる組がない
@@ -218,7 +205,7 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
       .map(({ id, cat, label }) => (
         <span key={id} className={'g-chip' + (matchedSet.has(id) ? ' matched' : '')}>
           <span className="g-chip-cat">{cat}</span>
-          {label}
+          <span className="g-chip-label">{label}</span>
         </span>
       ))
 
