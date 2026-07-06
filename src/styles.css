@@ -2998,6 +2998,7 @@ a {
 .g-slot {
   display: flex;
   gap: 12px;
+  min-width: 0; /* グリッド子のはみ出し防止 */
   min-height: 132px;
   padding: 10px;
   border: 1px dashed var(--border);
@@ -3018,6 +3019,7 @@ a {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 5px;
+  min-width: 0;
   max-height: 112px;
   overflow-y: auto;
 }
@@ -3036,6 +3038,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  max-width: 100%;
   padding: 3px 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -3044,6 +3047,11 @@ a {
   line-height: 1.4;
   color: var(--text);
   white-space: nowrap;
+}
+
+.g-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .g-chip.matched {
@@ -3259,13 +3267,16 @@ a {
     padding: 8px;
   }
 
+  /* 出勤服の写真は切り抜かず全体を見せる */
   .g-slot-img {
     width: 100%;
-    height: 84px;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    object-fit: contain;
   }
 
   .g-slot-items {
-    max-height: 72px;
+    max-height: 96px;
   }
 
   .g-board {
