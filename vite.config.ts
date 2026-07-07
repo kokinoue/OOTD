@@ -74,6 +74,8 @@ export default defineConfig(({ command, isPreview }) => ({
     },
   },
   server: {
+    // ツール（プレビュー等）が指定したポートを尊重する（既定は vite 標準の 5173）
+    port: process.env.PORT ? Number(process.env.PORT) : undefined,
     watch: {
       // UI編集の保存でページがリロードされないようにする（手動リロードで反映）
       ignored: [
