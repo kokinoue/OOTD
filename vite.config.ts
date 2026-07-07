@@ -68,6 +68,9 @@ export default defineConfig(({ command, isPreview }) => ({
         manualChunks: (id) => {
           // 日次scrapeで変わるのはデータだけなので、コードと分離してキャッシュを保つ
           if (id.includes('/src/data/')) return 'data'
+          // 物理エンジンはタワーでしか使わないので vendor から分離
+          // （TowerGameView と一緒に遅延ロードされ、初期バンドルに乗らない）
+          if (id.includes('node_modules/planck/')) return 'planck'
           if (id.includes('node_modules')) return 'vendor'
         },
       },

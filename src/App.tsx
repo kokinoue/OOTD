@@ -14,6 +14,7 @@ const TodayPickView = lazy(() => import('./components/TodayPickView'))
 const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
 const DuelGameView = lazy(() => import('./components/DuelGameView'))
 const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
+const TowerGameView = lazy(() => import('./components/TowerGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -30,6 +31,7 @@ export type View =
   | 'memory'
   | 'duel'
   | 'platform'
+  | 'tower'
 
 export type Filters = {
   from: string
@@ -211,6 +213,7 @@ export default function App() {
         {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
         {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
         {view === 'platform' && <PlatformGameView data={data} onBack={() => setView('game')} />}
+        {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (

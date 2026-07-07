@@ -24,6 +24,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'PLATFORMER',
     lead: '出勤服からくり抜いた自分が今日のランウェイ（通勤路）を走るアクション。季節と色で特性が変わる全6ステージ。',
   },
+  {
+    view: 'tower',
+    title: 'タワー',
+    tag: 'PHYSICS PUZZLE',
+    lead: '出勤服のくり抜きをどこまで高く積めるか。シルエットの凹凸が物理に効く、どうぶつタワーバトル風スコアアタック。',
+  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {
