@@ -5225,27 +5225,6 @@ a {
   }
 }
 
-/* 縦持ちタッチ端末にだけ出す回転サジェスト */
-.plat-rotate {
-  display: none;
-}
-@media (orientation: portrait) {
-  .plat-rotate {
-    display: block;
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 5px 14px;
-    border-radius: 999px;
-    background: rgba(23, 23, 26, 0.72);
-    color: #fff;
-    font-size: 11px;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-}
-
 /* 低高さ画面ではHUDを1行に収める */
 @media (max-height: 560px) {
   .plat-hud {
