@@ -5119,19 +5119,31 @@ a {
   margin-left: auto;
 }
 
-/* 全画面: 黒背景にレターボックスで最大表示（スマホは横向きロックも試みる） */
-.plat-playwrap:fullscreen {
+/* 全画面: 黒背景にレターボックスで最大表示（スマホは横向きロックも試みる）。
+   .plat-fs-mode は Fullscreen API が使えない端末（iPhone Safari）向けの擬似全画面 */
+.plat-playwrap:fullscreen,
+.plat-playwrap.plat-fs-mode {
   background: #101013;
   align-items: center;
   justify-content: center;
   padding: 10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
     max(10px, env(safe-area-inset-left));
 }
+.plat-playwrap.plat-fs-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: auto;
+  margin: 0;
+}
 .plat-playwrap:fullscreen .plat-hud,
-.plat-playwrap:fullscreen .plat-screen {
+.plat-playwrap:fullscreen .plat-screen,
+.plat-playwrap.plat-fs-mode .plat-hud,
+.plat-playwrap.plat-fs-mode .plat-screen {
   width: min(100%, calc((100dvh - 76px) * 1.7778));
 }
-.plat-playwrap:fullscreen .plat-controls {
+.plat-playwrap:fullscreen .plat-controls,
+.plat-playwrap.plat-fs-mode .plat-controls {
   display: none;
 }
 
@@ -5140,8 +5152,8 @@ a {
   .plat {
     padding: 6px 0 10px;
   }
-  .plat-playwrap:not(:fullscreen) .plat-hud,
-  .plat-playwrap:not(:fullscreen) .plat-screen {
+  .plat-playwrap:not(:fullscreen):not(.plat-fs-mode) .plat-hud,
+  .plat-playwrap:not(:fullscreen):not(.plat-fs-mode) .plat-screen {
     width: min(100%, calc((100dvh - 158px) * 1.7778));
     margin-inline: auto;
   }
