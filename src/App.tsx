@@ -13,6 +13,7 @@ const WeatherView = lazy(() => import('./components/WeatherView'))
 const TodayPickView = lazy(() => import('./components/TodayPickView'))
 const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
 const DuelGameView = lazy(() => import('./components/DuelGameView'))
+const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -28,6 +29,7 @@ export type View =
   | 'game'
   | 'memory'
   | 'duel'
+  | 'platform'
 
 export type Filters = {
   from: string
@@ -156,7 +158,9 @@ export default function App() {
           </button>
           <button
             className={
-              view === 'game' || view === 'memory' || view === 'duel' ? 'tab active' : 'tab'
+              view === 'game' || view === 'memory' || view === 'duel' || view === 'platform'
+                ? 'tab active'
+                : 'tab'
             }
             onClick={() => setView('game')}
           >
@@ -206,6 +210,7 @@ export default function App() {
         )}
         {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
         {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
+        {view === 'platform' && <PlatformGameView data={data} onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (
