@@ -108,8 +108,13 @@ export default function App() {
 
   const visibleItemCount = data.items.filter((it) => !it.hidden).length
 
+  // ゲームプレイ中（ハブではなく個別ゲーム）は、SP でヘッダーのメニューが
+  // プレイ領域を圧迫するため隠す。各ゲームは戻るボタンを持つので操作は塞がらない。
+  const isPlayingGame =
+    view === 'memory' || view === 'duel' || view === 'platform' || view === 'tower'
+
   return (
-    <div className="app">
+    <div className={isPlayingGame ? 'app playing-game' : 'app'}>
       <header className="header">
         <button
           className="brand"

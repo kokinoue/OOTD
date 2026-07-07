@@ -2604,6 +2604,12 @@ a {
     padding-top: 14px;
   }
 
+  /* SP でゲームプレイ中はヘッダーのメニューがプレイ領域を圧迫するため隠す。
+     各ゲームは画面内に戻るボタンを持つのでナビゲーションは塞がらない。 */
+  .app.playing-game .header {
+    display: none;
+  }
+
   .brand-mark {
     font-size: 17px;
   }
