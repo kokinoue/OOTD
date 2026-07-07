@@ -18,6 +18,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'CARD BATTLE',
     lead: '出勤服40枚デッキでCPと戦うカードバトル。種族アビリティと季節相性を操り、連勝するほど強くなる相手に挑む。',
   },
+  {
+    view: 'platform',
+    title: 'ランウェイ',
+    tag: 'PLATFORMER',
+    lead: '出勤服からくり抜いた自分が今日のランウェイ（通勤路）を走るアクション。季節と色で特性が変わる全6ステージ。',
+  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {
