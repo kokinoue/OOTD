@@ -811,8 +811,9 @@ function Play({
             </div>
           </div>
         )}
-        {touch && !cleared && (
-          <div className="plat-pads" onContextMenu={(e) => e.preventDefault()}>
+      </div>
+      {touch && !cleared && (
+        <div className="plat-pads" onContextMenu={(e) => e.preventDefault()}>
             <div className="plat-pad-move">
               <button
                 className="plat-pad"
@@ -861,9 +862,8 @@ function Play({
                 JUMP
               </button>
             </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
       <div className="plat-controls jp">
         ←→ 移動 / Z・スペース ジャンプ（空中でもう1回） / X ダッシュ / R やりなおし / ESC ステージ選択
       </div>
