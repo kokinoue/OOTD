@@ -59,7 +59,9 @@ export function decodeHash(hash: string): Route {
                     ? 'duel'
                     : path === 'platform'
                       ? 'platform'
-                      : 'fits'
+                      : path === 'tower'
+                        ? 'tower'
+                        : 'fits'
   const p = new URLSearchParams(query ?? '')
 
   // items パスのクエリは ItemsFilters に、それ以外（fits）は Filters に振り分ける。
