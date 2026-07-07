@@ -785,7 +785,6 @@ function Play({
       </div>
       <div className="plat-screen">
         <canvas ref={canvasRef} className="plat-canvas" />
-        {touch && <div className="plat-rotate jp">スマホは横向きがあそびやすい</div>}
         {showTip && !cleared && <div className="plat-tip jp">{level.tip}</div>}
         {cleared && (
           <div className="plat-overlay">
