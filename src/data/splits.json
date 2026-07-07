@@ -2082,6 +2082,44 @@
           ]
         }
       ]
+    },
+    "sweat|80s": {
+      "subs": [
+        {
+          "key": "u-us-トイザらス",
+          "label": "us · トイザらス",
+          "outfits": [
+            "n24ee259a978f",
+            "ne205132ec3ad"
+          ]
+        },
+        {
+          "key": "u-us-84年ロサンゼルスオリンピック",
+          "label": "us · 84年ロサンゼルスオリンピック",
+          "outfits": [
+            "n0478b505d5f2",
+            "n4fe4d37d0b9f",
+            "n8058aad711a8"
+          ]
+        },
+        {
+          "key": "u-us-エロ",
+          "label": "us · エロ",
+          "outfits": [
+            "n7f7421862cdd",
+            "n80e82d79edc8",
+            "n928cfa0f5fc3",
+            "nb670aded0baa"
+          ]
+        },
+        {
+          "key": "u-italy-サッカー",
+          "label": "italy · サッカー",
+          "outfits": [
+            "n5d2fbe35f01c"
+          ]
+        }
+      ]
     }
   },
   "noSplit": [
@@ -2166,6 +2204,23 @@
     },
     "cap|idea": {
       "n659d81d353ae": "cap|ofrparis"
+    },
+    "pants|70s": {
+      "n38b49f6fc5f1": "pants|usarmyutilitytrouser",
+      "n3abac559f6b4": "pants|70slevis",
+      "n4c7d6abee09f": "pants|used#u-used-青"
+    },
+    "pants|paraboot": {
+      "nb62db6549e22": "shoes|paraboot"
+    },
+    "biaude|vintage": {
+      "n7cbd005b8433": "shirt|30s"
+    },
+    "smock|vintage": {
+      "nfe8360ce1504": "shirt|30s"
+    },
+    "outer|early20thcindigoiinensmock": {
+      "n7450cdc33885": "shirt|30s"
     }
   }
 }
