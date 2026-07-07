@@ -505,30 +505,49 @@ function Play({
     () => window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0,
     [],
   )
-  // 全画面（スマホは横向きに固定してコントローラーふうに遊ぶ）
+  // 全画面（スマホは横向きに固定してコントローラーふうに遊ぶ）。
+  // iPhone Safari は Fullscreen API 非対応なので、fixed オーバーレイの擬似全画面で代替する。
   const wrapRef = useRef<HTMLDivElement>(null)
   const [isFs, setIsFs] = useState(false)
+  const [pseudoFs, setPseudoFs] = useState(false)
   useEffect(() => {
     const onFs = () => setIsFs(document.fullscreenElement != null)
     document.addEventListener('fullscreenchange', onFs)
     return () => document.removeEventListener('fullscreenchange', onFs)
   }, [])
+  // 擬似全画面中は背後のページがスクロールしないようにする
+  useEffect(() => {
+    if (!pseudoFs) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [pseudoFs])
   const toggleFullscreen = () => {
     if (document.fullscreenElement) {
       void document.exitFullscreen()
       return
     }
+    if (pseudoFs) {
+      setPseudoFs(false)
+      return
+    }
     const el = wrapRef.current
     if (!el) return
-    el.requestFullscreen()
-      .then(() => {
-        // 横向きロックは対応端末のみ（iOS Safari は lock 自体がない）
-        const so = screen.orientation as ScreenOrientation & {
-          lock?: (o: string) => Promise<void>
-        }
-        so.lock?.('landscape').catch(() => {})
-      })
-      .catch(() => {})
+    if (typeof el.requestFullscreen === 'function') {
+      el.requestFullscreen()
+        .then(() => {
+          // 横向きロックは対応端末のみ（iOS は lock 自体がない）
+          const so = screen.orientation as ScreenOrientation & {
+            lock?: (o: string) => Promise<void>
+          }
+          so.lock?.('landscape').catch(() => {})
+        })
+        .catch(() => setPseudoFs(true)) // 拒否されたら擬似全画面に切り替え
+    } else {
+      setPseudoFs(true)
+    }
   }
   // タッチボタンの押下状態（ゲームループから参照）
   const touchKeys = useRef({ left: false, right: false, jump: false, jumpEdge: false, dash: false })
@@ -746,7 +765,7 @@ function Play({
   }
 
   return (
-    <div className="plat-inner plat-playwrap" ref={wrapRef}>
+    <div className={`plat-inner plat-playwrap${pseudoFs ? ' plat-fs-mode' : ''}`} ref={wrapRef}>
       <div className="plat-hud mono">
         <span className="plat-hud-stage">
           STAGE {stageIdx + 1}/{LEVELS.length} {level.title}
@@ -755,16 +774,14 @@ function Play({
           コイン <span ref={hudCoinRef}>0/{totalCoins}</span> ミス <span ref={hudMissRef}>0</span> タイム{' '}
           <span ref={hudTimeRef}>0.0</span>
         </span>
-        {document.fullscreenEnabled && (
-          <button
-            className="plat-fs"
-            onClick={toggleFullscreen}
-            title="全画面（スマホは横向き固定）"
-            aria-label="全画面切り替え"
-          >
-            {isFs ? '✕' : '⛶'}
-          </button>
-        )}
+        <button
+          className="plat-fs"
+          onClick={toggleFullscreen}
+          title="全画面（スマホは横向き固定）"
+          aria-label="全画面切り替え"
+        >
+          {isFs || pseudoFs ? '✕' : '⛶'}
+        </button>
       </div>
       <div className="plat-screen">
         <canvas ref={canvasRef} className="plat-canvas" />
@@ -794,8 +811,9 @@ function Play({
             </div>
           </div>
         )}
-        {touch && !cleared && (
-          <div className="plat-pads" onContextMenu={(e) => e.preventDefault()}>
+      </div>
+      {touch && !cleared && (
+        <div className="plat-pads" onContextMenu={(e) => e.preventDefault()}>
             <div className="plat-pad-move">
               <button
                 className="plat-pad"
@@ -844,9 +862,8 @@ function Play({
                 JUMP
               </button>
             </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
       <div className="plat-controls jp">
         ←→ 移動 / Z・スペース ジャンプ（空中でもう1回） / X ダッシュ / R やりなおし / ESC ステージ選択
       </div>
