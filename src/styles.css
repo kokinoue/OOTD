@@ -5072,36 +5072,40 @@ a {
   text-align: center;
 }
 
-/* タッチ操作 */
+/* タッチ操作: 通常はゲーム画面の下の独立した行（プレイエリアに重ねない） */
 .plat-pads {
-  position: absolute;
-  inset: auto 0 0 0;
   display: flex;
   justify-content: space-between;
-  padding: 12px;
-  pointer-events: none;
+  align-items: center;
+  padding: 10px max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom))
+    max(4px, env(safe-area-inset-left));
 }
 .plat-pad-move,
 .plat-pad-act {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
   pointer-events: auto;
 }
 .plat-pad {
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: rgba(23, 23, 26, 0.35);
+  background: rgba(23, 23, 26, 0.3);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
-  backdrop-filter: blur(2px);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .plat-pad:active {
   background: rgba(23, 23, 26, 0.6);
+}
+.plat-pad-jump {
+  width: 68px;
+  height: 68px;
 }
 
 /* --- ランウェイ: スマホ・全画面対応 --- */
@@ -5115,24 +5119,69 @@ a {
 .plat-hud {
   align-items: center;
 }
+/* 幅が足りないときはステージ名側を省略して、スコアと全画面ボタンを守る */
+.plat-hud-stage {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .plat-hud-stats {
   margin-left: auto;
+  flex: none;
+  white-space: nowrap;
 }
 
-/* 全画面: 黒背景にレターボックスで最大表示（スマホは横向きロックも試みる） */
-.plat-playwrap:fullscreen {
+/* 全画面: 黒背景にレターボックスで最大表示（スマホは横向きロックも試みる）。
+   .plat-fs-mode は Fullscreen API が使えない端末（iPhone Safari）向けの擬似全画面 */
+.plat-playwrap:fullscreen,
+.plat-playwrap.plat-fs-mode {
   background: #101013;
   align-items: center;
   justify-content: center;
   padding: 10px max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
     max(10px, env(safe-area-inset-left));
 }
+.plat-playwrap.plat-fs-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: auto;
+  margin: 0;
+}
 .plat-playwrap:fullscreen .plat-hud,
-.plat-playwrap:fullscreen .plat-screen {
+.plat-playwrap:fullscreen .plat-screen,
+.plat-playwrap.plat-fs-mode .plat-hud,
+.plat-playwrap.plat-fs-mode .plat-screen {
   width: min(100%, calc((100dvh - 76px) * 1.7778));
 }
-.plat-playwrap:fullscreen .plat-controls {
+.plat-playwrap:fullscreen .plat-controls,
+.plat-playwrap.plat-fs-mode .plat-controls {
   display: none;
+}
+/* 全画面×タッチ: パッドは下の黒帯（レターボックス）に重ね、その分キャンバスを上に寄せる */
+.plat-playwrap:fullscreen {
+  position: relative; /* パッドのabsolute配置の基準（擬似全画面はfixedが基準になる） */
+}
+.plat-playwrap:fullscreen:has(.plat-pads),
+.plat-playwrap.plat-fs-mode:has(.plat-pads) {
+  padding-bottom: max(84px, env(safe-area-inset-bottom));
+}
+.plat-playwrap:fullscreen:has(.plat-pads) .plat-hud,
+.plat-playwrap:fullscreen:has(.plat-pads) .plat-screen,
+.plat-playwrap.plat-fs-mode:has(.plat-pads) .plat-hud,
+.plat-playwrap.plat-fs-mode:has(.plat-pads) .plat-screen {
+  width: min(100%, calc((100dvh - 150px) * 1.7778));
+}
+.plat-playwrap:fullscreen .plat-pads,
+.plat-playwrap.plat-fs-mode .plat-pads {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(10px, env(safe-area-inset-bottom));
+  padding: 0;
+  pointer-events: none;
 }
 
 /* 高さの低い画面（横持ちスマホ等）: スクロールなしで収まるサイズに */
@@ -5140,13 +5189,32 @@ a {
   .plat {
     padding: 6px 0 10px;
   }
-  .plat-playwrap:not(:fullscreen) .plat-hud,
-  .plat-playwrap:not(:fullscreen) .plat-screen {
+  .plat-playwrap:not(:fullscreen):not(.plat-fs-mode) .plat-hud,
+  .plat-playwrap:not(:fullscreen):not(.plat-fs-mode) .plat-screen {
     width: min(100%, calc((100dvh - 158px) * 1.7778));
+    margin-inline: auto;
+  }
+  /* パッドがある（タッチ）ときはその高さぶんも収める */
+  .plat-playwrap:has(.plat-pads):not(:fullscreen):not(.plat-fs-mode) .plat-hud,
+  .plat-playwrap:has(.plat-pads):not(:fullscreen):not(.plat-fs-mode) .plat-screen {
+    width: min(100%, calc((100dvh - 216px) * 1.7778));
+  }
+  .plat-playwrap:not(:fullscreen):not(.plat-fs-mode) .plat-pads {
+    width: min(100%, calc((100dvh - 216px) * 1.7778));
     margin-inline: auto;
   }
   .plat-controls {
     display: none;
+  }
+  /* 低高さではパッドを小型化 */
+  .plat-pad {
+    width: 48px;
+    height: 48px;
+    font-size: 11px;
+  }
+  .plat-pad-jump {
+    width: 58px;
+    height: 58px;
   }
 }
 
@@ -5155,40 +5223,6 @@ a {
   .plat-controls {
     display: none;
   }
-}
-
-/* 縦持ちタッチ端末にだけ出す回転サジェスト */
-.plat-rotate {
-  display: none;
-}
-@media (orientation: portrait) {
-  .plat-rotate {
-    display: block;
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 5px 14px;
-    border-radius: 999px;
-    background: rgba(23, 23, 26, 0.72);
-    color: #fff;
-    font-size: 11px;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-}
-
-/* 仮想パッド: セーフエリアを避け、ジャンプは大きめ */
-.plat-pads {
-  padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
-    max(12px, env(safe-area-inset-left));
-}
-.plat-pad {
-  -webkit-touch-callout: none;
-}
-.plat-pad-jump {
-  width: 68px;
-  height: 68px;
 }
 
 /* 低高さ画面ではHUDを1行に収める */
