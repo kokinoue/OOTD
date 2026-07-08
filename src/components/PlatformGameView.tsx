@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import cutoutsJson from '../data/cutouts.json'
+import GameShareButton from './GameShareButton'
 import { SEASON_COLOR, SEASON_LABEL, seasonOf, type Season } from '../lib/duel'
 import {
   createRun,
@@ -343,9 +344,12 @@ function CharaSelect({
 
   return (
     <div className="plat-inner">
-      <button className="game-back jp" onClick={onBack}>
-        ← ゲーム選択にもどる
-      </button>
+      <div className="game-nav">
+        <button className="game-back jp" onClick={onBack}>
+          ← ゲーム選択にもどる
+        </button>
+        <GameShareButton game="platform" title="ランウェイ" />
+      </div>
       <h2 className="plat-title jp">ランウェイ</h2>
       <p className="plat-sub jp">
         操作キャラにする出勤服を選んでください。季節と色で特性が変わります（全{charas.length}着）。

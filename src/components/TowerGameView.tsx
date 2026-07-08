@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Vec2, World, type Body } from 'planck'
 import cutoutsJson from '../data/cutouts.json'
+import GameShareButton from './GameShareButton'
 import type { CutoutsFile } from '../lib/platform'
 import {
   DENSITY,
@@ -394,6 +395,7 @@ export default function TowerGameView({ onBack }: Props) {
           <span className="tower-stats mono">
             {score} <small>体</small> / BEST {Math.max(best, score)}
           </span>
+          <GameShareButton game="tower" title="タワー" />
         </div>
         <div className="tower-screen">
           <canvas ref={canvasRef} className="tower-canvas" />
