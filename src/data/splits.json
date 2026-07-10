@@ -1728,10 +1728,8 @@
             "nca6b36818a2a",
             "n3d0d71389dab",
             "n53720a0f30c7",
-            "ncb3d7bec0224",
             "nbd4ccd5b51b9",
             "n132c4f4d99b7",
-            "nd4edeec2d384",
             "nc0ad67cac2c7",
             "n4ab3f4127d8d",
             "nfba541fd9d08",
@@ -1744,7 +1742,9 @@
           "outfits": [
             "n76eec24eb5f2",
             "nfe5c042ba130",
-            "nd7b86b0a469a"
+            "nd7b86b0a469a",
+            "ncb3d7bec0224",
+            "nd4edeec2d384"
           ]
         }
       ]
