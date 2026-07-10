@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "scrape": "node scripts/scrape.mjs && node scripts/fetch-weather.mjs && node scripts/extract-colors.mjs",
+    "cutout": "node scripts/cutout.mjs",
     "weather": "node scripts/fetch-weather.mjs",
     "colors": "node scripts/extract-colors.mjs",
     "og:games": "node scripts/make-game-og.mjs",

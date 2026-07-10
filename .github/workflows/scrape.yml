@@ -38,14 +38,19 @@ jobs:
       - name: Scrape note + weather
         run: pnpm scrape
 
+      # 新着コーデの人物くり抜きスプライトを生成する（生成済みはスキップ）。
+      # ランウェイ／タワーのキャラ選択に新着を反映するために必要。
+      - name: Generate cutouts for new outfits
+        run: pnpm cutout
+
       - name: Commit & deploy if changed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -n "$(git status --porcelain src/data)" ]; then
+          if [ -n "$(git status --porcelain src/data public/cutouts)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/data
+            git add src/data public/cutouts
             git commit -m "chore: daily scrape ($(TZ=Asia/Tokyo date +%Y-%m-%d))"
             git push
             gh workflow run deploy.yml   # GITHUB_TOKEN の push は deploy を自動起動しないため明示
