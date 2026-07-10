@@ -137,15 +137,20 @@ describe('generateSegment の決定性', () => {
 // generateSegment: 即死しない選択肢が常に存在する
 // ----------------------------------------------------------------------------
 describe('ゲート対には即死しない選択肢が常に存在する', () => {
-  it('群れが2人以上なら、どのゲート対にも1人以上残せる選択肢がある', () => {
+  // expect() を70万回呼ぶとCIの遅いマシンで5秒を超えるため、違反だけ集めて最後に1回検証する
+  it('群れが2人以上なら、どのゲート対にも1人以上残せる選択肢がある', { timeout: 15000 }, () => {
+    const violations: string[] = []
     for (let seed = 0; seed < 300; seed++) {
       for (let i = 0; i < 60; i++) {
         const seg = generateSegment(seed, i)
         for (let count = 2; count <= 40; count++) {
-          expect(hasSurvivableChoice(seg.top, seg.bottom, count)).toBe(true)
+          if (!hasSurvivableChoice(seg.top, seg.bottom, count)) {
+            violations.push(`seed=${seed} index=${i} count=${count}`)
+          }
         }
       }
     }
+    expect(violations).toEqual([])
   })
 
   it('序盤（index<3）はマイナスゲートが出ないので1人でも安全', () => {
