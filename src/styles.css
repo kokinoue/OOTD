@@ -5831,5 +5831,166 @@ a {
   }
   .g-laundry-hud-score {
     font-size: 18px;
+/* ===================== 通勤ランナー（CROWD RUNNER） ===================== */
+.g-runner {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0 48px;
+}
+.g-runner-inner {
+  width: min(880px, 100%);
+  padding: 0 16px;
+}
+.g-runner-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 4px 0 12px;
+}
+.g-runner-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.g-runner-hud {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.g-runner-hud b {
+  font-size: 16px;
+  color: var(--text);
+}
+.g-runner-hud-best {
+  color: var(--text-sub);
+}
+.g-runner-screen {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1eee3;
+}
+.g-runner-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 880 / 440;
+  touch-action: none; /* スワイプ・タップ操作をスクロールに取られない */
+}
+.g-runner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(23, 23, 26, 0.45);
+  padding: 16px;
+}
+.g-runner-card,
+.g-runner-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 28px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.28);
+  text-align: center;
+  max-width: 420px;
+}
+.g-runner-card b {
+  font-size: 22px;
+  letter-spacing: 0.1em;
+}
+.g-runner-lead {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text);
+}
+.g-runner-rules {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 12.5px;
+  line-height: 1.9;
+  color: var(--text-sub);
+  text-align: left;
+  align-self: stretch;
+}
+.g-runner-gain {
+  color: #5a9e5f;
+}
+.g-runner-loss {
+  color: #b4534b;
+}
+.g-runner-card .g-start {
+  margin-top: 6px;
+}
+.g-runner-result b {
+  font-size: 30px;
+}
+.g-runner-result > span {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.g-runner-result-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+.g-runner-btn {
+  padding: 9px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.g-runner-btn:hover {
+  border-color: var(--text-sub);
+}
+.g-runner-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.g-runner-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.g-runner-caption {
+  min-width: 120px;
+}
+.g-runner-hint {
+  flex: 1;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .g-runner-head {
+    margin-bottom: 8px;
+  }
+  .g-runner-hud {
+    gap: 12px;
+    font-size: 12px;
+  }
+  .g-runner-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .g-runner-hint {
+    text-align: left;
   }
 }
