@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import outfitsJson from '../../data/outfits.json'
 import itemsJson from '../../data/items.json'
 import type { Item, Outfit } from '../../types'
-import { QUESTIONS, QUIZ_TYPES, matchOutfit, resolveType, tallyScores } from '../quiz'
+import {
+  QUESTIONS,
+  QUIZ_TYPES,
+  decodeAnswers,
+  encodeAnswers,
+  matchOutfit,
+  resolveType,
+  tallyScores,
+} from '../quiz'
 
 const outfits = outfitsJson as Outfit[]
 const items = itemsJson as Item[]
@@ -112,5 +120,45 @@ describe('matchOutfit', () => {
       keys.add(outfit.key)
     }
     expect(keys.size).toBeGreaterThanOrEqual(4)
+  })
+})
+
+describe('encodeAnswers / decodeAnswers', () => {
+  it('round-trips through encode -> decode', () => {
+    const patterns: number[][] = [
+      QUESTIONS.map(() => 0),
+      QUESTIONS.map((_, i) => Math.min(i % 4, QUESTIONS[i].choices.length - 1)),
+      QUESTIONS.map((_, i) => (i * 2 + 1) % QUESTIONS[i].choices.length),
+    ]
+    for (const answers of patterns) {
+      const encoded = encodeAnswers(answers)
+      expect(encoded).toMatch(new RegExp(`^\\d{${QUESTIONS.length}}$`))
+      expect(decodeAnswers(encoded)).toEqual(answers)
+    }
+  })
+
+  it('rejects the wrong number of digits', () => {
+    expect(decodeAnswers('0'.repeat(QUESTIONS.length - 1))).toBeNull()
+    expect(decodeAnswers('0'.repeat(QUESTIONS.length + 1))).toBeNull()
+    expect(decodeAnswers('')).toBeNull()
+  })
+
+  it('rejects a digit out of range for its question', () => {
+    // 各質問は最大4択（インデックス0〜3）。9は常に範囲外。
+    const tooLarge = QUESTIONS.map(() => '9').join('')
+    expect(decodeAnswers(tooLarge)).toBeNull()
+
+    // 実際に選択肢数を超えるインデックスを1問だけ混ぜたケース
+    const idx = QUESTIONS.findIndex((q) => q.choices.length < 4)
+    if (idx >= 0) {
+      const digits = QUESTIONS.map(() => '0')
+      digits[idx] = '4'
+      expect(decodeAnswers(digits.join(''))).toBeNull()
+    }
+  })
+
+  it('rejects non-digit characters', () => {
+    expect(decodeAnswers('abcdefgh'.slice(0, QUESTIONS.length).padEnd(QUESTIONS.length, '0'))).toBeNull()
+    expect(decodeAnswers('0'.repeat(QUESTIONS.length - 1) + 'a')).toBeNull()
   })
 })

@@ -1,41 +1,80 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
 import {
   QUESTIONS,
   TRAITS,
+  TRAIT_LABEL,
+  decodeAnswers,
+  encodeAnswers,
   matchOutfit,
   resolveType,
   tallyScores,
   type Scores,
-  type Trait,
 } from '../lib/quiz'
+import { generateStoryImage } from '../lib/quizShareImage'
 
 // 性格診断「あなたのkokiはこれ！」
 // ・8問に答えると5軸スコアが集計され、8タイプのうち1つ + 実データの出勤服1着が決まる。
 // ・乱数は使わない（同じ回答なら常に同じ結果）。
+//
+// URL共有: 結果は #/quiz?a=XXXXXXXX（answers を8桁の数字にエンコード）に載せる。
+// useHashRoute（lib/router.ts）の Route/Filters は quiz の `a` パラメータを扱わないため、
+// router 経由で書き戻すとクエリが失われる。そのため location.hash の読み書きは
+// history.replaceState で直接行い、router の navigate() は一切呼ばない
+// （App.tsx 側も quiz 表示中に navigate() を呼ぶのはビュー切り替え時だけなので衝突しない）。
 
 type Phase = 'intro' | 'asking' | 'result'
-
-const TRAIT_LABEL: Record<Trait, { neg: string; pos: string }> = {
-  colorful: { neg: 'モノトーン', pos: 'カラフル' },
-  formal: { neg: 'カジュアル', pos: 'きれいめ' },
-  adventurous: { neg: '定番派', pos: '冒険派' },
-  layered: { neg: '身軽', pos: 'マシマシ' },
-  warm: { neg: '寒がり', pos: '暑がり' },
-}
 
 // スコアをバー表示用に -1〜1 へクランプ正規化（質問側の想定レンジはおおよそ -6〜+6）
 const barRatio = (v: number) => Math.max(-1, Math.min(1, v / 6))
 
+function readAnswersFromLocationHash(): number[] | null {
+  const hash = window.location.hash
+  const qIndex = hash.indexOf('?')
+  if (qIndex === -1) return null
+  const params = new URLSearchParams(hash.slice(qIndex + 1))
+  const a = params.get('a')
+  if (!a) return null
+  return decodeAnswers(a)
+}
+
+function shareUrlFor(encoded: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}game/quiz/?a=${encoded}`
+}
+
 export default function QuizGameView({ data, onBack }: { data: Data; onBack: () => void }) {
-  const [phase, setPhase] = useState<Phase>('intro')
-  const [answers, setAnswers] = useState<number[]>([])
+  const restored = useMemo(() => readAnswersFromLocationHash(), [])
+  const [phase, setPhase] = useState<Phase>(() => (restored ? 'result' : 'intro'))
+  const [answers, setAnswers] = useState<number[]>(() => restored ?? [])
   const [step, setStep] = useState(0)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
+  const [imageStatus, setImageStatus] = useState<'idle' | 'generating' | 'error'>('idle')
+  const copyTimer = useRef<number | null>(null)
+
+  // result 表示中は URL に回答を反映し、intro に戻ったら消す。router の navigate() は使わない。
+  useEffect(() => {
+    if (phase === 'result' && answers.length === QUESTIONS.length) {
+      const encoded = encodeAnswers(answers)
+      const next = `#/quiz?a=${encoded}`
+      if (window.location.hash !== next) history.replaceState(null, '', next)
+    } else if (phase === 'intro') {
+      const next = '#/quiz'
+      if (window.location.hash !== next) history.replaceState(null, '', next)
+    }
+  }, [phase, answers])
+
+  useEffect(() => {
+    return () => {
+      if (copyTimer.current != null) window.clearTimeout(copyTimer.current)
+    }
+  }, [])
 
   const start = () => {
     setAnswers([])
     setStep(0)
+    setImageStatus('idle')
+    setCopyStatus('idle')
     setPhase('asking')
   }
 
@@ -69,6 +108,65 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
     if (!scores) return null
     return matchOutfit(scores, outfits, data.itemMap, data.outfitItemIds)
   }, [scores, data])
+
+  const encoded = useMemo(
+    () => (phase === 'result' && answers.length === QUESTIONS.length ? encodeAnswers(answers) : null),
+    [phase, answers],
+  )
+  const shareUrl = encoded ? shareUrlFor(encoded) : null
+
+  const shareOnX = () => {
+    if (!shareUrl || !type) return
+    const text = `私のkokiは『${type.name}』でした！ #出勤服アーカイブ`
+    const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`
+    window.open(intentUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const copyLink = async () => {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopyStatus('copied')
+      if (copyTimer.current != null) window.clearTimeout(copyTimer.current)
+      copyTimer.current = window.setTimeout(() => setCopyStatus('idle'), 2000)
+    } catch {
+      // クリップボード権限がない環境ではコピー操作自体を諦める（UIはidleのまま）
+    }
+  }
+
+  const shareImage = async () => {
+    if (!scores || !type || !resultOutfit) return
+    setImageStatus('generating')
+    try {
+      const blob = await generateStoryImage({ type, scores, outfitKey: resultOutfit.key })
+      const fileName = `koki-quiz-${type.id.replace(/[^a-zA-Z0-9-]/g, '') || 'result'}.png`
+      const file = new File([blob], fileName, { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'あなたのkokiはこれ！',
+          text: `私のkokiは『${type.name}』でした！`,
+        })
+      } else {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = fileName
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      }
+      setImageStatus('idle')
+    } catch (e) {
+      // ユーザーがシェアシートをキャンセルした場合はエラー扱いしない
+      if (e instanceof Error && e.name === 'AbortError') {
+        setImageStatus('idle')
+        return
+      }
+      setImageStatus('error')
+    }
+  }
 
   // ---------------- intro ----------------
   if (phase === 'intro') {
@@ -195,6 +293,30 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
               noteで見る →
             </a>
           </div>
+        </div>
+
+        <div className="g-quiz-share">
+          <h3 className="g-quiz-share-heading jp">結果をシェア</h3>
+          <div className="g-quiz-share-actions">
+            <button className="chip jp" onClick={shareOnX} disabled={!shareUrl}>
+              Xでシェア
+            </button>
+            <button
+              className="chip jp"
+              onClick={shareImage}
+              disabled={imageStatus === 'generating'}
+            >
+              {imageStatus === 'generating' ? '画像を作成中…' : '画像でシェア'}
+            </button>
+            <button className="chip jp" onClick={copyLink} disabled={!shareUrl}>
+              {copyStatus === 'copied' ? 'コピーしました' : 'リンクをコピー'}
+            </button>
+          </div>
+          {imageStatus === 'error' && (
+            <p className="g-quiz-share-error jp">
+              画像の生成に失敗しました。時間をおいてもう一度お試しください。
+            </p>
+          )}
         </div>
 
         <div className="g-finished-actions">

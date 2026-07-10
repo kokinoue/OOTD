@@ -5633,3 +5633,32 @@ a {
     aspect-ratio: 1 / 1;
   }
 }
+
+.g-quiz-share {
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.g-quiz-share-heading {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px;
+  color: var(--text-sub);
+}
+
+.g-quiz-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.g-quiz-share-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 10px 0 0;
+  letter-spacing: 0.04em;
+}
