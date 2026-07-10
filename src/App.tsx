@@ -15,6 +15,7 @@ const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
 const DuelGameView = lazy(() => import('./components/DuelGameView'))
 const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 const TowerGameView = lazy(() => import('./components/TowerGameView'))
+const QuizGameView = lazy(() => import('./components/QuizGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -32,6 +33,7 @@ export type View =
   | 'duel'
   | 'platform'
   | 'tower'
+  | 'quiz'
 
 export type Filters = {
   from: string
@@ -111,7 +113,11 @@ export default function App() {
   // ゲームプレイ中（ハブではなく個別ゲーム）は、SP でヘッダーのメニューが
   // プレイ領域を圧迫するため隠す。各ゲームは戻るボタンを持つので操作は塞がらない。
   const isPlayingGame =
-    view === 'memory' || view === 'duel' || view === 'platform' || view === 'tower'
+    view === 'memory' ||
+    view === 'duel' ||
+    view === 'platform' ||
+    view === 'tower' ||
+    view === 'quiz'
 
   return (
     <div className={isPlayingGame ? 'app playing-game' : 'app'}>
@@ -165,7 +171,12 @@ export default function App() {
           </button>
           <button
             className={
-              view === 'game' || view === 'memory' || view === 'duel' || view === 'platform'
+              view === 'game' ||
+              view === 'memory' ||
+              view === 'duel' ||
+              view === 'platform' ||
+              view === 'tower' ||
+              view === 'quiz'
                 ? 'tab active'
                 : 'tab'
             }
@@ -219,6 +230,7 @@ export default function App() {
         {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
         {view === 'platform' && <PlatformGameView data={data} onBack={() => setView('game')} />}
         {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
+        {view === 'quiz' && <QuizGameView data={data} onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (

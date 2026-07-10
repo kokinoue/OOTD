@@ -61,7 +61,9 @@ export function decodeHash(hash: string): Route {
                       ? 'platform'
                       : path === 'tower'
                         ? 'tower'
-                        : 'fits'
+                        : path === 'quiz'
+                          ? 'quiz'
+                          : 'fits'
   const p = new URLSearchParams(query ?? '')
 
   // items パスのクエリは ItemsFilters に、それ以外（fits）は Filters に振り分ける。

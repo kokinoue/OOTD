@@ -30,6 +30,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'PHYSICS PUZZLE',
     lead: '出勤服のくり抜きをどこまで高く積めるか。シルエットの凹凸が物理に効く、どうぶつタワーバトル風スコアアタック。',
   },
+  {
+    view: 'quiz',
+    title: '性格診断',
+    tag: 'PERSONALITY TEST',
+    lead: '8つの質問に答えると、あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
+  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {

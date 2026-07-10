@@ -188,7 +188,30 @@ async function tower() {
   await save('tower', '#f1eee3', layers, title)
 }
 
+// ---- 性格診断: クリーム地に「？」を浮かべ、切り抜き数体を並べる ------------
+async function quiz() {
+  const qMark = svg(`
+    <text x="${W / 2}" y="330" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="300" font-weight="700" fill="rgba(59,91,219,0.14)">?</text>
+  `)
+  const n = 5
+  const layers = [{ input: qMark, left: 0, top: 0 }]
+  const startX = Math.round((W - (n - 1) * 190) / 2)
+  for (let i = 0; i < n; i++) {
+    const cx = startX + i * 190
+    const cy = i % 2 === 0 ? 300 : 260
+    const rot = i % 2 === 0 ? -5 : 6
+    const sp = await sprite(PICKS[i], 250, rot)
+    layers.push(at(sp, cx, cy))
+  }
+  const title = svg(`
+    <text x="60" y="${H - 78}" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="600" fill="#161616" letter-spacing="8">性格診断</text>
+    <text x="62" y="${H - 36}" font-family="Menlo, monospace" font-size="23" fill="#161616" opacity="0.7" letter-spacing="3">PERSONALITY TEST · 出勤服アーカイブ GAME</text>
+  `)
+  await save('quiz', '#f1eee3', layers, title)
+}
+
 await memory()
 await duel()
 await platform()
 await tower()
+await quiz()
