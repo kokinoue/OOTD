@@ -5363,3 +5363,237 @@ a {
   height: 40px;
   width: auto;
 }
+
+/* ===================== 性格診断（あなたのkokiはこれ！） ===================== */
+.g-quiz-card {
+  max-width: 560px;
+  width: 100%;
+}
+
+.g-quiz-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 18px;
+}
+
+.g-quiz-progress-label {
+  font-size: 12px;
+  color: var(--text-sub);
+  white-space: nowrap;
+}
+
+.g-quiz-progress-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.g-quiz-progress-fill {
+  height: 100%;
+  background: var(--text);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.g-quiz-question {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  margin: 0 0 20px;
+}
+
+.g-quiz-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.g-quiz-choice {
+  padding: 14px 16px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.g-quiz-choice:hover {
+  border-color: var(--text-sub);
+  background: var(--bg);
+}
+
+.g-quiz-choice:active {
+  transform: scale(0.99);
+}
+
+.g-quiz-type-tag {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-sub);
+  margin-bottom: 8px;
+}
+
+.g-quiz-type-name {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  margin: 0 0 6px;
+}
+
+.g-quiz-type-tagline {
+  font-size: 13.5px;
+  color: var(--text-sub);
+  line-height: 1.7;
+  letter-spacing: 0.05em;
+  margin: 0 0 14px;
+}
+
+.g-quiz-type-desc {
+  font-size: 13.5px;
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+  margin: 0 0 22px;
+}
+
+.g-quiz-traits {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 26px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.g-quiz-trait-row {
+  display: grid;
+  grid-template-columns: 68px 1fr 68px;
+  align-items: center;
+  gap: 8px;
+}
+
+.g-quiz-trait-label {
+  font-size: 11px;
+  color: var(--text-sub);
+  letter-spacing: 0.04em;
+}
+
+.g-quiz-trait-row .g-quiz-trait-label:last-child {
+  text-align: right;
+}
+
+.g-quiz-trait-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.g-quiz-trait-bar-mid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.g-quiz-trait-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+}
+
+.g-quiz-trait-bar-fill.pos {
+  background: #3b5bdb;
+}
+
+.g-quiz-trait-bar-fill.neg {
+  background: #c0392b;
+}
+
+.g-quiz-result-heading {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  margin: 0 0 12px;
+}
+
+.g-quiz-outfit-card {
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  margin-bottom: 22px;
+}
+
+.g-quiz-outfit-img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+.g-quiz-outfit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.g-quiz-outfit-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.g-quiz-outfit-date {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+
+.g-quiz-outfit-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 4px 0 2px;
+}
+
+.g-quiz-outfit-link {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  align-self: flex-start;
+}
+
+.g-quiz-outfit-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .g-quiz-outfit-card {
+    flex-direction: column;
+  }
+  .g-quiz-outfit-img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+}
