@@ -115,16 +115,17 @@ pnpm timelapse --from 2025-01-01 --to 2025-12-31 --format gif
 
 ## ランウェイ用くり抜きスプライト
 
-ゲームタブの「ランウェイ」（プラットフォームゲーム）は、コーデ写真から人物を背景除去した透過スプライトを操作キャラに使う。生成は `@imgly/background-removal-node`（ローカル推論、外部APIなし）。
+ゲームタブの「ランウェイ」（プラットフォームゲーム）と「タワー」は、コーデ写真から人物を背景除去した透過スプライトを操作キャラに使う。生成は `@imgly/background-removal-node`（ローカル推論、外部APIなし）。
 
 ```sh
-node scripts/cutout.mjs                 # 全コーデ（生成済みはスキップ）。新着後に流す
+pnpm cutout                             # = node scripts/cutout.mjs（全コーデ、生成済みはスキップ）
 node scripts/cutout.mjs --key <記事キー>  # 1件だけ
 node scripts/cutout.mjs --force         # 作り直し
 ```
 
 - 出力: `public/cutouts/{outfitKey}.webp`（余白トリム済み・高さ240px、1枚 約10KB）と `src/data/cutouts.json`（key → 縦横サイズのマニフェスト）
 - マニフェストに載っているコーデだけがキャラ選択に出る。人物がほぼ検出できなかった画像は自動スキップ
+- **新着の反映は自動**: 日次スクレイプ（`.github/workflows/scrape.yml`）が `pnpm scrape` の後に `pnpm cutout` を実行し、生成された webp とマニフェストを `public/cutouts` / `src/data` ごとコミットしてデプロイする。手動実行は作り直し（`--force`）や単発生成のときだけでよい
 - ゲームの特性（季節×色）・レベル定義・物理は `src/lib/platform.ts`。全ステージが自動プレイbotでクリア可能なことをテストで保証している（`platform.playability.test.ts`）
 
 ## 公開ビルドのデータの持ち方
