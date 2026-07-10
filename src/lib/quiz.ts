@@ -9,6 +9,14 @@ export type Trait = 'colorful' | 'formal' | 'adventurous' | 'layered' | 'warm'
 
 export const TRAITS: Trait[] = ['colorful', 'formal', 'adventurous', 'layered', 'warm']
 
+export const TRAIT_LABEL: Record<Trait, { neg: string; pos: string }> = {
+  colorful: { neg: 'モノトーン', pos: 'カラフル' },
+  formal: { neg: 'カジュアル', pos: 'きれいめ' },
+  adventurous: { neg: '定番派', pos: '冒険派' },
+  layered: { neg: '身軽', pos: 'マシマシ' },
+  warm: { neg: '寒がり', pos: '暑がり' },
+}
+
 export type Scores = Record<Trait, number>
 
 export type Choice = {
@@ -126,6 +134,25 @@ export function tallyScores(answers: number[]): Scores {
     }
   })
   return s
+}
+
+// ---------------------------------------------------------------------------
+// 回答のURLエンコード（結果の再現・シェア用）
+// ---------------------------------------------------------------------------
+
+/** answers を各桁が選択肢インデックスの数字列にエンコードする（例: [0,2,1,3,...] → "0213..."） */
+export function encodeAnswers(answers: number[]): string {
+  return QUESTIONS.map((_, i) => String(answers[i] ?? 0)).join('')
+}
+
+/** エンコード文字列を answers[] に戻す。桁数・範囲が不正な場合は null */
+export function decodeAnswers(s: string): number[] | null {
+  if (!new RegExp(`^\\d{${QUESTIONS.length}}$`).test(s)) return null
+  const digits = s.split('').map(Number)
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    if (digits[i] >= QUESTIONS[i].choices.length) return null
+  }
+  return digits
 }
 
 // ---------------------------------------------------------------------------
