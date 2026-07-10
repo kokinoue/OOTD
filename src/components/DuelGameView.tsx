@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Data } from '../lib/useData'
 import { outfits, thumb } from '../lib/useData'
 import hairJson from '../data/hair.json'
+import GameShareButton from './GameShareButton'
 import type { HairFile } from '../types'
 import {
   ABILITY_INFO,
@@ -462,9 +463,12 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
     return (
       <main className="d-setup">
         <div className="d-setup-card">
-          <button className="game-back jp" onClick={onBack}>
-            ← ゲームを選ぶ
-          </button>
+          <div className="game-nav">
+            <button className="game-back jp" onClick={onBack}>
+              ← ゲームを選ぶ
+            </button>
+            <GameShareButton game="duel" title="デュエル" />
+          </div>
           <h2 className="d-setup-title jp">出勤服デュエル</h2>
           <p className="d-setup-lead jp">
             出勤服1着が1体のモンスター。<b>スキ数の人気順でレベル（★）と攻撃力</b>、<b>着用回数＝守備力</b>、<b>季節＝属性</b>。

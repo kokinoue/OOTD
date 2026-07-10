@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import type { Data } from '../lib/useData'
 import { outfits, thumb } from '../lib/useData'
 import type { Outfit } from '../types'
+import GameShareButton from './GameShareButton'
 
 // 出勤服 神経衰弱
 // ・場札は出勤服。2枚めくって「同じアイテム」の数だけ得点（jacketもpantsも同じなら +2pt）。
@@ -214,9 +215,12 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
     return (
       <main className="g-setup">
         <div className="g-setup-card">
-          <button className="game-back jp" onClick={onBack}>
-            ← ゲームを選ぶ
-          </button>
+          <div className="game-nav">
+            <button className="game-back jp" onClick={onBack}>
+              ← ゲームを選ぶ
+            </button>
+            <GameShareButton game="memory" title="神経衰弱" />
+          </div>
           <h2 className="g-setup-title jp">出勤服 神経衰弱</h2>
           <p className="g-setup-lead jp">
             場札は {Math.min(BOARD_SIZE, pool.length)} 枚の出勤服。2枚めくって、

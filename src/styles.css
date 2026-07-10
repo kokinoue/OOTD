@@ -2760,6 +2760,42 @@ a {
   color: var(--text);
 }
 
+/* 戻る導線とシェアボタンを両端に並べる行 */
+.game-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 14px;
+}
+.game-nav .game-back {
+  margin: 0;
+}
+
+/* ゲームのシェア導線（OGP付き /game/<name>/ URL を共有） */
+.game-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.game-share-btn {
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+.game-share-btn:hover {
+  color: var(--text);
+}
+.game-share-msg {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.game-share-msg.error {
+  color: var(--danger);
+}
+.tower-head .game-share-btn {
+  padding: 4px 0;
+}
+
 /* ===================== 神経衰弱ゲーム ===================== */
 :root {
   --card-back-a: #2a2e48;
