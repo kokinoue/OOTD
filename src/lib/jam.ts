@@ -1,4 +1,5 @@
 import type { Outfit } from '../types'
+import jamHardJson from '../data/jamHard.json'
 
 // 満員クローゼット — Rush Hour型スライドパズル。
 // 6x6グリッドに服の束（ピース）が詰まっていて、ターゲット（今日の一着）だけを
@@ -6,6 +7,10 @@ import type { Outfit } from '../types'
 //
 // 座標系: row/col は共にピースの左上（横向きなら左端、縦向きなら上端）のセル。
 // 横向き(dir: 'h')ピースは col のみ、縦向き(dir: 'v')ピースは row のみが変化する。
+//
+// hard（par 15+）の盤面は 6x6 のランダム配置では出現率が数%しかなく、実行時に探索すると
+// 最悪十数秒 main thread を塞ぐ。そのため hard はオフラインで採掘した盤面テーブル
+// （src/data/jamHard.json、JAM_MINE=1 の採掘テストで再生成できる）から引く。
 
 export const GRID = 6
 export const TARGET_ROW = 2
@@ -193,7 +198,13 @@ export function solve(board: Board): number | null {
 const BLOCKER_MIN = 10
 const BLOCKER_MAX = 13
 const BUILD_ATTEMPTS_PER_LAYOUT = 400
-const MAX_GENERATE_ATTEMPTS = 3000
+// レイアウト試行の上限（難易度別）。hard の par 15+ はランダム配置では出現率が低く、
+// 「出るまで探す」と最悪十数秒 main thread を塞ぐため、試行数を固定して
+// 「見つかればレンジ内、見つからなければ最もレンジに近い（=最も深い）盤面」を返す。
+// easy/normal はレンジ内が高頻度で出るので、この上限に達することはまずない。
+const GENERATE_ATTEMPTS: Record<Difficulty, number> = { easy: 60, normal: 60, hard: 24 }
+// レンジ内が見つからないレイアウトで、solve() 再検証まで行うフォールバック候補の数（深い順）
+const FALLBACK_VERIFY_PER_LAYOUT = 4
 /** 連結成分探索の状態数上限(1レイアウトあたり)。大きすぎる盤面は打ち切って次の配置を試す */
 const SEARCH_MAX_STATES = 20000
 
@@ -290,12 +301,40 @@ function truePars(nodes: Map<string, Board>): Map<string, number> {
 
 export type Puzzle = { board: Board; par: number }
 
+// ---------------------------------------------------------------------------
+// hard 盤面テーブル（オフライン採掘。JAM_MINE=1 の採掘テストで再生成できる）
+// ---------------------------------------------------------------------------
+// JSONの1盤面は par と pieces の圧縮表現。pieces[0] が必ずターゲット。
+type HardFile = { minPar: number; boards: { par: number; p: [number, number, number, Dir][] }[] }
+
+const hardFile = jamHardJson as HardFile
+
+const HARD_BOARDS: Puzzle[] = hardFile.boards.map(({ par, p }) => ({
+  par,
+  board: p.map(([row, col, len, dir], i) =>
+    i === 0
+      ? { id: 'target', row, col, len, dir, isTarget: true }
+      : { id: `p${i - 1}`, row, col, len, dir },
+  ),
+}))
+
+/** テーブルから seed で決定的に1盤面引く。呼び出し側の変更がテーブルを汚さないよう複製して返す */
+function hardFromTable(seed: number): Puzzle {
+  const n = HARD_BOARDS.length
+  const idx = ((seed % n) + n) % n
+  const src = HARD_BOARDS[idx]
+  return { par: src.par, board: src.board.map((piece) => ({ ...piece })) }
+}
+
 /**
  * seed から決定的に盤面を生成する。同じ seed + difficulty なら常に同じ盤面になる。
- * 難易度レンジに収まる局面が見つからない場合は、最もレンジに近かった局面を返す
- * (6x6盤面で hard の下限(15手)は稀にしか出現しないため、フォールバックを許容する)。
+ * hard は採掘済みテーブルから即時に引く（実行時探索では par 15+ がまず出ないため）。
+ * easy/normal はライブ探索: レンジ内の局面が見つかったら即座に返し（早期終了）、
+ * 上限試行内に見つからない場合は最もレンジに近かった局面を返す。
  */
 export function generate(seed: number, difficulty: Difficulty): Puzzle {
+  if (difficulty === 'hard' && HARD_BOARDS.length > 0) return hardFromTable(seed)
+
   const range = PAR_RANGE[difficulty]
   const rng = mulberry32(seed)
 
@@ -311,48 +350,105 @@ export function generate(seed: number, difficulty: Difficulty): Puzzle {
     }
   }
 
-  for (let attempt = 0; attempt < MAX_GENERATE_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < GENERATE_ATTEMPTS[difficulty]; attempt++) {
     const blockerCount = BLOCKER_MIN + Math.floor(rng() * (BLOCKER_MAX - BLOCKER_MIN + 1))
     const layout = buildLayout(rng, blockerCount)
     const nodes = enumerateComponent(layout, SEARCH_MAX_STATES)
     const dist = truePars(nodes)
 
-    // レンジ内候補と、レンジ外で最もレンジに近い1件(このレイアウトの代表フォールバック候補)を1パスで拾う
+    // レンジ内候補と、レンジ外でレンジに近い順の候補数件を1パスで拾う。
+    // 注意: enumerateComponent が SEARCH_MAX_STATES で打ち切られた場合、truePars の推定は
+    // （成分外を通る近道を見落とすため）過大評価になりうる。solve() での再検証で値が縮むので、
+    // フォールバック候補は「最深の1件」ではなく深い順に数件を検証して最良を採用する。
     const inRangeKeys: string[] = []
-    let nearestKey: string | null = null
-    let nearestDist = Infinity
+    const outOfRange: { key: string; dd: number }[] = []
     for (const [key, d] of dist) {
       if (d >= range[0] && d <= range[1]) {
         inRangeKeys.push(key)
         continue
       }
-      const dd = d < range[0] ? range[0] - d : d - range[1]
-      if (dd < nearestDist) {
-        nearestDist = dd
-        nearestKey = key
-      }
+      outOfRange.push({ key, dd: d < range[0] ? range[0] - d : d - range[1] })
     }
+
+    // 成分の列挙が上限未満で完了していれば、多始点BFSの距離は厳密な最短手数そのもの。
+    // その場合は solve() の再検証が不要（かつ深い盤面では solve() が探索上限で null を
+    // 返しやすく、再検証に頼ると深い候補ばかり捨ててしまう）。
+    const complete = nodes.size < SEARCH_MAX_STATES
 
     if (inRangeKeys.length > 0) {
       const idx = Math.floor(rng() * inRangeKeys.length)
-      const board = nodes.get(inRangeKeys[idx])!
-      // 安全弁: 多始点BFSの結果を solve() で再検証してから確定する
+      const key = inRangeKeys[idx]
+      const board = nodes.get(key)!
+      if (complete) return { board, par: dist.get(key)! }
+      // 打ち切られた成分では推定が過大評価になりうるので solve() で再検証してから確定する
       const verified = solve(board)
       if (verified != null && verified >= range[0] && verified <= range[1]) {
         return { board, par: verified }
       }
-      // 稀に多始点BFSの推定とズレていた場合は、この結果もフォールバック候補として拾っておく
       if (verified != null) considerVerified(board, verified)
-    } else if (nearestKey) {
-      const board = nodes.get(nearestKey)!
-      const verified = solve(board)
-      if (verified != null) considerVerified(board, verified)
+    } else if (outOfRange.length > 0) {
+      outOfRange.sort((a, b) => a.dd - b.dd)
+      if (complete) {
+        // 距離は厳密値なので、この成分で最もレンジに近い1件をそのまま候補にする
+        const { key } = outOfRange[0]
+        considerVerified(nodes.get(key)!, dist.get(key)!)
+      } else {
+        for (const { key } of outOfRange.slice(0, FALLBACK_VERIFY_PER_LAYOUT)) {
+          const board = nodes.get(key)!
+          const verified = solve(board)
+          if (verified == null) continue
+          if (verified >= range[0] && verified <= range[1]) return { board, par: verified }
+          considerVerified(board, verified)
+        }
+      }
     }
   }
 
   if (fallback) return fallback
   // ここに来るのは理論上ありえない(layout自身が常に「解けた状態」= par 0の有効な局面のため)
   throw new Error('jam: failed to generate a board')
+}
+
+// ---------------------------------------------------------------------------
+// hard 盤面の採掘・厳密検証（オフライン採掘テストとテストコードから使う）
+// ---------------------------------------------------------------------------
+
+/**
+ * 盤面の厳密な最短手数。連結成分を完全列挙できた場合のみ値を返す
+ * （打ち切られた場合は距離が過大評価になりうるので null）。
+ * solve() と違い深い盤面でも正確（多始点BFSは成分サイズにしか依存しない）。
+ */
+export function verifyExactPar(board: Board): number | null {
+  const nodes = enumerateComponent(board, SEARCH_MAX_STATES)
+  if (nodes.size >= SEARCH_MAX_STATES) return null
+  const dist = truePars(nodes)
+  return dist.get(boardKey(board)) ?? null
+}
+
+/**
+ * par >= minPar の盤面を1つ採掘する（決定的）。完全列挙できた成分だけを対象にするため
+ * 返る par は厳密値。見つからなければ null。オフラインの採掘テスト用で、
+ * 実行時のゲームからは呼ばない（最悪 maxLayouts × 数十ms かかる）。
+ */
+export function mineHardPuzzle(seed: number, minPar = PAR_RANGE.hard[0], maxLayouts = 60): Puzzle | null {
+  const rng = mulberry32(seed)
+  for (let i = 0; i < maxLayouts; i++) {
+    const blockerCount = BLOCKER_MIN + Math.floor(rng() * (BLOCKER_MAX - BLOCKER_MIN + 1))
+    const layout = buildLayout(rng, blockerCount)
+    const nodes = enumerateComponent(layout, SEARCH_MAX_STATES)
+    if (nodes.size >= SEARCH_MAX_STATES) continue // 打ち切り成分は距離が不正確なので使わない
+    const dist = truePars(nodes)
+    let bestKey: string | null = null
+    let bestD = 0
+    for (const [key, d] of dist) {
+      if (d > bestD) {
+        bestD = d
+        bestKey = key
+      }
+    }
+    if (bestKey && bestD >= minPar) return { board: nodes.get(bestKey)!, par: bestD }
+  }
+  return null
 }
 
 // ---------------------------------------------------------------------------

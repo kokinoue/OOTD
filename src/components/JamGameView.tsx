@@ -67,8 +67,9 @@ export default function JamGameView({ onBack }: { onBack: () => void }) {
   const [history, setHistory] = useState<Board[] | null>(null)
   const [exiting, setExiting] = useState(false)
 
-  // むずかしい盤面(15手以上)は探索に数秒かかることがあるため、生成を1tick遅らせて
-  // 「生成中」の表示を確実に描画してからCPUバウンドな計算に入る(UIが固まって見えるのを避ける)。
+  // むずかしい(15手以上)は採掘済みテーブルから即時に引けるが、easy/normalのライブ探索は
+  // 最大2秒程度かかりうる。生成を1tick遅らせて「生成中」の表示を確実に描画してから
+  // CPUバウンドな計算に入る(UIが固まって見えるのを避ける)。
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null)
   useEffect(() => {
     // 生成前(または生成中)は history も破棄する。そうしないと切り替え直後の一瞬、
@@ -116,15 +117,18 @@ export default function JamGameView({ onBack }: { onBack: () => void }) {
     setHistory((h) => (h ? [h[0]] : h))
   }, [])
 
-  // クリア判定: ターゲットが出口に到達したら、スライドアウト演出のぶんだけ待ってから結果画面へ
+  // クリア判定: ターゲットが出口に到達したら、スライドアウト演出のぶんだけ待ってから結果画面へ。
+  // 注意: 依存配列に exiting を入れてはいけない。入れると setExiting(true) 直後に
+  // このeffect自身が再実行され、クリーンアップが420msタイマーを解除してしまい
+  // 永遠に 'cleared' へ進まなくなる（undo/離脱時のキャンセルは board/phase の変化で効く）。
   useEffect(() => {
-    if (phase !== 'playing' || exiting || !board) return
+    if (phase !== 'playing' || !board) return
     if (isSolved(board)) {
       setExiting(true)
       const t = window.setTimeout(() => setPhase('cleared'), 420)
       return () => window.clearTimeout(t)
     }
-  }, [board, phase, exiting])
+  }, [board, phase])
 
   const startPlaying = () => {
     if (puzzle) setHistory([puzzle.board])
