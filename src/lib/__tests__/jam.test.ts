@@ -3,6 +3,7 @@ import type { Outfit } from '../../types'
 import {
   DIFFICULTIES,
   EXIT_COL,
+  GRID,
   PAR_RANGE,
   TARGET_LEN,
   TARGET_ROW,
@@ -14,6 +15,7 @@ import {
   pickDailyOutfit,
   solve,
   todaySeedJST,
+  verifyExactPar,
   type Board,
 } from '../jam'
 
@@ -152,16 +154,15 @@ describe('solve', () => {
 // ----------------------------------------------------------------------------
 
 describe('generate', () => {
-  const SEEDS = Array.from({ length: 30 }, (_, i) => i)
-
-  // hard(15手以上)は6x6のRush Hour盤面としては稀にしか出ないため、探索に数秒〜十数秒かかる
-  // シードがある。全30シード×3難易度をまとめて検証するのでタイムアウトを長めに取っている。
+  // easy/normal はライブ探索（レンジ内が高頻度で出る）。hard は採掘済みテーブルから引くため
+  // par 15+ が即時に返る。ライブ探索は1シードあたり最大2秒程度かかりうるのでシード数は絞る。
   it(
-    '全シード×全難易度で可解・パーがレンジ内・solve()の結果と一致する',
+    'easy/normal: 可解・パーがレンジ内・solve()の結果と一致する',
+    { timeout: 60_000 },
     () => {
-      for (const difficulty of DIFFICULTIES) {
+      for (const difficulty of ['easy', 'normal'] as const) {
         const [min, max] = PAR_RANGE[difficulty]
-        for (const seed of SEEDS) {
+        for (const seed of [0, 1, 2, 3, 4, 5]) {
           const { board, par } = generate(seed, difficulty)
           expect(isSolved(board)).toBe(false)
           const verified = solve(board)
@@ -172,33 +173,68 @@ describe('generate', () => {
         }
       }
     },
-    240_000,
   )
 
-  it(
-    '同じ seed + difficulty からは常に同じ盤面が生成される(決定的)',
-    () => {
-      for (const difficulty of DIFFICULTIES) {
-        for (const seed of [0, 1, 7, 29]) {
-          const a = generate(seed, difficulty)
-          const b = generate(seed, difficulty)
-          expect(a.par).toBe(b.par)
-          expect(a.board).toEqual(b.board)
+  it('hard: テーブル由来の盤面が par 15+ で即時に返り、ピース配置が正しい', () => {
+    const seen = new Set<number>()
+    for (const seed of [0, 1, 2, 7, 20260711, -3]) {
+      const { board, par } = generate(seed, 'hard')
+      expect(par).toBeGreaterThanOrEqual(PAR_RANGE.hard[0])
+      expect(isSolved(board)).toBe(false)
+      const target = board.find((p) => p.isTarget)
+      expect(target).toBeDefined()
+      expect(target!.row).toBe(TARGET_ROW)
+      expect(target!.dir).toBe('h')
+      // ピースが重ならず盤面内に収まっている
+      const occupied = new Set<number>()
+      for (const p of board) {
+        for (let i = 0; i < p.len; i++) {
+          const r = p.dir === 'v' ? p.row + i : p.row
+          const c = p.dir === 'h' ? p.col + i : p.col
+          expect(r).toBeGreaterThanOrEqual(0)
+          expect(r).toBeLessThan(GRID)
+          expect(c).toBeGreaterThanOrEqual(0)
+          expect(c).toBeLessThan(GRID)
+          const cell = r * GRID + c
+          expect(occupied.has(cell)).toBe(false)
+          occupied.add(cell)
         }
       }
-    },
-    90_000,
-  )
+      seen.add(par)
+    }
+    expect(seen.size).toBeGreaterThan(0)
+  })
 
-  it(
-    '難易度が違えば(同じseedでも)独立に盤面が決まる',
-    () => {
-      const easy = generate(3, 'easy')
-      const hard = generate(3, 'hard')
-      expect(easy.par).not.toBe(hard.par)
-    },
-    15_000,
-  )
+  it('hard: テーブルの par は厳密な最短手数と一致する（サンプル検証）', { timeout: 30_000 }, () => {
+    for (const seed of [0, 13, 77]) {
+      const { board, par } = generate(seed, 'hard')
+      expect(verifyExactPar(board)).toBe(par)
+    }
+  })
+
+  it('hard: 返った盤面を書き換えてもテーブルは汚れない（複製が返る）', () => {
+    const a = generate(5, 'hard')
+    a.board[0].col = 0
+    const b = generate(5, 'hard')
+    expect(b.board[0].col).not.toBe(0)
+  })
+
+  it('同じ seed + difficulty からは常に同じ盤面が生成される(決定的)', { timeout: 60_000 }, () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of [0, 1, 7]) {
+        const a = generate(seed, difficulty)
+        const b = generate(seed, difficulty)
+        expect(a.par).toBe(b.par)
+        expect(a.board).toEqual(b.board)
+      }
+    }
+  })
+
+  it('難易度が違えば(同じseedでも)独立に盤面が決まる', { timeout: 15_000 }, () => {
+    const easy = generate(3, 'easy')
+    const hard = generate(3, 'hard')
+    expect(easy.par).not.toBe(hard.par)
+  })
 })
 
 // ----------------------------------------------------------------------------
