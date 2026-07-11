@@ -1,4 +1,4 @@
-// ゲーム別OGP画像 public/og-{memory,duel,platform,tower}.png (1200x630) を生成する。
+// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,quiz,jam}.png (1200x630) を生成する。
 // 素材はローカルの public/cutouts/*.webp（透過切り抜き）のみ。ネットワーク不要。
 // 各ゲームの実際の配色（カード裏の濃紺・季節色・Canvasのクリーム地など）を再現する。
 import { readFile } from 'node:fs/promises'
@@ -210,8 +210,74 @@ async function quiz() {
   await save('quiz', '#f1eee3', layers, title)
 }
 
+// ---- 満員クローゼット: 6x6のスライドパズル盤、ターゲットだけ実写を敷く ------
+async function jam() {
+  const GRID = 6
+  const CELL = 70
+  const GAP = 6
+  const boardSize = CELL * GRID + GAP * (GRID - 1)
+  const gx = W - 60 - boardSize
+  const gy = (H - boardSize) / 2 - 10
+  const at2 = (r, c) => ({ x: gx + c * (CELL + GAP), y: gy + r * (CELL + GAP) })
+
+  // 手詰まり感を出すための固定レイアウト(実際のgenerate()とは無関係な演出用)
+  const target = { r: 2, c: 2, len: 2, dir: 'h' }
+  const blockers = [
+    { r: 0, c: 0, len: 2, dir: 'h' },
+    { r: 0, c: 2, len: 2, dir: 'v' },
+    { r: 0, c: 3, len: 3, dir: 'h' },
+    { r: 1, c: 0, len: 2, dir: 'v' },
+    { r: 1, c: 4, len: 2, dir: 'h' },
+    { r: 3, c: 1, len: 2, dir: 'v' },
+    { r: 3, c: 2, len: 2, dir: 'h' },
+    { r: 3, c: 5, len: 3, dir: 'v' },
+    { r: 4, c: 2, len: 2, dir: 'h' },
+    { r: 4, c: 4, len: 2, dir: 'v' },
+    { r: 5, c: 0, len: 2, dir: 'h' },
+  ]
+
+  const chipColor = (len, dir) => {
+    if (dir === 'h') return len >= 3 ? '#c9c2b0' : '#d8d2c2'
+    return len >= 3 ? '#b9c4b2' : '#cdd6c8'
+  }
+  const rectFor = (p) => {
+    const { x, y } = at2(p.r, p.c)
+    const w = p.dir === 'h' ? CELL * p.len + GAP * (p.len - 1) : CELL
+    const h = p.dir === 'v' ? CELL * p.len + GAP * (p.len - 1) : CELL
+    return { x, y, w, h }
+  }
+
+  const panelPad = 22
+  let body = `<rect x="${gx - panelPad}" y="${gy - panelPad}" width="${boardSize + panelPad * 2}" height="${boardSize + panelPad * 2}" rx="20" fill="#ffffff" />`
+  for (const b of blockers) {
+    const { x, y, w, h } = rectFor(b)
+    body += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="${chipColor(b.len, b.dir)}" stroke="rgba(0,0,0,0.08)" stroke-width="2"/>`
+  }
+  // ターゲット: 白地+アクセント枠(あとで実写を重ねる)
+  const tRect = rectFor(target)
+  body += `<rect x="${tRect.x}" y="${tRect.y}" width="${tRect.w}" height="${tRect.h}" rx="10" fill="#f6f5f0" stroke="#3b5bdb" stroke-width="4"/>`
+  // 出口: ターゲット行の右端から伸びる矢印
+  const exitY = at2(target.r, 0).y + CELL / 2
+  const exitX0 = gx + boardSize + panelPad + 6
+  body += `<path d="M ${exitX0} ${exitY - 16} L ${exitX0 + 30} ${exitY} L ${exitX0} ${exitY + 16} Z" fill="#3b5bdb"/>`
+  body += `<line x1="${gx + boardSize + panelPad - 4}" y1="${exitY}" x2="${exitX0 - 4}" y2="${exitY}" stroke="#3b5bdb" stroke-width="4" stroke-dasharray="2 8" stroke-linecap="round"/>`
+
+  const scene = svg(body)
+  const sp = await sprite(PICKS[6], Math.round(tRect.h * 0.86))
+  const layers = [
+    { input: scene, left: 0, top: 0 },
+    at(sp, tRect.x + tRect.w / 2, tRect.y + tRect.h / 2 + 2),
+  ]
+  const title = svg(`
+    <text x="60" y="${H - 78}" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="600" fill="#161616" letter-spacing="8">満員クローゼット</text>
+    <text x="62" y="${H - 36}" font-family="Menlo, monospace" font-size="23" fill="#161616" opacity="0.7" letter-spacing="3">SLIDE PUZZLE · 出勤服アーカイブ GAME</text>
+  `)
+  await save('jam', '#f1eee3', layers, title)
+}
+
 await memory()
 await duel()
 await platform()
 await tower()
 await quiz()
+await jam()
