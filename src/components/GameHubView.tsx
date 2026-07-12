@@ -36,12 +36,6 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'PERSONALITY TEST',
     lead: '8つの質問に答えると、あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
   },
-  {
-    view: 'laundry',
-    title: '洗濯物フリック',
-    tag: 'FLICK ACTION',
-    lead: 'カゴから出てきた出勤服をフリックでハンガーラックに掛ける、気持ちよさ重視のスコアアタック。',
-  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {

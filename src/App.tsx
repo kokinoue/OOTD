@@ -16,7 +16,6 @@ const DuelGameView = lazy(() => import('./components/DuelGameView'))
 const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 const TowerGameView = lazy(() => import('./components/TowerGameView'))
 const QuizGameView = lazy(() => import('./components/QuizGameView'))
-const LaundryGameView = lazy(() => import('./components/LaundryGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -35,7 +34,6 @@ export type View =
   | 'platform'
   | 'tower'
   | 'quiz'
-  | 'laundry'
 
 export type Filters = {
   from: string
@@ -119,8 +117,7 @@ export default function App() {
     view === 'duel' ||
     view === 'platform' ||
     view === 'tower' ||
-    view === 'quiz' ||
-    view === 'laundry'
+    view === 'quiz'
 
   return (
     <div className={isPlayingGame ? 'app playing-game' : 'app'}>
@@ -179,8 +176,7 @@ export default function App() {
               view === 'duel' ||
               view === 'platform' ||
               view === 'tower' ||
-              view === 'quiz' ||
-              view === 'laundry'
+              view === 'quiz'
                 ? 'tab active'
                 : 'tab'
             }
@@ -235,7 +231,6 @@ export default function App() {
         {view === 'platform' && <PlatformGameView data={data} onBack={() => setView('game')} />}
         {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
         {view === 'quiz' && <QuizGameView data={data} onBack={() => setView('game')} />}
-        {view === 'laundry' && <LaundryGameView onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (

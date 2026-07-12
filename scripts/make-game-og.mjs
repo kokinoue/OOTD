@@ -210,50 +210,8 @@ async function quiz() {
   await save('quiz', '#f1eee3', layers, title)
 }
 
-// ---- 洗濯物フリック: 金・銀・銅のハンガーラックに服がかかり、1着が宙を飛ぶ ----
-async function laundry() {
-  const poleXL = 550
-  const poleXR = 1090
-  const barY = { high: 150, mid: 286, low: 422 }
-  const barColor = { high: '#c9a338', mid: '#9aa0aa', low: '#a9764f' }
-  const scene = svg(`
-    <rect x="${poleXL - 10}" y="120" width="10" height="460" fill="#3a3a41"/>
-    <rect x="${poleXR}" y="120" width="10" height="460" fill="#3a3a41"/>
-    <line x1="${poleXL}" y1="${barY.high}" x2="${poleXR}" y2="${barY.high}" stroke="${barColor.high}" stroke-width="10" stroke-linecap="round"/>
-    <line x1="${poleXL}" y1="${barY.mid}" x2="${poleXR}" y2="${barY.mid}" stroke="${barColor.mid}" stroke-width="10" stroke-linecap="round"/>
-    <line x1="${poleXL}" y1="${barY.low}" x2="${poleXR}" y2="${barY.low}" stroke="${barColor.low}" stroke-width="10" stroke-linecap="round"/>
-    <path d="M 130 560 L 88 462 L 332 462 L 290 560 Z" fill="#c9a26a"/>
-    <rect x="88" y="455" width="244" height="10" fill="#a9824f"/>
-    <path d="M 300 430 C 240 320, 230 210, 270 155" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="3" stroke-dasharray="12 10"/>
-  `)
-  const layers = [{ input: scene, left: 0, top: 0 }]
-  // ラックに掛かった服（各段2〜3着）
-  const hung = [
-    { key: PICKS[0], y: barY.high, cx: 660, rot: -6 },
-    { key: PICKS[1], y: barY.high, cx: 760, rot: 5 },
-    { key: PICKS[2], y: barY.high, cx: 860, rot: -4 },
-    { key: PICKS[3], y: barY.mid, cx: 700, rot: 6 },
-    { key: PICKS[4], y: barY.mid, cx: 960, rot: -7 },
-    { key: PICKS[5], y: barY.low, cx: 820, rot: 4 },
-    { key: PICKS[5], y: barY.low, cx: 1000, rot: -5 },
-  ]
-  for (const h of hung) {
-    const sp = await sprite(h.key, 128, h.rot)
-    layers.push(at(sp, h.cx, h.y + sp.h / 2 + 6))
-  }
-  // 宙を飛ぶ1着（フリック中）
-  const flying = await sprite(PICKS[6], 150, 18)
-  layers.push(at(flying, 275, 175))
-  const title = svg(`
-    <text x="60" y="${H - 78}" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="600" fill="#161616" letter-spacing="8">洗濯物フリック</text>
-    <text x="62" y="${H - 36}" font-family="Menlo, monospace" font-size="23" fill="#161616" opacity="0.7" letter-spacing="3">FLICK ACTION · 出勤服アーカイブ GAME</text>
-  `)
-  await save('laundry', '#f1eee3', layers, title)
-}
-
 await memory()
 await duel()
 await platform()
 await tower()
 await quiz()
-await laundry()
