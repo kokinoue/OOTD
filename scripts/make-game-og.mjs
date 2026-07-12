@@ -249,47 +249,6 @@ async function laundry() {
     <text x="62" y="${H - 36}" font-family="Menlo, monospace" font-size="23" fill="#161616" opacity="0.7" letter-spacing="3">FLICK ACTION · 出勤服アーカイブ GAME</text>
   `)
   await save('laundry', '#f1eee3', layers, title)
-// ---- 通勤ランナー: クリーム地に群れ・ゲート対（緑/赤）・満員電車のドア ----------
-async function runner() {
-  const GROUND_Y = 478
-  const scene = svg(`
-    <rect x="0" y="${GROUND_Y}" width="${W}" height="${H - GROUND_Y}" fill="#3a3a41"/>
-    <rect x="0" y="${GROUND_Y}" width="${W}" height="12" fill="#4d4d57"/>
-    ${[0, 1, 2, 3, 4, 5, 6, 7, 8]
-      .map((i) => {
-        const bw = 88 + ((i * 37) % 78)
-        const bh = 96 + ((i * 53) % 150)
-        const bx = 30 + i * 132
-        return `<rect x="${bx}" y="${GROUND_Y - bh}" width="${bw}" height="${bh}" fill="${i % 2 ? '#dfdacb' : '#d5d0c1'}"/>`
-      })
-      .join('')}
-    <rect x="812" y="232" width="150" height="116" fill="rgba(90,158,95,0.16)" stroke="#5a9e5f" stroke-width="5"/>
-    <text x="887" y="303" text-anchor="middle" font-family="Menlo, monospace" font-size="56" font-weight="bold" fill="#5a9e5f">×2</text>
-    <rect x="812" y="352" width="150" height="116" fill="rgba(180,83,75,0.16)" stroke="#b4534b" stroke-width="5"/>
-    <text x="887" y="423" text-anchor="middle" font-family="Menlo, monospace" font-size="56" font-weight="bold" fill="#b4534b">÷2</text>
-    <rect x="1052" y="330" width="88" height="${GROUND_Y - 330}" rx="8" fill="#2f3340"/>
-    <rect x="1064" y="348" width="64" height="${GROUND_Y - 358}" fill="#565c6e"/>
-    <rect x="1094" y="348" width="4" height="${GROUND_Y - 358}" fill="#2f3340"/>
-  `)
-  // 群れ（切り抜きを数体クラスタで。足元を地面に合わせる）
-  const crowd = [
-    { key: PICKS[4], h: 150, cx: 96, rot: 8 },
-    { key: PICKS[1], h: 172, cx: 162, rot: 5 },
-    { key: PICKS[0], h: 202, cx: 236, rot: -4 },
-    { key: PICKS[2], h: 186, cx: 322, rot: 3 },
-    { key: PICKS[3], h: 158, cx: 402, rot: -6 },
-  ]
-  const layers = [{ input: scene, left: 0, top: 0 }]
-  // 小さい（後方）から先に描いて重なりを自然に
-  for (const c of [...crowd].sort((a, b) => a.h - b.h)) {
-    const sp = await sprite(c.key, c.h, c.rot)
-    layers.push(at(sp, c.cx, GROUND_Y - sp.h / 2 + 6))
-  }
-  const title = svg(`
-    <text x="60" y="${H - 68}" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="600" fill="#f1eee3" letter-spacing="8">通勤ランナー</text>
-    <text x="62" y="${H - 26}" font-family="Menlo, monospace" font-size="23" fill="#f1eee3" opacity="0.8" letter-spacing="3">CROWD RUNNER · 出勤服アーカイブ GAME</text>
-  `)
-  await save('runner', '#f1eee3', layers, title)
 }
 
 await memory()
@@ -298,4 +257,3 @@ await platform()
 await tower()
 await quiz()
 await laundry()
-await runner()
