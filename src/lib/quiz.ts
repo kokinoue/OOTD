@@ -161,6 +161,7 @@ export function decodeAnswers(s: string): number[] | null {
 
 export type QuizType = {
   id: string
+  code: string
   name: string
   tagline: string
   description: string
@@ -168,7 +169,7 @@ export type QuizType = {
 
 // id は c/f/a/l の正負を並べた4文字（+ / -）で表す。
 // 例: '++++' = colorful+, formal+, adventurous+, layered+
-export const QUIZ_TYPES: Record<string, QuizType> = {
+const QUIZ_TYPE_CONTENT: Record<string, Omit<QuizType, 'code'>> = {
   '++++': {
     id: '++++',
     name: '重彩職人koki',
@@ -282,6 +283,24 @@ export const QUIZ_TYPES: Record<string, QuizType> = {
       'モノトーンでラフ、そして毎回似た組み合わせに落ち着く安定志向。派手さより快適さを選び、朝の意思決定コストを極限まで減らすことに長けている。何を着るか迷わないのが最大の強み。',
   },
 }
+
+// 4文字コードは各軸の正負を順番に表す。
+// C/M = Colorful/Monochrome, F/R = Formal/Relaxed,
+// A/S = Adventurous/Steady, L/N = Layered/Nimble.
+const TYPE_CODE_AXES = [
+  { pos: 'C', neg: 'M' },
+  { pos: 'F', neg: 'R' },
+  { pos: 'A', neg: 'S' },
+  { pos: 'L', neg: 'N' },
+] as const
+
+function typeCodeFor(id: string): string {
+  return TYPE_CODE_AXES.map((axis, index) => (id[index] === '+' ? axis.pos : axis.neg)).join('')
+}
+
+export const QUIZ_TYPES: Record<string, QuizType> = Object.fromEntries(
+  Object.entries(QUIZ_TYPE_CONTENT).map(([id, type]) => [id, { ...type, code: typeCodeFor(id) }]),
+)
 
 export function resolveType(scores: Scores): QuizType {
   const key =

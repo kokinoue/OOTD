@@ -10,6 +10,7 @@ import {
   matchOutfit,
   resolveType,
   tallyScores,
+  type QuizType,
   type Scores,
 } from '../lib/quiz'
 import { generateStoryImage } from '../lib/quizShareImage'
@@ -28,6 +29,8 @@ type Phase = 'intro' | 'asking' | 'result'
 
 // スコアをバー表示用に -1〜1 へクランプ正規化（質問側の想定レンジはおおよそ -6〜+6）
 const barRatio = (v: number) => Math.max(-1, Math.min(1, v / 6))
+
+const shareTextFor = (type: QuizType) => `私のkokiは『${type.name}（${type.code}）』でした！`
 
 function readAnswersFromLocationHash(): number[] | null {
   const hash = window.location.hash
@@ -117,7 +120,7 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
 
   const shareOnX = () => {
     if (!shareUrl || !type) return
-    const text = `私のkokiは『${type.name}』でした！ #出勤服アーカイブ`
+    const text = `${shareTextFor(type)} #出勤服アーカイブ`
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`
     window.open(intentUrl, '_blank', 'noopener,noreferrer')
   }
@@ -139,13 +142,13 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
     setImageStatus('generating')
     try {
       const blob = await generateStoryImage({ type, scores, outfitKey: resultOutfit.key })
-      const fileName = `koki-quiz-${type.id.replace(/[^a-zA-Z0-9-]/g, '') || 'result'}.png`
+      const fileName = `koki-quiz-${type.code.toLowerCase()}.png`
       const file = new File([blob], fileName, { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
           title: 'あなたのkokiはこれ！',
-          text: `私のkokiは『${type.name}』でした！`,
+          text: shareTextFor(type),
         })
       } else {
         const url = URL.createObjectURL(blob)
@@ -179,11 +182,12 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
           <h2 className="g-setup-title jp">性格診断 — あなたのkokiはこれ！</h2>
           <p className="g-setup-lead jp">
             服・朝の支度・休日の過ごし方など8つの質問に答えると、
-            <b>16通りのあなたの性格タイプ</b>と、660着以上の出勤服から選ばれた
+            <b>4文字コード付きの性格タイプ</b>と、660着以上の出勤服から選ばれた
             <b>ぴったりの一着</b>がわかります。
           </p>
           <ul className="g-rules jp">
             <li>質問は全部で {QUESTIONS.length} 問</li>
+            <li>4つの軸から16通りの4文字コードを判定</li>
             <li>選択肢をタップするとすぐ次の質問へ</li>
             <li>同じ回答なら、いつでも同じ結果になります</li>
           </ul>
@@ -238,6 +242,7 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
     <main className="g-finished">
       <div className="g-setup-card g-quiz-card">
         <span className="g-quiz-type-tag mono">RESULT</span>
+        <div className="g-quiz-type-code mono">{type.code}</div>
         <h2 className="g-quiz-type-name jp">{type.name}</h2>
         <p className="g-quiz-type-tagline jp">{type.tagline}</p>
         <p className="g-quiz-type-desc jp">{type.description}</p>

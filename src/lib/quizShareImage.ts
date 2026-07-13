@@ -108,10 +108,13 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   ctx.font = `400 24px 'JetBrains Mono', Menlo, monospace`
   ctx.fillText('PERSONALITY TEST — 出勤服アーカイブ', W / 2, 172)
 
-  // 中央: タイプ名 + タグライン
+  // 中央: 4文字コード + タイプ名 + タグライン
   ctx.fillStyle = INK
+  ctx.font = `700 44px 'JetBrains Mono', Menlo, monospace`
+  ctx.fillText(type.code, W / 2, 242)
+
   ctx.font = `700 84px ${FONT_SANS}`
-  let y = wrapText(ctx, type.name, W / 2, 300, W - 160, 96)
+  let y = wrapText(ctx, type.name, W / 2, 320, W - 160, 96)
 
   ctx.fillStyle = SUB
   ctx.font = `500 34px ${FONT_SANS}`
@@ -120,7 +123,7 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   // 切り抜きスプライト
   const sp = cutouts.sprites[outfitKey]
   const spriteTop = y + 60
-  const spriteMaxH = 760
+  const spriteMaxH = 720
   let spriteBottom = spriteTop
   if (sp) {
     const img = await loadImage(spriteUrl(outfitKey))

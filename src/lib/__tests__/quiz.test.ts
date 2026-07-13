@@ -62,13 +62,18 @@ describe('resolveType', () => {
     const entries = Object.entries(QUIZ_TYPES)
     expect(entries).toHaveLength(16)
     expect(new Set(entries.map(([, type]) => type.name)).size).toBe(16)
+    expect(new Set(entries.map(([, type]) => type.code)).size).toBe(16)
 
     for (const [id, type] of entries) {
       expect(type.id).toBe(id)
+      expect(type.code).toMatch(/^[CM][FR][AS][LN]$/)
       expect(type.name).toBeTruthy()
       expect(type.tagline).toBeTruthy()
       expect(type.description).toBeTruthy()
     }
+
+    expect(QUIZ_TYPES['++++'].code).toBe('CFAL')
+    expect(QUIZ_TYPES['----'].code).toBe('MRSN')
   })
 
   it('reaches all 16 types across the sign combinations of colorful/formal/adventurous/layered', () => {
