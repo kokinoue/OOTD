@@ -34,7 +34,7 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     view: 'quiz',
     title: '性格診断',
     tag: 'PERSONALITY TEST',
-    lead: '8つの質問に答えると、あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
+    lead: '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
   },
 ]
 
