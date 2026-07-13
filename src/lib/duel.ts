@@ -196,6 +196,8 @@ export type BattleFlash = {
   attackerImg?: string
   targetImg?: string
   abilityNotes?: string[]
+  attackerAbility?: RaceAbility
+  attackerSeason?: Season
 }
 
 export type GameState = {
@@ -897,6 +899,8 @@ export function applyAction(state: GameState, action: Action): GameState {
           attackerZone: action.attackerZone,
           targetZone: action.targetZone,
           attackerImg: aSlot.card.img,
+          attackerAbility: aSlot.card.ability,
+          attackerSeason: aSlot.season,
         }
         return s
       }
@@ -932,6 +936,8 @@ export function applyAction(state: GameState, action: Action): GameState {
           targetZone: null,
           attackerImg: aSlot.card.img,
           abilityNotes: notes,
+          attackerAbility: aSlot.card.ability,
+          attackerSeason: aSlot.season,
         }
         log(s, action.side, `ダイレクトアタック — ${dmg} ダメージ`)
         checkWin(s)
@@ -1032,6 +1038,8 @@ export function applyAction(state: GameState, action: Action): GameState {
         attackerImg: aSlot.card.img,
         targetImg: target.card.img,
         abilityNotes: notes,
+        attackerAbility: aSlot.card.ability,
+        attackerSeason: aSlot.season,
       }
       const matchTxt = m === 1 ? `（相性○ +${ATTR_BONUS}）` : m === -1 ? `（相性× -${ATTR_BONUS}）` : ''
       log(s, action.side, `「${aSlot.card.name}」が「${target.card.name}」へ攻撃 ${matchTxt}`)
