@@ -15,7 +15,7 @@ import {
 import { generateStoryImage } from '../lib/quizShareImage'
 
 // 性格診断「あなたのkokiはこれ！」
-// ・8問に答えると5軸スコアが集計され、8タイプのうち1つ + 実データの出勤服1着が決まる。
+// ・8問に答えると5軸スコアが集計され、16タイプのうち1つ + 実データの出勤服1着が決まる。
 // ・乱数は使わない（同じ回答なら常に同じ結果）。
 //
 // URL共有: 結果は #/quiz?a=XXXXXXXX（answers を8桁の数字にエンコード）に載せる。
@@ -179,7 +179,7 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
           <h2 className="g-setup-title jp">性格診断 — あなたのkokiはこれ！</h2>
           <p className="g-setup-lead jp">
             服・朝の支度・休日の過ごし方など8つの質問に答えると、
-            <b>あなたの性格タイプ</b>と、660着以上の出勤服から選ばれた
+            <b>16通りのあなたの性格タイプ</b>と、660着以上の出勤服から選ばれた
             <b>ぴったりの一着</b>がわかります。
           </p>
           <ul className="g-rules jp">

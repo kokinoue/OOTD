@@ -58,18 +58,52 @@ describe('determinism', () => {
 })
 
 describe('resolveType', () => {
-  it('reaches all 8 types across the sign combinations of colorful/formal/adventurous', () => {
+  it('defines 16 uniquely named, complete result types', () => {
+    const entries = Object.entries(QUIZ_TYPES)
+    expect(entries).toHaveLength(16)
+    expect(new Set(entries.map(([, type]) => type.name)).size).toBe(16)
+
+    for (const [id, type] of entries) {
+      expect(type.id).toBe(id)
+      expect(type.name).toBeTruthy()
+      expect(type.tagline).toBeTruthy()
+      expect(type.description).toBeTruthy()
+    }
+  })
+
+  it('reaches all 16 types across the sign combinations of colorful/formal/adventurous/layered', () => {
     const seen = new Set<string>()
     for (const c of [-1, 1]) {
       for (const f of [-1, 1]) {
         for (const a of [-1, 1]) {
-          const type = resolveType({ colorful: c, formal: f, adventurous: a, layered: 0, warm: 0 })
-          seen.add(type.id)
+          for (const l of [-1, 1]) {
+            const type = resolveType({ colorful: c, formal: f, adventurous: a, layered: l, warm: 0 })
+            seen.add(type.id)
+          }
         }
       }
     }
-    expect(seen.size).toBe(8)
+    expect(seen.size).toBe(16)
     expect(seen).toEqual(new Set(Object.keys(QUIZ_TYPES)))
+  })
+
+  it('can produce all 16 types from actual answer combinations', () => {
+    const seen = new Set<string>()
+
+    const visit = (answers: number[]) => {
+      if (answers.length === QUESTIONS.length) {
+        seen.add(resolveType(tallyScores(answers)).id)
+        return
+      }
+
+      for (let choice = 0; choice < QUESTIONS[answers.length].choices.length; choice++) {
+        visit([...answers, choice])
+      }
+    }
+
+    visit([])
+    expect(seen).toEqual(new Set(Object.keys(QUIZ_TYPES)))
+    expect(seen.size).toBe(16)
   })
 })
 
