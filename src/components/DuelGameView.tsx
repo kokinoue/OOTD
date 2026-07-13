@@ -44,6 +44,142 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const prefersReduced = () =>
   typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
+const DUEL_SOUND_KEY = 'duel.sound'
+
+// 外部音源に依存せず、カードゲームの短いSEと低音量のBGMをブラウザ内で合成する。
+function createDuelAudio() {
+  let audio: AudioContext | null = null
+  let muted = localStorage.getItem(DUEL_SOUND_KEY) === 'off'
+  let musicTimer: number | null = null
+  let beat = 0
+
+  const context = () => {
+    if (!audio) audio = new AudioContext()
+    if (audio.state === 'suspended') void audio.resume()
+    return audio
+  }
+  const tone = (
+    frequency: number,
+    duration: number,
+    type: OscillatorType,
+    volume: number,
+    slide = 1,
+    delay = 0,
+  ) => {
+    if (muted) return
+    const ac = context()
+    const at = ac.currentTime + delay
+    const osc = ac.createOscillator()
+    const gain = ac.createGain()
+    osc.type = type
+    osc.frequency.setValueAtTime(frequency, at)
+    osc.frequency.exponentialRampToValueAtTime(Math.max(28, frequency * slide), at + duration)
+    gain.gain.setValueAtTime(0.0001, at)
+    gain.gain.exponentialRampToValueAtTime(volume, at + Math.min(0.015, duration / 3))
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + duration)
+    osc.connect(gain).connect(ac.destination)
+    osc.start(at)
+    osc.stop(at + duration + 0.03)
+  }
+  const noise = (duration: number, volume: number, highpass = 300) => {
+    if (muted) return
+    const ac = context()
+    const frames = Math.max(1, Math.floor(ac.sampleRate * duration))
+    const buffer = ac.createBuffer(1, frames, ac.sampleRate)
+    const values = buffer.getChannelData(0)
+    for (let i = 0; i < frames; i++) values[i] = (Math.random() * 2 - 1) * (1 - i / frames)
+    const source = ac.createBufferSource()
+    const filter = ac.createBiquadFilter()
+    const gain = ac.createGain()
+    source.buffer = buffer
+    filter.type = 'highpass'
+    filter.frequency.value = highpass
+    gain.gain.value = volume
+    source.connect(filter).connect(gain).connect(ac.destination)
+    source.start()
+  }
+  const stopMusic = () => {
+    if (musicTimer != null) window.clearInterval(musicTimer)
+    musicTimer = null
+  }
+  const startMusic = () => {
+    stopMusic()
+    if (muted || !audio) return
+    const notes = [110, 131, 147, 165, 147, 131, 123, 98]
+    const tick = () => {
+      const note = notes[beat % notes.length]
+      tone(note, 0.55, 'sine', 0.007, 0.96)
+      if (beat % 4 === 0) tone(note / 2, 0.7, 'triangle', 0.005, 0.9)
+      beat += 1
+    }
+    tick()
+    musicTimer = window.setInterval(tick, 640)
+  }
+  return {
+    unlock: () => {
+      if (muted) return
+      context()
+      if (musicTimer == null) startMusic()
+    },
+    isMuted: () => muted,
+    toggle: () => {
+      muted = !muted
+      localStorage.setItem(DUEL_SOUND_KEY, muted ? 'off' : 'on')
+      if (muted) stopMusic()
+      else {
+        context()
+        tone(523, 0.08, 'sine', 0.04, 1.35)
+        startMusic()
+      }
+      return muted
+    },
+    setPlaying: (playing: boolean) => {
+      if (!playing) stopMusic()
+      else if (!muted && audio && musicTimer == null) startMusic()
+    },
+    play: (type: 'start' | 'summon' | 'spell' | 'set' | 'phase' | 'turn' | 'win' | 'lose' | 'cutin') => {
+      if (type === 'start') [196, 262, 330].forEach((f, i) => tone(f, 0.24, 'triangle', 0.035, 1.08, i * 0.12))
+      else if (type === 'summon') {
+        tone(120, 0.22, 'sawtooth', 0.025, 2.8)
+        noise(0.12, 0.025, 600)
+      } else if (type === 'cutin') {
+        tone(92, 0.55, 'sawtooth', 0.035, 3.8)
+        tone(368, 0.38, 'triangle', 0.025, 1.6, 0.08)
+      } else if (type === 'spell') {
+        tone(330, 0.28, 'sine', 0.03, 2.3)
+        tone(660, 0.18, 'triangle', 0.018, 1.3, 0.06)
+      } else if (type === 'set') tone(180, 0.1, 'square', 0.018, 0.72)
+      else if (type === 'phase') {
+        tone(147, 0.3, 'sawtooth', 0.025, 1.8)
+        noise(0.11, 0.02, 800)
+      } else if (type === 'turn') tone(392, 0.14, 'sine', 0.025, 1.3)
+      else if (type === 'win') [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.34, 'triangle', 0.035, 1.06, i * 0.11))
+      else if (type === 'lose') tone(196, 0.7, 'sawtooth', 0.035, 0.3)
+    },
+    attack: (flash: BattleFlash) => {
+      const hard = flash.damage > 0 || flash.result === 'destroy-target' || flash.result === 'destroy-attacker' || flash.result === 'both'
+      if (flash.result === 'negate' || flash.result === 'bounce') {
+        tone(520, 0.18, 'square', 0.025, 0.45)
+        tone(260, 0.22, 'triangle', 0.02, 0.5, 0.06)
+        return
+      }
+      if (flash.attackerAbility === 'sprint') tone(150, 0.18, 'sawtooth', 0.035, 4.2)
+      else if (flash.attackerAbility === 'pierce') tone(95, 0.24, 'square', 0.04, 1.9)
+      else if (flash.attackerAbility === 'formation') {
+        tone(260, 0.16, 'triangle', 0.025, 1.8)
+        tone(390, 0.16, 'triangle', 0.02, 1.7, 0.05)
+      } else if (flash.attackerAbility === 'bulwark') tone(72, 0.28, 'square', 0.045, 0.72)
+      else tone(180, 0.2, 'sawtooth', 0.032, 1.5)
+      noise(hard ? 0.16 : 0.09, hard ? 0.05 : 0.025, hard ? 220 : 600)
+      if (hard) tone(68, 0.2, 'sine', 0.055, 0.5)
+    },
+    close: () => {
+      stopMusic()
+      void audio?.close()
+    },
+  }
+}
+
 // 攻撃モーション中の演出
 type Lunge = { side: Side; zone: number } | null
 type Fx = {
@@ -58,6 +194,8 @@ type Banner = { id: number; text: string; tone: 'you' | 'cpu' | 'battle' } | nul
 type Cutin = { id: number; card: MonsterCard; side: Side } | null
 type Clash = { id: number; flash: BattleFlash } | null
 type Inspect = { card: Card; side: Side; zone: number | null } | null
+
+const IMPACT_BITS = Array.from({ length: 18 }, (_, i) => i)
 
 type Phase = 'setup' | 'deck' | 'playing'
 
@@ -266,6 +404,11 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const [busy, setBusy] = useState(false)
   const [showLog, setShowLog] = useState(false)
   const [stats, setStats] = useState<DuelStats>(loadStats)
+  const audioRef = useRef<ReturnType<typeof createDuelAudio> | null>(null)
+  if (!audioRef.current) audioRef.current = createDuelAudio()
+  const [muted, setMuted] = useState(() => audioRef.current!.isMuted())
+  const [intro, setIntro] = useState(false)
+  const [showResult, setShowResult] = useState(false)
 
   // ---- 演出用の状態 ----
   const [lunge, setLunge] = useState<Lunge>(null) // 突進中のモンスター
@@ -284,7 +427,28 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const bannerSeq = useRef(0)
   const cutinSeq = useRef(0)
   const clashSeq = useRef(0)
+  const lastLogLenRef = useRef(0)
   const prevRef = useRef<{ turn: Side; phase: GameState['phase']; turnNo: number } | null>(null)
+
+  useEffect(() => () => audioRef.current?.close(), [])
+  useEffect(() => audioRef.current?.setPlaying(phase === 'playing'), [phase])
+  useEffect(() => {
+    if (!intro) return
+    const timer = window.setTimeout(() => setIntro(false), 1850)
+    return () => window.clearTimeout(timer)
+  }, [intro])
+
+  // ログの末尾だけを見て、召喚・魔法・罠・フェイズ移行へ音を付ける。
+  useEffect(() => {
+    if (!game || game.log.length <= lastLogLenRef.current) return
+    lastLogLenRef.current = game.log.length
+    const text = game.log[game.log.length - 1]?.text ?? ''
+    if (text.includes('召喚')) audioRef.current?.play('summon')
+    else if (text.includes('魔法')) audioRef.current?.play('spell')
+    else if (text.includes('伏せカード')) audioRef.current?.play('set')
+    else if (text.includes('バトルフェイズ')) audioRef.current?.play('phase')
+    else if (text.includes('のターン')) audioRef.current?.play('turn')
+  }, [game])
 
   const commit = useCallback((s: GameState) => {
     gameRef.current = s
@@ -303,6 +467,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   // ---- 大型召喚カットイン ----
   const showCutin = useCallback((card: MonsterCard, side: Side) => {
     if (prefersReduced()) return
+    audioRef.current?.play('cutin')
     const id = ++cutinSeq.current
     setCutin({ id, card, side })
     setTimeout(() => setCutin((c) => (c && c.id === id ? null : c)), 1250)
@@ -356,6 +521,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const flashFx = game?.flash
   useEffect(() => {
     if (!flashFx) return
+    audioRef.current?.attack(flashFx)
     const id = ++fxSeq.current
     const struckSide: Side | null = flashFx.targetZone != null ? (flashFx.attackerSide === 0 ? 1 : 0) : null
     setFx({
@@ -420,13 +586,29 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
     })
   }, [game])
 
+  // 決着直後は戦闘演出を見せ、少し余韻を置いてから結果モーダルを出す。
+  useEffect(() => {
+    if (!game || game.winner === null) {
+      setShowResult(false)
+      return
+    }
+    audioRef.current?.play(game.winner === 0 ? 'win' : 'lose')
+    const timer = window.setTimeout(() => setShowResult(true), prefersReduced() ? 0 : 1350)
+    return () => window.clearTimeout(timer)
+  }, [game?.winner])
+
   // ---- ゲーム開始（連勝数に応じてCPUデッキが強くなる） ----
   const startDuel = useCallback(() => {
+    audioRef.current?.unlock()
+    audioRef.current?.play('start')
     const monsters = deckMonsters.length >= MONSTER_COUNT ? deckMonsters.slice(0, MONSTER_COUNT) : buildAutoDeck(pool)
     const playerDeck = materializeDeck(monsters, 0)
     const cpuDeck = materializeDeck(buildAutoDeck(pool, loadStats().streak), 1)
     const g = createGame(playerDeck, cpuDeck)
     recordedRef.current = false
+    lastLogLenRef.current = 0
+    setShowResult(false)
+    setIntro(true)
     commit(g)
     setUi({ kind: 'idle' })
     setInspect(null)
@@ -468,6 +650,14 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
               ← ゲームを選ぶ
             </button>
             <GameShareButton game="duel" title="デュエル" />
+            <button
+              className="d-sound mono"
+              onClick={() => setMuted(audioRef.current!.toggle())}
+              aria-label={muted ? 'サウンドをオン' : 'サウンドをオフ'}
+              aria-pressed={!muted}
+            >
+              {muted ? '音 OFF' : '音 ON'}
+            </button>
           </div>
           <h2 className="d-setup-title jp">出勤服デュエル</h2>
           <p className="d-setup-lead jp">
@@ -716,7 +906,25 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
   const lowCpu = cpu.lp <= 2000
 
   return (
-    <main className={'d-play' + (fx?.shake ? ' shaking' : '')}>
+    <main
+      className={'d-play' + (fx?.shake ? ' shaking' : '')}
+      onPointerDownCapture={() => audioRef.current?.unlock()}
+    >
+      <button
+        className="d-sound d-sound-float mono"
+        onClick={() => setMuted(audioRef.current!.toggle())}
+        aria-label={muted ? 'サウンドをオン' : 'サウンドをオフ'}
+        aria-pressed={!muted}
+      >
+        {muted ? '音 OFF' : '音 ON'}
+      </button>
+      {intro && (
+        <div className="d-duel-intro" aria-hidden>
+          <span className="d-duel-intro-kicker mono">DAILY FITS CARD BATTLE</span>
+          <strong className="mono">DUEL</strong>
+          <span className="d-duel-intro-lp mono">8000 LP</span>
+        </div>
+      )}
       {/* ターン/フェイズの大バナー */}
       {banner && (
         <div className={'d-banner ' + banner.tone} key={banner.id}>
@@ -741,6 +949,8 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       )}
       {/* 戦闘のVSカットイン */}
       {clash && <ClashOverlay key={'cl' + clash.id} flash={clash.flash} />}
+      {/* 種族ごとに形と色が変わる着弾レイヤー */}
+      {fx && flash && <DuelImpactOverlay key={'impact' + fx.id} flash={flash} />}
       {/* 被ダメージのフラッシュ（受けた側を赤く光らせる） */}
       {fx && fx.dmgTo != null && (
         <div className={'d-hit-overlay ' + (fx.dmgTo === 0 ? 'you' : 'cpu')} key={'ov' + fx.id} />
@@ -749,6 +959,13 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       {fx && fx.dmg > 0 && fx.dmgTo != null && (
         <div className={'d-dmg-float ' + (fx.dmgTo === 0 ? 'bottom' : 'top')} key={'dm' + fx.id}>
           −{fx.dmg}
+        </div>
+      )}
+      {game.winner !== null && !showResult && (
+        <div className={'d-finale ' + (game.winner === 0 ? 'win' : 'lose')} aria-hidden>
+          <span className="d-finale-line" />
+          <strong className="mono">{game.winner === 0 ? 'VICTORY' : 'DEFEAT'}</strong>
+          <small className="mono">DUEL COMPLETE</small>
         </div>
       )}
 
@@ -1143,7 +1360,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       )}
 
       {/* 勝敗 */}
-      {game.winner !== null && (
+      {game.winner !== null && showResult && (
         <div className="d-modal-back">
           <div className={'d-result ' + (game.winner === 0 ? 'win' : 'lose')}>
             {game.winner === 0 && (
@@ -1184,6 +1401,38 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
         </div>
       )}
     </main>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 種族別の着弾エフェクト
+// ---------------------------------------------------------------------------
+function DuelImpactOverlay({ flash }: { flash: BattleFlash }) {
+  const ability = flash.attackerAbility ?? 'revenge'
+  const destructive =
+    flash.result === 'destroy-target' ||
+    flash.result === 'destroy-attacker' ||
+    flash.result === 'both' ||
+    flash.result === 'direct'
+  const blocked = flash.result === 'negate' || flash.result === 'bounce'
+  return (
+    <div
+      className={`d-impact ${ability}${destructive ? ' destructive' : ''}${blocked ? ' blocked' : ''}`}
+      style={{ '--impact': SEASON_COLOR[flash.attackerSeason ?? 'summer'] } as CSSProperties}
+      aria-hidden
+    >
+      <span className="d-impact-vignette" />
+      <span className="d-impact-core" />
+      <span className="d-impact-wave" />
+      <span className="d-impact-lines">
+        {IMPACT_BITS.map((i) => (
+          <i key={i} style={{ '--i': i } as CSSProperties} />
+        ))}
+      </span>
+      <span className="d-impact-glyph jp">
+        {blocked ? 'BLOCK' : destructive ? ABILITY_INFO[ability].name.toUpperCase() : 'CLASH'}
+      </span>
+    </div>
   )
 }
 

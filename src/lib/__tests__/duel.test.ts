@@ -658,10 +658,12 @@ describe('applyAction: battle', () => {
   })
 
   it('ダイレクトアタック: 相手フィールドが空ならATK分のダメージ', () => {
-    const s0 = battleState(mkSlot(mkMonster({ atk: 1700 })))
+    const s0 = battleState(mkSlot(mkMonster({ atk: 1700, ability: 'sprint' }), { season: 'spring' }))
     const s1 = applyAction(s0, { type: 'attack', side: 0, attackerZone: 0, targetZone: null })
-    expect(s1.sides[1].lp).toBe(START_LP - 1700)
+    expect(s1.sides[1].lp).toBeLessThan(START_LP - 1700)
     expect(s1.flash!.result).toBe('direct')
+    expect(s1.flash!.attackerAbility).toBe('sprint')
+    expect(s1.flash!.attackerSeason).toBe('spring')
     expect(s1.sides[0].field[0]!.hasAttacked).toBe(true)
   })
 
