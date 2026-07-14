@@ -101,7 +101,10 @@
     "knit|mothershandmade": "16aw · mother's handmade",
     "shirt|30s": "30's · french · インディゴリネンスモック",
     "pants|unitedarrowssons#mint": "21ss · UNITED ARROWS & SONS · ミントグリーン",
-    "pants|80sbananarepublic": "80's · us · BANANA REPUBLIC"
+    "pants|80sbananarepublic": "80's · us · BANANA REPUBLIC",
+    "jacket|randy": "20ss · RANDY · Depth",
+    "pants|randy#track": "21aw · RANDY · チェック",
+    "jacket|randy#u-20ss-randy-jyu": "20ss · RANDY · Jyu"
   },
   "categories": {
     "shirt|gimcontext": "knit",
@@ -281,6 +284,8 @@
     "pants|80sbananarepublic": "beige",
     "suit|saintlaurent": "navy",
     "tanktop|uniqlo": "black",
-    "stole|uniqloandmarni": "yellow"
+    "stole|uniqloandmarni": "yellow",
+    "pants|suzukitakayuki": "beige",
+    "jacket|randy#u-20ss-randy-jyu": "black"
   }
 }

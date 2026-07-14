@@ -1554,7 +1554,10 @@
           "key": "track",
           "label": "黒トラックパンツ",
           "outfits": [
-            "n39afa5c75cca"
+            "n39afa5c75cca",
+            "n757c9e9e465d",
+            "nde78811afb39",
+            "nb6e3a0d96dbc"
           ]
         },
         {
@@ -1567,11 +1570,7 @@
         {
           "key": "dark",
           "label": "ダーク系",
-          "outfits": [
-            "n757c9e9e465d",
-            "nb6e3a0d96dbc",
-            "nde78811afb39"
-          ]
+          "outfits": []
         }
       ]
     },
@@ -2117,6 +2116,18 @@
           "label": "italy · サッカー",
           "outfits": [
             "n5d2fbe35f01c"
+          ]
+        }
+      ]
+    },
+    "jacket|randy": {
+      "subs": [
+        {
+          "key": "u-20ss-randy-jyu",
+          "label": "20ss · RANDY · Jyu",
+          "outfits": [
+            "n7eb14437f30d",
+            "n4cad6a110bc1"
           ]
         }
       ]
