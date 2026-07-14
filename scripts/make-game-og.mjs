@@ -210,39 +210,8 @@ async function quiz() {
   await save('quiz', '#f1eee3', layers, title)
 }
 
-// ---- クローゼット・マージ: だんだん大きくなる玉の進化チェーン + くり抜き1体 ----------
-async function merge() {
-  const RING = ['#c3bdae', '#a8b0be', '#94b8a2', '#c9b06a', '#c98a6a', '#8a7ec2', '#5f8fc9', '#4db3a0', '#c95f8a', '#e0a52e', '#d64545']
-  const radii = [16, 21, 27, 34, 43, 54, 68, 85, 106, 132, 164]
-  const scale = 0.55
-  let circles = ''
-  let x = 70
-  let lastCx = 0
-  for (let i = 0; i < radii.length; i++) {
-    const r = Math.round(radii[i] * scale)
-    x += r
-    const cy = 380 - r // 地面に置いたように下端を揃える
-    circles += `<circle cx="${x}" cy="${cy}" r="${r}" fill="${RING[i]}" opacity="0.55"/>`
-    circles += `<circle cx="${x}" cy="${cy}" r="${r}" fill="none" stroke="${RING[i]}" stroke-width="${Math.max(2, r * 0.1)}"/>`
-    lastCx = x
-    x += r + 16
-  }
-  const deco = svg(circles)
-  const sp = await sprite(PICKS[6], 280, -4)
-  const layers = [
-    { input: deco, left: 0, top: 0 },
-    at(sp, lastCx, 380 - Math.round(radii[10] * scale) * 2 - 110), // 最大の玉の上に立たせる
-  ]
-  const title = svg(`
-    <text x="60" y="${H - 78}" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="600" fill="#161616" letter-spacing="6">クローゼット・マージ</text>
-    <text x="62" y="${H - 36}" font-family="Menlo, monospace" font-size="23" fill="#161616" opacity="0.7" letter-spacing="3">MERGE PUZZLE · 出勤服アーカイブ GAME</text>
-  `)
-  await save('merge', '#f1eee3', layers, title)
-}
-
 await memory()
 await duel()
 await platform()
 await tower()
 await quiz()
-await merge()
