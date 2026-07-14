@@ -14,10 +14,37 @@ const BG = '#f1eee3'
 const INK = '#161616'
 const SUB = 'rgba(22,22,22,0.55)'
 
+const SPRITE_TOP_GAP = 60
+const SPRITE_MAX_H = 720
+const SPRITE_BARS_GAP = 70
+const BARS_PAD = 100
+const BARS_ROW_H = 84
+const BARS_CARD_TOP_INSET = 24
+const BARS_H = TRAITS.length * BARS_ROW_H + 48
+const FOOTER_HEADING_Y = H - 130
+const FOOTER_HEADING_SIZE = 32
+const FOOTER_GAP = 40
+
 const FONT_SANS =
   "'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', 'Helvetica Neue', Arial, sans-serif"
 
 const barRatio = (v: number) => Math.max(-1, Math.min(1, v / 6))
+
+export function getStoryVerticalLayout(contentBottom: number) {
+  const footerTop = FOOTER_HEADING_Y - FOOTER_HEADING_SIZE
+  const barsCardBottom = footerTop - FOOTER_GAP
+  const barsTop = barsCardBottom - BARS_H + BARS_CARD_TOP_INSET
+  const spriteTop = contentBottom + SPRITE_TOP_GAP
+  const spriteHeight = Math.max(0, Math.min(SPRITE_MAX_H, barsTop - SPRITE_BARS_GAP - spriteTop))
+
+  return {
+    spriteTop,
+    spriteHeight,
+    barsTop,
+    barsCardBottom,
+    footerTop,
+  }
+}
 
 export type StoryImageParams = {
   type: QuizType
@@ -120,52 +147,44 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   ctx.font = `500 34px ${FONT_SANS}`
   y = wrapText(ctx, type.tagline, W / 2, y + 24, W - 220, 48)
 
+  const layout = getStoryVerticalLayout(y)
+
   // 切り抜きスプライト
   const sp = cutouts.sprites[outfitKey]
-  const spriteTop = y + 60
-  const spriteMaxH = 720
-  let spriteBottom = spriteTop
   if (sp) {
     const img = await loadImage(spriteUrl(outfitKey))
     if (img) {
-      const dispH = spriteMaxH
+      const dispH = layout.spriteHeight
       const dispW = (sp.w / sp.h) * dispH
       const dx = (W - dispW) / 2
-      ctx.drawImage(img, dx, spriteTop, dispW, dispH)
-      spriteBottom = spriteTop + dispH
-    } else {
-      spriteBottom = spriteTop + 40
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, dx, layout.spriteTop, dispW, dispH)
     }
-  } else {
-    spriteBottom = spriteTop + 40
   }
 
   // 5軸スコアバー
-  const barsTop = spriteBottom + 70
-  const barsPad = 100
-  const barsW = W - barsPad * 2
-  const rowH = 84
-  const barsH = TRAITS.length * rowH + 48
+  const barsW = W - BARS_PAD * 2
 
   ctx.fillStyle = 'rgba(255,255,255,0.55)'
-  roundRect(ctx, barsPad - 40, barsTop - 24, barsW + 80, barsH, 28)
+  roundRect(ctx, BARS_PAD - 40, layout.barsTop - BARS_CARD_TOP_INSET, barsW + 80, BARS_H, 28)
   ctx.fill()
 
   TRAITS.forEach((t, i) => {
-    const rowY = barsTop + i * rowH + 24
+    const rowY = layout.barsTop + i * BARS_ROW_H + 24
     const label = TRAIT_LABEL[t]
     const ratio = barRatio(scores[t])
 
     ctx.font = `500 26px ${FONT_SANS}`
     ctx.fillStyle = SUB
     ctx.textAlign = 'left'
-    ctx.fillText(label.neg, barsPad, rowY)
+    ctx.fillText(label.neg, BARS_PAD, rowY)
     ctx.textAlign = 'right'
-    ctx.fillText(label.pos, barsPad + barsW, rowY)
+    ctx.fillText(label.pos, BARS_PAD + barsW, rowY)
 
     const barY = rowY + 16
     const barH = 10
-    const barX = barsPad
+    const barX = BARS_PAD
     ctx.fillStyle = 'rgba(22,22,22,0.12)'
     roundRect(ctx, barX, barY, barsW, barH, barH / 2)
     ctx.fill()
@@ -181,8 +200,8 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   // 下部: サイトURL
   ctx.textAlign = 'center'
   ctx.fillStyle = INK
-  ctx.font = `700 32px ${FONT_SANS}`
-  ctx.fillText('あなたのkokiはこれ！', W / 2, H - 130)
+  ctx.font = `700 ${FOOTER_HEADING_SIZE}px ${FONT_SANS}`
+  ctx.fillText('あなたのkokiはこれ！', W / 2, FOOTER_HEADING_Y)
   ctx.fillStyle = SUB
   ctx.font = `400 26px 'JetBrains Mono', Menlo, monospace`
   ctx.fillText('kokinoue.github.io/OOTD', W / 2, H - 88)
