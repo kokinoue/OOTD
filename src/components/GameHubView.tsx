@@ -36,6 +36,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'PERSONALITY TEST',
     lead: '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
   },
+  {
+    view: 'merge',
+    title: 'クローゼット・マージ',
+    tag: 'MERGE PUZZLE',
+    lead: '同じ出勤服をぶつけると、より人気の一着に進化。箱があふれる前にいいね数1位を目指す、スイカゲーム風パズル。',
+  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {
