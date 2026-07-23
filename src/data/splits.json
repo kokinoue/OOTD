@@ -2131,6 +2131,19 @@
           ]
         }
       ]
+    },
+    "shirt|80s": {
+      "subs": [
+        {
+          "key": "u-80-s-japan-キモ",
+          "label": "80's · japan · キモ",
+          "outfits": [
+            "n8f766289e6fb",
+            "n8109bf6427d9",
+            "naedf7ce09aa1"
+          ]
+        }
+      ]
     }
   },
   "noSplit": [

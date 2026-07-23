@@ -58,7 +58,7 @@
     "pants|isseymiyake#black": "ISSEY MIYAKE · プリーツ",
     "pants|used#black-dark": "used · スラックス",
     "pants|60s": "60's · us · ウール",
-    "pants|80s#olive-grey": "80's · us・グレースラックス",
+    "pants|80s#olive-grey": "80's · us · グレースラックス",
     "pants|agnesb": "90's · agnès b · ウール",
     "pants|50s": "50's · us · 玉蟲",
     "pants|morganekrischer": "22ss · Morgane Krischer · curve pants",
@@ -104,7 +104,9 @@
     "pants|80sbananarepublic": "80's · us · BANANA REPUBLIC",
     "jacket|randy": "20ss · RANDY · Depth",
     "pants|randy#track": "21aw · RANDY · チェック",
-    "jacket|randy#u-20ss-randy-jyu": "20ss · RANDY · Jyu"
+    "jacket|randy#u-20ss-randy-jyu": "20ss · RANDY · Jyu",
+    "shirt|80s#u-80-s-japan-キモ": "80's · japan · キモ柄",
+    "shirt|80s": "80's · us · チェック"
   },
   "categories": {
     "shirt|gimcontext": "knit",
@@ -286,6 +288,8 @@
     "tanktop|uniqlo": "black",
     "stole|uniqloandmarni": "yellow",
     "pants|suzukitakayuki": "beige",
-    "jacket|randy#u-20ss-randy-jyu": "black"
+    "jacket|randy#u-20ss-randy-jyu": "black",
+    "shirt|80s#u-80-s-japan-キモ": "green",
+    "shirt|80s": "green"
   }
 }
