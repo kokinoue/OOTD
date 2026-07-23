@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
+import GameShareButton from './GameShareButton'
 import {
   QUESTIONS,
   TRAITS,
@@ -176,9 +177,12 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
     return (
       <main className="g-setup">
         <div className="g-setup-card">
-          <button className="game-back jp" onClick={onBack}>
-            ← ゲームを選ぶ
-          </button>
+          <div className="game-nav">
+            <button className="game-back jp" onClick={onBack}>
+              ← ゲームを選ぶ
+            </button>
+            <GameShareButton game="quiz" title="性格診断" />
+          </div>
           <h2 className="g-setup-title jp">性格診断 — あなたのkokiはこれ！</h2>
           <p className="g-setup-lead jp">
             服・朝の支度・休日の過ごし方など8つの質問に答えると、
