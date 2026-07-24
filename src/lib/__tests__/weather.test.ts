@@ -61,6 +61,7 @@ import {
   latestWeatherDate,
   seasonForecast,
   skyOf,
+  skyOfDay,
   todayDoy,
   type SeasonalAnalysis,
 } from '../weather'
@@ -98,6 +99,18 @@ describe('skyOf: WMO weather_code → 天気カテゴリ', () => {
 
   it('SKY_ORDER は4カテゴリすべてを含む', () => {
     expect([...SKY_ORDER].sort()).toEqual(['cloudy', 'rain', 'snow', 'sunny'])
+  })
+})
+
+describe('skyOfDay: 観測済みの昼天気を優先', () => {
+  it('気象庁の sky があれば Open-Meteo の code より優先する', () => {
+    expect(skyOfDay({ max: 36.1, min: 27.6, mean: 31.9, code: 53, sky: 'sunny' })).toBe(
+      'sunny',
+    )
+  })
+
+  it('sky がなければ従来の WMO code にフォールバックする', () => {
+    expect(skyOfDay({ max: 20, min: 10, mean: 15, code: 61 })).toBe('rain')
   })
 })
 

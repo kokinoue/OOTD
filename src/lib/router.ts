@@ -4,7 +4,7 @@ import { defaultFilters, defaultItemsFilters, type Filters, type ItemsFilters, t
 // 画面状態を URL hash に載せる軽量ルーティング（A案: タブ＋主要フィルタ）。
 // 例: #/fits?item=shoes%7Cjmweston%23black-loafer&year=2024&month=3&q=...&order=asc
 //     #/items?q=loafer&cat=shoes&color=black&sort=recent
-//     #/closet  #/palette  #/weather
+//     #/closet  #/palette  #/weather  #/orbit
 // FITS は Filters、ITEMS は ItemsFilters をそれぞれのパス配下に載せる。衣替え等の内部状態は対象外。
 
 export type Route = { view: View; filters: Filters; itemsFilters: ItemsFilters }
@@ -51,6 +51,8 @@ export function decodeHash(hash: string): Route {
             ? 'weather'
             : path === 'today'
               ? 'today'
+              : path === 'orbit'
+                ? 'orbit'
               : path === 'game'
                 ? 'game'
                 : path === 'memory'

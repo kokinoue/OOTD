@@ -23,12 +23,14 @@
   "dependencies": {
     "planck": "^1.5.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@imgly/background-removal-node": "^1.4.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.185.1",
     "@vitejs/plugin-react": "^4.3.4",
     "sharp": "^0.35.1",
     "typescript": "~5.6.2",
