@@ -6057,6 +6057,29 @@ a {
     linear-gradient(0deg, rgba(5, 7, 11, 0.9), transparent 38%, rgba(5, 7, 11, 0.3));
 }
 
+/* SP全画面時の脱出口。デスクトップはタブで戻れるため非表示 */
+.orbit-close {
+  position: absolute;
+  z-index: 6;
+  top: 14px;
+  right: 14px;
+  display: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(226, 229, 239, 0.2);
+  border-radius: 50%;
+  color: rgba(245, 246, 251, 0.85);
+  background: rgba(13, 16, 25, 0.64);
+  font-size: 18px;
+  line-height: 1;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.orbit-close:active {
+  background: rgba(147, 124, 224, 0.3);
+}
+
 .orbit-intro {
   position: absolute;
   z-index: 2;
@@ -6448,19 +6471,38 @@ a {
     margin-right: auto;
   }
 
+  /* SPでは擬似全画面（.plat-fs-mode と同じパターン）。
+     ヘッダーごと覆うため、戻る動線は .orbit-close が担う */
   .orbit-view {
-    min-height: max(660px, calc(100svh - 156px));
-    border-radius: 18px;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    height: 100dvh;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* 全画面表示中は背後のページをスクロールさせない */
+  body:has(.orbit-view) {
+    overflow: hidden;
+  }
+
+  .orbit-close {
+    display: grid;
+    place-items: center;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
   }
 
   .orbit-intro {
-    top: 24px;
+    top: calc(20px + env(safe-area-inset-top, 0px));
     left: 20px;
-    right: 20px;
+    right: 64px;
   }
 
   .orbit-view-tools {
-    top: 186px;
+    top: calc(196px + env(safe-area-inset-top, 0px));
     right: 14px;
   }
 
@@ -6498,7 +6540,7 @@ a {
   }
 
   .orbit-years {
-    top: 145px;
+    top: calc(152px + env(safe-area-inset-top, 0px));
     right: auto;
     left: 16px;
     flex-direction: row;
@@ -6522,7 +6564,7 @@ a {
 
   .orbit-detail {
     right: 14px;
-    bottom: 64px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     left: 14px;
     width: auto;
     padding: 14px;
@@ -6557,9 +6599,14 @@ a {
 
   .orbit-scrubber {
     right: 18px;
-    bottom: 25px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     left: 18px;
     grid-template-columns: auto 1fr auto;
+  }
+
+  .orbit-fallback {
+    inset: calc(216px + env(safe-area-inset-top, 0px)) 24px
+      calc(230px + env(safe-area-inset-bottom, 0px));
   }
 }
 

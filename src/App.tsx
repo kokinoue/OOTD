@@ -239,6 +239,7 @@ export default function App() {
             onMoveOutfit={moveOutfit}
             onSetHair={setHair}
             onShowItem={showFitsForItem}
+            onClose={() => setView('fits')}
           />
         )}
         {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
