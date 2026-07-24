@@ -71,6 +71,9 @@ export default defineConfig(({ command, isPreview }) => ({
           // 物理エンジンはタワーでしか使わないので vendor から分離
           // （TowerGameView と一緒に遅延ロードされ、初期バンドルに乗らない）
           if (id.includes('node_modules/planck/')) return 'planck'
+          // Three.js は3Dタイムラインを開いたときだけ読み込む。
+          // React本体と同じvendorチャンクへ混ぜると初期表示で取得されるため独立させる。
+          if (id.includes('node_modules/three/')) return 'three'
           if (id.includes('node_modules')) return 'vendor'
         },
       },
