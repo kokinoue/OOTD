@@ -32,6 +32,7 @@ type Props = {
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
   onSetHair: (outfitKey: string, tag: HairTag) => void
   onShowItem: (itemId: string) => void
+  onClose: () => void
 }
 
 const cutouts = cutoutsJson as CutoutsFile
@@ -71,6 +72,7 @@ export default function OrbitView({
   onMoveOutfit,
   onSetHair,
   onShowItem,
+  onClose,
 }: Props) {
   const canvasHostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<OrbitSceneController | null>(null)
@@ -176,8 +178,11 @@ export default function OrbitView({
       <div ref={canvasHostRef} className="orbit-canvas" aria-hidden={sceneState === 'fallback'} />
 
       <div className="orbit-vignette" aria-hidden="true" />
+      <button className="orbit-close" onClick={onClose} aria-label="3Dタイムラインを閉じる">
+        ×
+      </button>
       <header className="orbit-intro">
-        <p className="orbit-kicker mono">667 DAYS IN ORBIT</p>
+        <p className="orbit-kicker mono">{orbitEntries.length} DAYS IN ORBIT</p>
         <h1 className="orbit-title jp">出勤服の軌道</h1>
         <p className="orbit-lead jp">
           スクロール、ドラッグ、上下キーで時間を移動。ひとつの定点から生まれた毎日の装いを、
