@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.5.3",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/make-tower-score-og.mjs && tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -15,6 +15,7 @@
     "weather": "node scripts/fetch-weather.mjs",
     "colors": "node scripts/extract-colors.mjs",
     "og:games": "node scripts/make-game-og.mjs",
+    "og:tower-scores": "node scripts/make-tower-score-og.mjs",
     "hair:sheets": "node scripts/hair-sheets.mjs",
     "hair:apply": "node scripts/apply-hair.mjs",
     "timelapse": "node scripts/timelapse.mjs"
