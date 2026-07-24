@@ -5986,3 +5986,273 @@ a {
   margin: 10px 0 0;
   letter-spacing: 0.04em;
 }
+/* ===================== 満員クローゼット(スライドパズル) ===================== */
+:root {
+  --jam-h2: #ded7c4;
+  --jam-h3: #cfc6ac;
+  --jam-v2: #cdd8c8;
+  --jam-v3: #b7c6b0;
+  --jam-accent: #3b5bdb;
+}
+
+.g-jam-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.g-jam-daily-info {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--text-sub);
+}
+
+/* ---------- playing ---------- */
+.g-jam-play {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.g-jam-play .game-nav {
+  width: 100%;
+}
+
+.g-jam-info-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: min(420px, 100%);
+  margin: 4px 0 14px;
+}
+
+.g-jam-mode-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-sub);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.g-jam-diff-tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.g-jam-moves {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--text-sub);
+}
+
+.g-jam-moves-sep {
+  margin: 0 6px;
+  opacity: 0.5;
+}
+
+.g-jam-star {
+  color: #c9a227;
+  font-size: 15px;
+}
+
+.g-jam-board-wrap {
+  position: relative;
+  width: min(420px, 100%);
+  display: flex;
+  justify-content: center;
+}
+
+.g-jam-generating {
+  padding: 60px 20px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-sub);
+}
+
+.g-jam-board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      transparent,
+      transparent calc(100% / 6 - 1px),
+      var(--border) calc(100% / 6 - 1px),
+      var(--border) calc(100% / 6)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(100% / 6 - 1px),
+      var(--border) calc(100% / 6 - 1px),
+      var(--border) calc(100% / 6)
+    );
+}
+
+/* ターゲットの行(上から3行目)の右端に、出口があることを示す矢印 */
+.g-jam-exit-slot {
+  position: absolute;
+  top: calc(2 * (100% / 6));
+  right: -2px;
+  width: 14px;
+  height: calc(100% / 6);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.g-jam-exit-slot::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+  border-left: 9px solid var(--jam-accent);
+  opacity: 0.75;
+}
+
+.g-jam-piece {
+  position: absolute;
+  top: calc(var(--r) * (100% / 6));
+  left: calc(var(--c) * (100% / 6));
+  width: calc(100% / 6);
+  height: calc(100% / 6);
+  border-radius: 8px;
+  border: none;
+  padding: 2px;
+  touch-action: none;
+  transition: top 0.16s ease, left 0.16s ease, transform 0.32s ease, opacity 0.32s ease;
+  will-change: transform;
+}
+
+.g-jam-piece-h.g-jam-piece-len2 {
+  width: calc(2 * (100% / 6));
+  background: var(--jam-h2);
+}
+.g-jam-piece-h.g-jam-piece-len3 {
+  width: calc(3 * (100% / 6));
+  background: var(--jam-h3);
+}
+.g-jam-piece-v.g-jam-piece-len2 {
+  height: calc(2 * (100% / 6));
+  background: var(--jam-v2);
+}
+.g-jam-piece-v.g-jam-piece-len3 {
+  height: calc(3 * (100% / 6));
+  background: var(--jam-v3);
+}
+
+.g-jam-piece:not(:disabled) {
+  cursor: grab;
+}
+
+.g-jam-piece.dragging {
+  transition: none;
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.g-jam-piece.target {
+  z-index: 2;
+  background: #f6f5f0;
+  box-shadow: inset 0 0 0 3px var(--jam-accent);
+  overflow: hidden;
+}
+
+.g-jam-piece.target.dragging {
+  z-index: 6;
+}
+
+.g-jam-piece.exit {
+  transform: translateX(220%) !important;
+  opacity: 0;
+  transition: transform 0.42s ease, opacity 0.42s ease 0.12s;
+}
+
+.g-jam-piece-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.g-jam-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: min(420px, 100%);
+  margin-top: 16px;
+}
+
+/* ---------- cleared ---------- */
+.g-jam-clear-summary {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.g-jam-clear-note {
+  margin: 0 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c9a227;
+}
+
+.g-jam-reveal-card {
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  margin-bottom: 22px;
+}
+
+.g-jam-reveal-img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+.g-jam-reveal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  justify-content: center;
+}
+
+.g-jam-reveal-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.g-jam-reveal-date {
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+
+/* ---------- ゲームオーバー ---------- */
+
+@media (max-width: 560px) {

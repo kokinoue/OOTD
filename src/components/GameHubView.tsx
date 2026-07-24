@@ -36,6 +36,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'PERSONALITY TEST',
     lead: '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
   },
+  {
+    view: 'jam',
+    title: '満員クローゼット',
+    tag: 'SLIDE PUZZLE',
+    lead: 'ぎゅうぎゅうのクローゼットから「今日の一着」をスライドさせて取り出す。デイリー1問と、腕試しのフリープレイ。',
+  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {
