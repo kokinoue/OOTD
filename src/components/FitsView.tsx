@@ -35,7 +35,10 @@ type Props = {
   onCreateSub: (baseId: string, label: string, outfitKey: string) => void
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
   onSetHair: (outfitKey: string, tag: HairTag) => void
+  onOpenOrbit: () => void
 }
+
+const preloadOrbitView = () => void import('./OrbitView')
 
 // 髪フィルタ各軸を Filters のキーへ対応づける
 const HAIR_FILTER_KEY = {
@@ -54,6 +57,7 @@ export default function FitsView({
   onCreateSub,
   onMoveOutfit,
   onSetHair,
+  onOpenOrbit,
 }: Props) {
   const years = useMemo(() => {
     const ys = new Set<number>()
@@ -417,6 +421,17 @@ export default function FitsView({
             title="絞り込んだコーデを時系列で連続再生"
           >
             ▶ <span className="jp">タイムラプス</span>
+          </button>
+          <button
+            className="chip orbit-entry"
+            onClick={onOpenOrbit}
+            onMouseEnter={preloadOrbitView}
+            onFocus={preloadOrbitView}
+            title="出勤服を3Dタイムラインで辿る"
+          >
+            <span className="orbit-entry-dot" aria-hidden="true" />
+            <span className="mono">OOTD ORBIT</span>
+            <span className="orbit-entry-mode mono">3D</span>
           </button>
         </div>
       </div>

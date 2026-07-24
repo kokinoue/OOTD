@@ -11,6 +11,7 @@ const ClosetDashboardView = lazy(() => import('./components/ClosetDashboardView'
 const ColorPaletteView = lazy(() => import('./components/ColorPaletteView'))
 const WeatherView = lazy(() => import('./components/WeatherView'))
 const TodayPickView = lazy(() => import('./components/TodayPickView'))
+const OrbitView = lazy(() => import('./components/OrbitView'))
 const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
 const DuelGameView = lazy(() => import('./components/DuelGameView'))
 const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
@@ -28,6 +29,7 @@ export type View =
   | 'palette'
   | 'weather'
   | 'today'
+  | 'orbit'
   | 'game'
   | 'memory'
   | 'duel'
@@ -134,7 +136,7 @@ export default function App() {
         </button>
         <nav className="tabs" aria-label="ビュー切り替え">
           <button
-            className={view === 'fits' ? 'tab active' : 'tab'}
+            className={view === 'fits' || view === 'orbit' ? 'tab active' : 'tab'}
             onClick={() => setView('fits')}
           >
             FITS <span className="tab-count mono">{outfits.length}</span>
@@ -198,6 +200,7 @@ export default function App() {
           onCreateSub={createSub}
           onMoveOutfit={moveOutfit}
           onSetHair={setHair}
+          onOpenOrbit={() => setView('orbit')}
         />
       )}
       {view === 'items' && (
@@ -224,6 +227,18 @@ export default function App() {
             data={data}
             onShowFits={showFitsForItem}
             onShowDate={showFitsForDate}
+          />
+        )}
+        {view === 'orbit' && (
+          <OrbitView
+            data={data}
+            splits={splits}
+            hair={hair}
+            onAssign={assign}
+            onCreateSub={createSub}
+            onMoveOutfit={moveOutfit}
+            onSetHair={setHair}
+            onShowItem={showFitsForItem}
           />
         )}
         {view === 'memory' && <MemoryGameView data={data} onBack={() => setView('game')} />}
