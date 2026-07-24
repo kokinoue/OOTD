@@ -6090,6 +6090,116 @@ a {
   line-height: 1.9;
 }
 
+.orbit-view-tools {
+  position: absolute;
+  z-index: 4;
+  top: 32px;
+  right: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.orbit-view-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid rgba(226, 229, 239, 0.14);
+  border-radius: 14px;
+  background: rgba(13, 16, 25, 0.64);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+}
+
+.orbit-view-toggle button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 86px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: rgba(235, 237, 246, 0.46);
+  font-size: 9px;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    transform 100ms ease;
+}
+
+.orbit-view-toggle button .jp {
+  font-size: 10px;
+}
+
+.orbit-view-toggle button:hover {
+  color: rgba(245, 246, 251, 0.82);
+}
+
+.orbit-view-toggle button:active {
+  transform: scale(0.97);
+}
+
+.orbit-view-toggle button.active {
+  color: #fff;
+  background: rgba(147, 124, 224, 0.25);
+}
+
+.orbit-color-spectrum {
+  display: flex;
+  gap: 3px;
+  padding: 6px 8px;
+  border: 1px solid rgba(226, 229, 239, 0.1);
+  border-radius: 999px;
+  background: rgba(13, 16, 25, 0.58);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.orbit-color-spectrum i {
+  width: 7px;
+  height: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  box-shadow: 0 0 5px color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.orbit-trace-status {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 7px;
+  align-items: center;
+  max-width: 260px;
+  padding: 7px 10px;
+  border: 1px solid rgba(226, 229, 239, 0.14);
+  border-radius: 999px;
+  color: rgba(245, 246, 251, 0.82);
+  background: rgba(13, 16, 25, 0.68);
+  font-size: 9px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.orbit-trace-status .jp {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orbit-trace-status .mono {
+  color: #b8acd9;
+  font-size: 8px;
+}
+
+.orbit-trace-swatch {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
 .orbit-loading {
   position: absolute;
   z-index: 3;
@@ -6198,6 +6308,22 @@ a {
   letter-spacing: 0.05em;
 }
 
+.orbit-weather.sunny {
+  color: #d8b77d;
+}
+
+.orbit-weather.rain {
+  color: #8eb8dd;
+}
+
+.orbit-weather.snow {
+  color: #dcecff;
+}
+
+.orbit-weather.cloudy {
+  color: #aeb4c4;
+}
+
 .orbit-item-list {
   display: flex;
   flex-wrap: wrap;
@@ -6217,6 +6343,17 @@ a {
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.orbit-item:hover,
+.orbit-item.active {
+  border-color: rgba(216, 205, 255, 0.42);
+  color: #f5f2ff;
+  background: rgba(147, 124, 224, 0.17);
 }
 
 .orbit-item i {
@@ -6322,6 +6459,29 @@ a {
     right: 20px;
   }
 
+  .orbit-view-tools {
+    top: 186px;
+    right: 14px;
+  }
+
+  .orbit-view-toggle button {
+    min-width: 72px;
+    padding: 7px 8px;
+  }
+
+  .orbit-color-spectrum {
+    max-width: 174px;
+  }
+
+  .orbit-color-spectrum i {
+    width: 6px;
+    height: 6px;
+  }
+
+  .orbit-trace-status {
+    max-width: min(260px, calc(100vw - 42px));
+  }
+
   .orbit-kicker {
     margin-bottom: 5px;
   }
@@ -6404,7 +6564,28 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .orbit-years button {
+  .orbit-years button,
+  .orbit-view-toggle button {
     transition: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .orbit-view-toggle,
+  .orbit-color-spectrum,
+  .orbit-trace-status,
+  .orbit-detail {
+    background: #11141f;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .orbit-view-toggle,
+  .orbit-color-spectrum,
+  .orbit-trace-status,
+  .orbit-detail {
+    border-color: rgba(255, 255, 255, 0.48);
   }
 }
