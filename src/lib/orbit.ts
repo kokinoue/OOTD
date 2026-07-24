@@ -16,6 +16,11 @@ export type OrbitEntry = {
   }
 }
 
+export type OrbitColorPoint = {
+  color: string | null
+  position: OrbitEntry['position']
+}
+
 export function buildOrbitLayout(source: Outfit[]): OrbitEntry[] {
   const chronological = [...source].sort(
     (a, b) => a.date.localeCompare(b.date) || a.publishAt.localeCompare(b.publishAt),
@@ -35,6 +40,78 @@ export function buildOrbitLayout(source: Outfit[]): OrbitEntry[] {
       },
     }
   })
+}
+
+export function dominantOrbitColor(
+  colors: Iterable<string | undefined>,
+  colorOrder: readonly string[],
+): string | null {
+  const counts = new Map<string, number>()
+  for (const color of colors) {
+    if (color && colorOrder.includes(color)) counts.set(color, (counts.get(color) ?? 0) + 1)
+  }
+
+  let dominant: string | null = null
+  let dominantCount = 0
+  for (const color of colorOrder) {
+    const count = counts.get(color) ?? 0
+    if (count > dominantCount) {
+      dominant = color
+      dominantCount = count
+    }
+  }
+  return dominant
+}
+
+/**
+ * 時間軸の高さを保ったまま、各コーデを代表色ごとの縦の軌道へ再配置する。
+ * 日付の現在地を失わず、色のまとまりだけを読み替えられるレイアウト。
+ */
+export function buildOrbitColorLayout(
+  entries: OrbitEntry[],
+  colorsByOutfit: ReadonlyMap<string, Iterable<string | undefined>>,
+  colorOrder: readonly string[],
+): OrbitColorPoint[] {
+  const colorCount = Math.max(1, colorOrder.length)
+  return entries.map((entry) => {
+    const dominant = dominantOrbitColor(colorsByOutfit.get(entry.outfit.key) ?? [], colorOrder)
+    if (dominant == null) {
+      return {
+        color: null,
+        position: {
+          x: entry.position.x * 0.5,
+          y: entry.position.y,
+          z: entry.position.z * 0.5,
+        },
+      }
+    }
+
+    const colorIndex = colorOrder.indexOf(dominant)
+    const strandAngle = (colorIndex / colorCount) * Math.PI * 2
+    const weave = ((entry.index % 7) - 3) * 0.012
+    const radius = ORBIT_RADIUS - 0.35 + ((entry.index % 5) - 2) * 0.07
+    const angle = strandAngle + weave
+    return {
+      color: dominant,
+      position: {
+        x: Math.sin(angle) * radius,
+        y: entry.position.y,
+        z: Math.cos(angle) * radius,
+      },
+    }
+  })
+}
+
+export function outfitIndicesForItem(
+  entries: OrbitEntry[],
+  outfitItemIds: ReadonlyMap<string, ReadonlySet<string>>,
+  itemId: string,
+): number[] {
+  const indices: number[] = []
+  for (const entry of entries) {
+    if (outfitItemIds.get(entry.outfit.key)?.has(itemId)) indices.push(entry.index)
+  }
+  return indices
 }
 
 export function clampOrbitIndex(index: number, total: number) {
