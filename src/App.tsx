@@ -136,7 +136,7 @@ export default function App() {
         </button>
         <nav className="tabs" aria-label="ビュー切り替え">
           <button
-            className={view === 'fits' ? 'tab active' : 'tab'}
+            className={view === 'fits' || view === 'orbit' ? 'tab active' : 'tab'}
             onClick={() => setView('fits')}
           >
             FITS <span className="tab-count mono">{outfits.length}</span>
@@ -172,14 +172,6 @@ export default function App() {
             今日の服
           </button>
           <button
-            className={view === 'orbit' ? 'tab active orbit-tab' : 'tab orbit-tab'}
-            onClick={() => setView('orbit')}
-            onMouseEnter={() => void import('./components/OrbitView')}
-            onFocus={() => void import('./components/OrbitView')}
-          >
-            3D <span className="orbit-tab-dot" aria-hidden="true" />
-          </button>
-          <button
             className={
               view === 'game' ||
               view === 'memory' ||
@@ -208,6 +200,7 @@ export default function App() {
           onCreateSub={createSub}
           onMoveOutfit={moveOutfit}
           onSetHair={setHair}
+          onOpenOrbit={() => setView('orbit')}
         />
       )}
       {view === 'items' && (

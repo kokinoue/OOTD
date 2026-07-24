@@ -5988,21 +5988,33 @@ a {
 }
 
 /* ---------- OOTD ORBIT / 3D timeline ---------- */
-.orbit-tab {
-  position: relative;
+.orbit-entry {
+  margin-left: auto;
+  border-color: #332d48;
+  color: #eeeaff;
+  background: linear-gradient(135deg, #171522, #241d35);
 }
 
-.orbit-tab-dot {
-  width: 5px;
-  height: 5px;
+.orbit-entry:hover:not(:disabled) {
+  border-color: #7665ad;
+  box-shadow: 0 5px 18px rgba(58, 43, 102, 0.2);
+}
+
+.orbit-entry-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #8d6bff;
+  background: #a38aff;
   box-shadow: 0 0 8px #8d6bff;
 }
 
-.tab.active .orbit-tab-dot {
-  background: #d8cdff;
-  box-shadow: 0 0 10px #b6a1ff;
+.orbit-entry-mode {
+  padding: 1px 5px;
+  border: 1px solid rgba(216, 205, 255, 0.24);
+  border-radius: 999px;
+  color: #cfc4f6;
+  font-size: 8px;
+  letter-spacing: 0.08em;
 }
 
 .orbit-view {
@@ -6294,6 +6306,11 @@ a {
 }
 
 @media (max-width: 720px) {
+  .orbit-entry {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
   .orbit-view {
     min-height: max(660px, calc(100svh - 156px));
     border-radius: 18px;
