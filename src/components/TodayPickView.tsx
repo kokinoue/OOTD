@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
-import { SKY_LABELS, SKY_ORDER, type Sky, skyOf, weather } from '../lib/weather'
+import { SKY_LABELS, SKY_ORDER, type Sky, skyOfDay, weather } from '../lib/weather'
 
 type Props = {
   data: Data
@@ -70,7 +70,7 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
   const skyCounts = useMemo(() => {
     const c: Record<Sky, number> = { sunny: 0, cloudy: 0, rain: 0, snow: 0 }
     for (const { o } of tempMatches) {
-      const s = skyOf(weather[o.date]?.code)
+      const s = skyOfDay(weather[o.date])
       if (s) c[s]++
     }
     return c
@@ -78,7 +78,10 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
 
   // 選んだ天気で絞った最終結果
   const matches = useMemo(
-    () => (sky == null ? tempMatches : tempMatches.filter((m) => skyOf(weather[m.o.date]?.code) === sky)),
+    () =>
+      sky == null
+        ? tempMatches
+        : tempMatches.filter((m) => skyOfDay(weather[m.o.date]) === sky),
     [tempMatches, sky],
   )
 

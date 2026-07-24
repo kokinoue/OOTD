@@ -2,12 +2,18 @@ import weatherJson from '../data/weather.json'
 import { outfits } from './useData'
 import type { Data } from './useData'
 
+// 天気カテゴリ。WMO weather_code と気象庁の昼概況を共通の4分類で扱う
+export type Sky = 'sunny' | 'cloudy' | 'rain' | 'snow'
+
 export type DayTemp = {
   max: number | null
   min: number | null
   mean: number | null
   // WMO weather_code（晴/曇/雨/雪の判定に使う）。古いデータには無いので optional
   code?: number | null
+  // 気象庁・東京観測所の昼（06:00–18:00）概況。取得済みなら code より優先する
+  sky?: Sky | null
+  skySource?: 'jma-tokyo-daytime'
 }
 export const weather = weatherJson as Record<string, DayTemp>
 
@@ -17,9 +23,6 @@ export function latestWeatherDate(): string {
   for (const d of Object.keys(weather)) if (d > last) last = d
   return last
 }
-
-// 天気カテゴリ。WMO weather_code をざっくり4分類して天気フィルタに使う
-export type Sky = 'sunny' | 'cloudy' | 'rain' | 'snow'
 
 export const SKY_LABELS: Record<Sky, string> = {
   sunny: '晴れ',
@@ -40,6 +43,11 @@ export function skyOf(code: number | null | undefined): Sky | null {
   // 霧雨・雨・しゅう雨・雷雨（51〜67, 80〜82, 95〜99）
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) return 'rain'
   return 'cloudy'
+}
+
+/** 気象庁の昼概況を優先し、未取得日は Open-Meteo の WMO code へフォールバックする。 */
+export function skyOfDay(day: DayTemp | null | undefined): Sky | null {
+  return day?.sky ?? skyOf(day?.code)
 }
 
 const doy = (date: string) => {

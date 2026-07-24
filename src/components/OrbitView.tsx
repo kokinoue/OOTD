@@ -9,7 +9,7 @@ import {
 } from '../lib/orbit'
 import { createOrbitScene, type OrbitSceneController } from '../lib/orbitScene'
 import { colorBuckets, fmtDate, outfits, type Data } from '../lib/useData'
-import { SKY_LABELS, skyOf, type Sky } from '../lib/weather'
+import { SKY_LABELS, skyOfDay, type Sky } from '../lib/weather'
 import type { CutoutsFile } from '../lib/platform'
 import type { HairFile, HairTag, SplitsFile } from '../types'
 import OutfitModal from './OutfitModal'
@@ -19,6 +19,8 @@ type WeatherDay = {
   min: number
   mean: number
   code: number
+  sky?: Sky
+  skySource?: 'jma-tokyo-daytime'
 }
 
 type Props = {
@@ -39,7 +41,7 @@ const colorOrder = colorBuckets.map((bucket) => bucket.name)
 const colorSwatches = Object.fromEntries(
   colorBuckets.map((bucket) => [bucket.name, bucket.swatch]),
 )
-const weatherKinds = orbitEntries.map((entry) => skyOf(weather[entry.outfit.date]?.code))
+const weatherKinds = orbitEntries.map((entry) => skyOfDay(weather[entry.outfit.date]))
 const yearStarts = orbitEntries.reduce<{ year: number; index: number }[]>((list, entry) => {
   if (list.at(-1)?.year !== entry.year) list.push({ year: entry.year, index: entry.index })
   return list
@@ -55,7 +57,7 @@ const WEATHER_ICONS: Record<Sky, string> = {
 
 const weatherLabel = (day?: WeatherDay) => {
   if (!day) return 'WEATHER —'
-  const sky = skyOf(day.code)
+  const sky = skyOfDay(day)
   const condition = sky ? `${WEATHER_ICONS[sky]} ${SKY_LABELS[sky]} · ` : ''
   return `${condition}${day.mean.toFixed(1)}°C · ${day.min.toFixed(1)}–${day.max.toFixed(1)}°`
 }
@@ -275,7 +277,7 @@ export default function OrbitView({
           <div>
             <h2 className="mono">{fmtDate(selected.outfit.date)}</h2>
             <p
-              className={`orbit-weather mono ${skyOf(selectedWeather?.code) ?? 'unknown'}`}
+              className={`orbit-weather mono ${skyOfDay(selectedWeather) ?? 'unknown'}`}
             >
               {weatherLabel(selectedWeather)}
             </p>
