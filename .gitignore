@@ -6,3 +6,6 @@ dist/
 exports/
 .claude/
 .playwright-mcp/
+# make-tower-score-og.mjs がビルド時に生成する（コミットしない）
+public/game/tower/r/
+public/og-tower-r/

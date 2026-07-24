@@ -376,6 +376,18 @@ export default function TowerGameView({ onBack }: Props) {
     }
   }, [resetTick])
 
+  // 結果テキスト付きでX（Twitter）のポスト画面を開く。
+  // URLはスコア別OGPページ（scripts/make-tower-score-og.mjs が 1〜50 を事前生成）。
+  // 範囲外のスコアは汎用ページで共有する
+  const shareResultOnX = () => {
+    const page = score >= 1 && score <= 50 ? `game/tower/r/${score}/` : 'game/tower/'
+    const url = `${location.origin}${import.meta.env.BASE_URL}${page}`
+    const record = score > 0 && score >= best ? '（自己ベスト更新！）' : ''
+    const text = `出勤服アーカイブの「タワー」で ${score}体 積み上げました！${record} #出勤服アーカイブ`
+    const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+    window.open(intentUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const retry = () => {
     setScore(0)
     setOver(false)
@@ -407,6 +419,9 @@ export default function TowerGameView({ onBack }: Props) {
                 <span className="tower-result-actions">
                   <button className="tower-btn primary jp" onClick={retry}>
                     もういちど
+                  </button>
+                  <button className="tower-btn jp" onClick={shareResultOnX}>
+                    Xでポスト
                   </button>
                   <button className="tower-btn jp" onClick={onBack}>
                     もどる
