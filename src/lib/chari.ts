@@ -160,8 +160,11 @@ function generateSegment(run: Run) {
   const rng = run.rng
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
-  const hasGap = run.segments.length > 0 && rng() < 0.42
-  const gap = hasGap ? Math.max(64, maxGapFor(speed) * (0.52 + rng() * 0.25)) : 0
+  // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
+  const hasGap = run.segments.length > 0 && rng() < 0.58 + difficulty * 0.2
+  const gap = hasGap
+    ? Math.max(64, maxGapFor(speed) * (0.72 + rng() * (0.2 + difficulty * 0.06)))
+    : 0
   let y = run.nextY
   if (hasGap && rng() < 0.38) {
     const direction = rng() < 0.48 ? -1 : 1
@@ -169,7 +172,7 @@ function generateSegment(run: Run) {
   }
 
   const x = run.nextX + gap
-  const w = Math.max(360, speed * (1.15 + rng() * 0.75))
+  const w = Math.max(360, speed * (1.5 + rng() * 0.5))
   const entryClear = Math.max(90, speed * 0.72)
   // 規定の0.32秒を下限に、障害物ジャンプが着地してから次の穴へ
   // 踏み切れる余白まで確保する（二段ジャンプを使っても穴へ直結しない）。
@@ -189,16 +192,18 @@ function generateSegment(run: Run) {
   const safeEnd = x + w - exitClear
   const room = safeEnd - safeStart
   const roll = rng()
-  if (room > 150 && roll < 0.66) {
+  if (room > 120 && roll < 0.94) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
-    if (roll < 0.36) {
-      const count = difficulty > 0.62 ? 2 + (rng() < 0.45 ? 1 : 0) : rng() < 0.32 ? 2 : 1
-      const spread = 38
+    const kindRoll = rng()
+    if (kindRoll < 0.52) {
+      // 序盤から2連、後半はほぼ3連。ひと跳びで越せるクラスタ幅に収める。
+      const count = difficulty > 0.36 ? (rng() < 0.72 ? 3 : 2) : rng() < 0.68 ? 2 : 1
+      const spread = 40
       const first = clamp(center - ((count - 1) * spread) / 2, safeStart, safeEnd - (count - 1) * spread)
       for (let i = 0; i < count; i++) addObstacle(run, 'pylon', first + i * spread, y, cluster)
       addCoinArc(run, first - 5, first + Math.max(75, (count - 1) * spread + 30), y, 48)
-    } else if (roll < 0.5 && difficulty > 0.25) {
+    } else if (kindRoll < 0.82 && difficulty > 0.12) {
       addObstacle(run, 'fence', center, y, cluster)
       addCoinArc(run, center - 28, center + 72, y, 62)
     } else {
