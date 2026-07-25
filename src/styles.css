@@ -5717,6 +5717,223 @@ a {
   width: auto;
 }
 
+/* ===================== チャリ通（エンドレスラン） ===================== */
+.chari {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0 48px;
+}
+.chari-inner {
+  width: min(1040px, 100%);
+  padding: 0 16px;
+}
+.chari-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 10px 0;
+}
+.chari-back {
+  padding: 4px 0;
+  color: var(--text-sub);
+  font-size: 12.5px;
+}
+.chari-back:hover {
+  color: var(--text);
+}
+.chari-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.chari-stats {
+  margin-left: auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chari-change,
+.chari-sound {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-sub);
+  font-size: 11px;
+}
+.chari-change:hover,
+.chari-sound:hover {
+  border-color: var(--text-sub);
+  color: var(--text);
+}
+.chari-screen {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #d8e6e8;
+}
+.chari-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 960 / 540;
+  touch-action: none;
+}
+.chari-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(23, 23, 26, 0.5);
+}
+.chari-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 26px 34px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.chari-result small {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.chari-result b {
+  font-size: 34px;
+}
+.chari-result > span:not(.chari-result-actions) {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.chari-result-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 7px;
+}
+.chari-btn {
+  padding: 8px 15px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+}
+.chari-btn:hover {
+  border-color: var(--text-sub);
+}
+.chari-btn.primary {
+  border-color: var(--text);
+  color: var(--bg);
+  background: var(--text);
+}
+.chari-pads {
+  position: absolute;
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+.chari-dive {
+  width: 76px;
+  height: 76px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(20, 22, 28, 0.58);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  pointer-events: auto;
+  touch-action: none;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.chari-dive:active {
+  background: rgba(220, 105, 61, 0.78);
+  transform: scale(0.95);
+}
+.chari-foot {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--text-sub);
+  font-size: 11.5px;
+}
+.chari-caption {
+  min-width: 128px;
+  color: var(--text);
+}
+
+@media (max-width: 760px) {
+  .chari {
+    padding-top: 8px;
+  }
+  .chari-inner {
+    padding: 0 8px;
+  }
+  .chari-head {
+    flex-wrap: wrap;
+    gap: 7px 10px;
+  }
+  .chari-title {
+    font-size: 19px;
+  }
+  .chari-stats {
+    order: 5;
+    width: 100%;
+    margin-left: 0;
+    overflow: hidden;
+    font-size: 10px;
+    text-overflow: ellipsis;
+  }
+  .chari-head .game-share {
+    margin-left: auto;
+  }
+  .chari-head .game-share-btn,
+  .chari-change,
+  .chari-sound {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  .chari-screen {
+    border-radius: 7px;
+  }
+  .chari-dive {
+    width: 58px;
+    height: 58px;
+    font-size: 10px;
+  }
+  .chari-foot {
+    display: block;
+    min-height: 34px;
+    font-size: 9px;
+    line-height: 1.6;
+  }
+  .chari-caption {
+    display: block;
+  }
+  .chari-result {
+    gap: 6px;
+    padding: 18px;
+  }
+  .chari-result b {
+    font-size: 27px;
+  }
+  .chari-result-actions {
+    gap: 5px;
+  }
+  .chari-btn {
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+}
+
 /* ===================== 性格診断（あなたのkokiはこれ！） ===================== */
 .g-quiz-card {
   max-width: 560px;

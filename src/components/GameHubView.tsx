@@ -31,6 +31,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     lead: '出勤服のくり抜きをどこまで高く積めるか。シルエットの凹凸が物理に効く、どうぶつタワーバトル風スコアアタック。',
   },
   {
+    view: 'chari',
+    title: 'チャリ通',
+    tag: 'ENDLESS RUNNER',
+    lead: '朝の通勤路を自転車でどこまでも走る。ジャンプと急降下で穴や工事現場をかわす、チャリ走風スコアアタック。',
+  },
+  {
     view: 'quiz',
     title: '性格診断',
     tag: 'PERSONALITY TEST',
