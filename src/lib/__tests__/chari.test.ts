@@ -37,6 +37,7 @@ import {
   saveBest,
   scoreOf,
   segmentSurfaceAt,
+  signalStateAt,
   slopeSpeedMultiplierFor,
   speedAt,
   step,
@@ -656,17 +657,51 @@ describe('チャリ通の物理', () => {
     const signal = { id: 1, kind: 'signal' as const, x: 300, y: 326, w: 72, h: 58, cluster: 1, used: false, phase: 0 }
     const crossing = { id: 2, kind: 'crossing' as const, x: 500, y: 326, w: 92, h: 12, cluster: 2, used: false, phase: 0 }
     run.elapsed = 0
-    expect(obstacleActive(run, signal)).toBe(true)
+    expect(obstacleActive(run, signal)).toBe(false)
     expect(obstacleActive(run, crossing)).toBe(true)
+    run.elapsed = 0.4
+    expect(obstacleActive(run, signal)).toBe(true)
     run.elapsed = 3.3
     expect(obstacleActive(run, signal)).toBe(false)
     expect(obstacleActive(run, crossing)).toBe(false)
     run.elapsed = 19.1
     expect(obstacleActive(run, signal)).toBe(false)
     run.elapsed = 219.1
-    expect(obstacleActive(run, signal)).toBe(true)
+    expect(obstacleActive(run, signal)).toBe(false)
     run.elapsed = 218.7
     expect(obstacleActive(run, signal)).toBe(true)
+  })
+
+  it('信号は黄信号で予告してから車が滑らかに進入・退出する', () => {
+    const run = createRun(0)
+    const signal = {
+      id: 1,
+      kind: 'signal' as const,
+      x: 300,
+      y: 326,
+      w: 72,
+      h: 58,
+      cluster: 1,
+      used: false,
+      phase: 0,
+    }
+    run.elapsed = 3.5
+    expect(signalStateAt(run, signal).light).toBe('yellow')
+
+    run.elapsed = 0.05
+    const entering = signalStateAt(run, signal)
+    run.elapsed = 0.4
+    const blocked = signalStateAt(run, signal)
+    expect(entering.light).toBe('red')
+    expect(entering.blockage).toBeLessThan(blocked.blockage)
+    expect(obstacleActive(run, signal)).toBe(true)
+
+    run.elapsed = 2.1
+    const leaving = signalStateAt(run, signal)
+    run.elapsed = 2.4
+    const nearlyClear = signalStateAt(run, signal)
+    expect(leaving.blockage).toBeGreaterThan(nearlyClear.blockage)
+    expect(obstacleActive(run, signal)).toBe(false)
   })
 
   it('踏切は警告灯のあと徐々に閉まり、徐々に開く', () => {

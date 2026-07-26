@@ -13,10 +13,10 @@ import {
   loadBest,
   metersOf,
   nextZoneInfo,
-  obstacleActive,
   saveBest,
   scoreOf,
   segmentSurfaceAt,
+  signalStateAt,
   step,
   weatherAt,
   weatherStrength,
@@ -525,7 +525,6 @@ function drawRoadAndItems(
   for (const o of run.obstacles) {
     const x = o.x - cameraX
     if (x < -80 || x > VIEW_W + 80) continue
-    const active = obstacleActive(run, o)
     if (o.kind === 'pylon') {
       ctx.fillStyle = '#ed713e'
       ctx.beginPath()
@@ -571,33 +570,47 @@ function drawRoadAndItems(
         ctx.fill()
       }
     } else if (o.kind === 'signal') {
+      const signal = signalStateAt(run, o)
       ctx.strokeStyle = '#4b5054'
       ctx.lineWidth = 7
       ctx.beginPath()
       ctx.moveTo(x + 88, o.y + o.h)
-      ctx.lineTo(x + 88, o.y - 70)
+      ctx.lineTo(x + 88, o.y - 94)
       ctx.stroke()
       ctx.fillStyle = '#303338'
-      ctx.fillRect(x + 72, o.y - 78, 32, 62)
-      ctx.fillStyle = active ? '#e85a47' : '#435048'
-      ctx.beginPath()
-      ctx.arc(x + 88, o.y - 62, 8, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = active ? '#425049' : '#62c97a'
-      ctx.beginPath()
-      ctx.arc(x + 88, o.y - 34, 8, 0, Math.PI * 2)
-      ctx.fill()
-      if (active) {
+      ctx.fillRect(x + 72, o.y - 102, 32, 86)
+      const lights = [
+        { state: 'red', y: o.y - 86, on: '#e85a47', off: '#563c3c' },
+        { state: 'yellow', y: o.y - 60, on: '#f3c44f', off: '#554d38' },
+        { state: 'green', y: o.y - 34, on: '#62c97a', off: '#3c5044' },
+      ] as const
+      for (const light of lights) {
+        const lit = signal.light === light.state
+        ctx.fillStyle = lit ? light.on : light.off
+        if (light.state === 'yellow' && lit) {
+          ctx.shadowColor = '#ffd86b'
+          ctx.shadowBlur = 10 * signal.warningPulse
+        }
+        ctx.beginPath()
+        ctx.arc(x + 88, light.y, 8, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.shadowBlur = 7
+      }
+      if (signal.blockage > 0.01) {
+        const carX = x + (1 - signal.blockage) * 90
+        ctx.save()
+        ctx.globalAlpha *= Math.min(1, signal.blockage * 2.4)
         ctx.fillStyle = '#b94f42'
-        ctx.fillRect(x, o.y + 18, 72, 31)
+        ctx.fillRect(carX, o.y + 18, 72, 31)
         ctx.fillStyle = '#cae0e3'
-        ctx.fillRect(x + 13, o.y + 8, 34, 18)
+        ctx.fillRect(carX + 13, o.y + 8, 34, 18)
         ctx.fillStyle = '#26282c'
         for (const wx of [17, 57]) {
           ctx.beginPath()
-          ctx.arc(x + wx, o.y + 52, 9, 0, Math.PI * 2)
+          ctx.arc(carX + wx, o.y + 52, 9, 0, Math.PI * 2)
           ctx.fill()
         }
+        ctx.restore()
       }
     } else if (o.kind === 'commuter') {
       ctx.strokeStyle = '#38434a'

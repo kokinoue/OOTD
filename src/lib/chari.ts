@@ -573,21 +573,57 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
 
 export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   if (obstacle.kind === 'signal') {
-    const phase = commuteClockAt(run.elapsed, run.seed).phase
-    const redTime =
-      phase === 'eveningRush'
-        ? 3.25
-        : phase === 'morningRush'
-          ? 3.05
-          : phase === 'lunch'
-            ? 2.15
-            : 2.45
-    return (run.elapsed + (obstacle.phase ?? 0)) % 4 < redTime
+    return signalStateAt(run, obstacle).blockage >= 0.78
   }
   if (obstacle.kind === 'crossing') {
     return crossingStateAt(run, obstacle).closure >= 0.78
   }
   return true
+}
+
+export function signalStateAt(
+  run: Run,
+  obstacle: Pick<Obstacle, 'phase'>,
+): {
+  light: 'red' | 'yellow' | 'green'
+  blockage: number
+  warningPulse: number
+} {
+  const phase = commuteClockAt(run.elapsed, run.seed).phase
+  const redTime =
+    phase === 'eveningRush'
+      ? 3.25
+      : phase === 'morningRush'
+        ? 3.05
+        : phase === 'lunch'
+          ? 2.15
+          : 2.45
+  const time = run.elapsed + (obstacle.phase ?? 0)
+  const cycle = ((time % 4) + 4) % 4
+  const transitionTime = 0.45
+  const smooth = (value: number) => {
+    const progress = clamp(value, 0, 1)
+    return progress * progress * (3 - 2 * progress)
+  }
+  let blockage = 0
+  if (cycle < transitionTime) {
+    blockage = smooth(cycle / transitionTime)
+  } else if (cycle < redTime - transitionTime) {
+    blockage = 1
+  } else if (cycle < redTime) {
+    blockage = 1 - smooth((cycle - (redTime - transitionTime)) / transitionTime)
+  }
+  const light =
+    cycle < redTime
+      ? 'red'
+      : cycle >= 3.4
+        ? 'yellow'
+        : 'green'
+  return {
+    light,
+    blockage,
+    warningPulse: light === 'yellow' ? 0.55 + Math.sin(time * 15) * 0.45 : 0,
+  }
 }
 
 export function crossingStateAt(
