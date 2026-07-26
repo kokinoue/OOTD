@@ -120,17 +120,9 @@ function createAudio() {
 const zoneLabel = {
   residential: '住宅街',
   shopping: '商店街',
-  construction: '工事区間',
+  construction: '工事現場',
   station: '駅前',
   school: 'スクールゾーン',
-} as const
-
-const zoneEffectLabel = {
-  residential: '信号・通勤者・飛来鳥',
-  shopping: '屋根・人波・COIN×2',
-  construction: '資材・急坂・トラック',
-  station: '踏切・人波・地下道',
-  school: 'ボール・児童・歩道橋',
 } as const
 
 const weatherLabel = {
@@ -1155,8 +1147,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       const weatherTransition = weatherTransitionAt(run.distance, run.seed)
       const commute = commuteClockAt(run.elapsed, run.seed)
       if (zoneRef.current) {
-        zoneRef.current.textContent =
-          `${zoneIcon[zone]} ${zoneLabel[zone]}・${zoneEffectLabel[zone]}`
+        zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
         zoneRef.current.dataset.zone = zone
       }
       if (weatherRef.current) {
