@@ -13,7 +13,7 @@ export const WALL_TOL = 22
 export const COIN_RADIUS = 30
 export const GRAV = 2100
 export const JUMP_V = 720
-export const AIR_JUMP_V = 640
+export const AIR_JUMP_V = 820
 export const JUMP_CUT_V = 250
 export const MAX_FALL = 1150
 export const DIVE_V = 1480
@@ -93,6 +93,7 @@ export type Obstacle = {
   used: boolean
   phase?: number
   vx?: number
+  originX?: number
 }
 export type Coin = { id: number; x: number; y: number; taken: boolean; magnetized?: boolean }
 export type Player = {
@@ -245,6 +246,16 @@ export function weatherAt(dist: number, seed = 0): WeatherKind {
   return weathers[(block + (seed >>> 0)) % weathers.length]
 }
 
+export function motionSpeedFor(run: Run): number {
+  const weather = weatherAt(run.distance, run.seed)
+  const windPush =
+    weather === 'wind'
+      ? ((run.seed & 1) === 0 ? 145 : -145) * (1 - run.traits.windResist)
+      : 0
+  const wetRoadBoost = weather === 'rain' ? 1 + 0.11 * (1 - run.traits.rainGrip) : 1
+  return Math.max(320, run.speed * run.traits.speedMul * wetRoadBoost + windPush)
+}
+
 export function commuteClockAt(dist: number): {
   hour: number
   minute: number
@@ -354,7 +365,7 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
                   : { w: 92, h: 12 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
-  const y = kind === 'bird' ? roadY - 160 : kind === 'crossing' ? roadY - 58 : roadY - dims.h
+  const y = kind === 'bird' ? roadY - 160 : kind === 'crossing' ? roadY - 32 : roadY - dims.h
   run.obstacles.push({
     id: run.serial++,
     kind,
@@ -366,6 +377,7 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
     used: false,
     phase: kind === 'signal' || kind === 'crossing' ? run.rng() * 4 : undefined,
     vx: kind === 'commuter' ? -55 - run.rng() * 55 : undefined,
+    originX: kind === 'commuter' ? x : undefined,
   })
 }
 
@@ -625,10 +637,12 @@ export function step(run: Run, input: Input, dt: number): void {
     const oldRoadSurface = surfaceAt(run, oldX)
     const oldPlatform = platformAt(run, p.platformId, oldX)
     const oldSurface = oldPlatform?.y ?? oldRoadSurface
+    const weather = weatherAt(run.distance, run.seed)
 
     if (first && input.jumpPressed) {
       if (p.grounded) {
-        p.vy = -JUMP_V * run.traits.jumpMul
+        const wetTakeoff = weather === 'rain' ? 1 - 0.1 * (1 - run.traits.rainGrip) : 1
+        p.vy = -JUMP_V * run.traits.jumpMul * wetTakeoff
         p.grounded = false
         p.platformId = null
         p.airTime = 0
@@ -637,7 +651,10 @@ export function step(run: Run, input: Input, dt: number): void {
         // 上昇中に早押ししても速度を弱めず、必ず追加の上向き加速を与える。
         // 下降中は最低限の空中ジャンプ速度まで戻し、早押し時だけ過剰に
         // 加速しないよう通常ジャンプの1.35倍で上限を設ける。
-        const airJumpV = AIR_JUMP_V * run.traits.airJumpMul
+        // 強風時は車体が風を受けるぶん、2段目で大きく浮き直せる。
+        // 向かい風で横移動が遅くなる大穴も、この揚力を使えば越えられる。
+        const windLift = weather === 'wind' ? 1.1 - run.traits.windResist * 0.1 : 1
+        const airJumpV = AIR_JUMP_V * run.traits.airJumpMul * windLift
         p.vy = Math.max(
           -JUMP_V * run.traits.jumpMul * 1.35,
           Math.min(p.vy - airJumpV * 0.56, -airJumpV),
@@ -651,13 +668,7 @@ export function step(run: Run, input: Input, dt: number): void {
       p.vy = DIVE_V * run.traits.diveMul
     }
 
-    const weather = weatherAt(run.distance, run.seed)
-    const windPush =
-      weather === 'wind'
-        ? ((run.seed & 1) === 0 ? 62 : -62) * (1 - run.traits.windResist)
-        : 0
-    const wetRoadBoost = weather === 'rain' ? 1 + 0.045 * (1 - run.traits.rainGrip) : 1
-    p.x += Math.max(320, run.speed * run.traits.speedMul * wetRoadBoost + windPush) * h
+    p.x += motionSpeedFor(run) * h
     run.distance = Math.max(0, p.x - run.startX)
     run.speed = speedAt(run.distance)
     run.elapsed += h
@@ -688,6 +699,10 @@ export function step(run: Run, input: Input, dt: number): void {
     if (!p.grounded) {
       const prevY = p.y
       p.vy = Math.min(MAX_FALL, p.vy + GRAV * h)
+      if (weather === 'wind') {
+        const gust = Math.sin((run.elapsed + (run.seed % 11)) * 4.5)
+        p.vy += gust * 180 * (1 - run.traits.windResist) * h
+      }
       p.y += p.vy * h
       p.airTime += h
       // 上り坂では路面もフレーム間で上へ動くため、直前位置は直前の路面と
@@ -714,7 +729,8 @@ export function step(run: Run, input: Input, dt: number): void {
     for (const o of run.obstacles) {
       if (o.vx) {
         const rushMul = commuteClockAt(run.distance).phase === 'rush' ? 1.3 : 1
-        o.x += o.vx * rushMul * h
+        const nextX = o.x + o.vx * rushMul * h
+        o.x = Math.max((o.originX ?? o.x) - run.speed * 0.18, nextX)
       }
       if (o.kind !== 'ramp' || o.used) continue
       const overX = p.x + PLAYER_W / 2 > o.x && p.x - PLAYER_W / 2 < o.x + o.w

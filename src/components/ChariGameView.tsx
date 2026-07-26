@@ -125,9 +125,9 @@ const weatherLabel = {
 
 const weatherEffectLabel = {
   clear: '安定',
-  rain: '路面スリップ',
+  rain: '強スリップ',
   wind: '風に流される',
-  fog: '視界低下',
+  fog: '濃霧',
 } as const
 
 const commutePhaseLabel = {
@@ -483,15 +483,34 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
       ctx.lineTo(x - 9, y + 22)
       ctx.stroke()
     }
+    if (run.player.grounded) {
+      ctx.fillStyle = 'rgba(205,233,242,.58)'
+      for (let i = 0; i < 8; i++) {
+        const phase = (t * 7 + i * 0.37) % 1
+        ctx.beginPath()
+        ctx.ellipse(
+          HERO_X - 24 - phase * (34 + i * 3),
+          run.player.y - 5 - Math.sin(phase * Math.PI) * 13,
+          5 - phase * 3,
+          2,
+          0,
+          0,
+          Math.PI * 2,
+        )
+        ctx.fill()
+      }
+    }
   } else if (weather === 'wind') {
     ctx.strokeStyle = 'rgba(242,247,232,.5)'
     ctx.lineWidth = 3
+    const direction = (run.seed & 1) === 0 ? -1 : 1
     for (let i = 0; i < 12; i++) {
-      const x = (i * 103 - t * 240) % (VIEW_W + 140)
+      const span = VIEW_W + 140
+      const x = ((i * 103 + direction * t * 430) % span + span) % span - 70
       const y = 80 + (i * 47) % 300
       ctx.beginPath()
       ctx.moveTo(x, y)
-      ctx.quadraticCurveTo(x + 45, y - 10, x + 95, y)
+      ctx.quadraticCurveTo(x - direction * 55, y - 13, x - direction * 118, y)
       ctx.stroke()
     }
   } else if (weather === 'fog') {
@@ -522,7 +541,8 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     visibility.addColorStop(0, 'rgba(218,226,221,0)')
     visibility.addColorStop(0.3, 'rgba(218,226,221,.12)')
     visibility.addColorStop(0.62, 'rgba(218,226,221,.48)')
-    visibility.addColorStop(1, `rgba(218,226,221,${0.78 - fogRelief * 0.36})`)
+    const fogPulse = Math.sin(t * 1.7) * 0.07
+    visibility.addColorStop(1, `rgba(218,226,221,${0.78 + fogPulse - fogRelief * 0.36})`)
     ctx.fillStyle = visibility
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
@@ -551,9 +571,13 @@ function drawBike(
     ? run.segments.find((s) => p.x >= s.x && p.x <= s.x + s.w)
     : undefined
   const roadTilt = road ? Math.atan2((road.endY ?? road.y) - road.y, road.w) : 0
+  const windLean =
+    weatherAt(run.distance, run.seed) === 'wind'
+      ? ((run.seed & 1) === 0 ? 1 : -1) * 0.055 * (1 - run.traits.windResist)
+      : 0
   ctx.save()
   ctx.translate(x, y)
-  ctx.rotate(crashTilt + roadTilt)
+  ctx.rotate(crashTilt + roadTilt + windLean)
   const wheelY = -15
   for (const wx of [-27, 29]) {
     ctx.strokeStyle = '#202126'
@@ -839,7 +863,13 @@ export default function ChariGameView({ data, onBack }: Props) {
         zoneRef.current.dataset.zone = zone
       }
       if (weatherRef.current) {
-        weatherRef.current.textContent = `${weatherIcon[weather]} ${weatherLabel[weather]}・${weatherEffectLabel[weather]}`
+        const effect =
+          weather === 'wind'
+            ? (run.seed & 1) === 0
+              ? '追い風・大加速'
+              : '向かい風・大減速'
+            : weatherEffectLabel[weather]
+        weatherRef.current.textContent = `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
         weatherRef.current.dataset.weather = weather
       }
       if (timeRef.current) {

@@ -21,6 +21,7 @@ import {
   maxGapFor,
   metersOf,
   minObstacleSpacing,
+  motionSpeedFor,
   nextZoneInfo,
   obstacleActive,
   saveBest,
@@ -368,6 +369,32 @@ describe('チャリ通の物理', () => {
     step(slippery, idle, 0.1)
     step(protectedRun, idle, 0.1)
     expect(slippery.player.x).toBeGreaterThan(protectedRun.player.x)
+  })
+
+  it('雨と追い風・向かい風で走行速度が大きく変わり、服の耐性で緩和される', () => {
+    const rain = createRun(1)
+    expect(motionSpeedFor(rain)).toBeCloseTo(888)
+
+    const tailwind = createRun(2)
+    expect(motionSpeedFor(tailwind)).toBeCloseTo(945)
+
+    const headwind = createRun(1)
+    headwind.distance = 6000
+    expect(motionSpeedFor(headwind)).toBeCloseTo(655)
+    headwind.traits = { ...DEFAULT_RIDER_TRAITS, windResist: 0.8, effects: ['強風耐性'] }
+    expect(motionSpeedFor(headwind)).toBeCloseTo(771)
+  })
+
+  it('雨は踏み切りを弱め、雨支度はジャンプ力の低下を抑える', () => {
+    const slippery = createRun(1)
+    const protectedRun = createRun(1)
+    slippery.obstacles = []
+    protectedRun.obstacles = []
+    protectedRun.traits = { ...DEFAULT_RIDER_TRAITS, rainGrip: 0.9, effects: ['雨支度'] }
+    const jump = { jumpPressed: true, jumpHeld: true, diveHeld: false }
+    step(slippery, jump, 1 / 120)
+    step(protectedRun, jump, 1 / 120)
+    expect(slippery.player.vy).toBeGreaterThan(protectedRun.player.vy)
   })
 
   it('WALL_TOL以下の段差は乗り上げる', () => {

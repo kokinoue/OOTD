@@ -3,7 +3,7 @@ import {
   GRAV,
   PLAYER_H,
   createRun,
-  speedAt,
+  motionSpeedFor,
   step,
   surfaceAt,
   type Run,
@@ -11,7 +11,10 @@ import {
 
 function needsJump(run: Run): boolean {
   const p = run.player
-  const look = run.speed * 0.085 + 24
+  const motionSpeed = motionSpeedFor(run)
+  const look = motionSpeed * 0.085 + 24
+  const platform = run.platforms.find((item) => item.id === p.platformId)
+  if (platform && platform.x + platform.w - p.x <= look) return true
   const roadNow = surfaceAt(run, p.x)
   const roadAhead = surfaceAt(run, p.x + look)
   if (roadNow != null && roadAhead == null) return true
@@ -22,39 +25,54 @@ function needsJump(run: Run): boolean {
       o.x - (p.x + 15) >= 0 &&
       o.x - (p.x + 15) <=
         (o.kind === 'truck'
-          ? run.speed * 0.55
-          : o.kind === 'commuter' || o.kind === 'signal' || o.kind === 'crossing'
-            ? run.speed * 0.36
+          ? motionSpeed * 0.55
+          : o.kind === 'crossing'
+            ? motionSpeed * 0.72
+            : o.kind === 'commuter' || o.kind === 'signal'
+            ? motionSpeed * 0.36
             : look),
   )
 }
 
 function landingUnsafe(run: Run): boolean {
   const p = run.player
+  const startedOverGap = surfaceAt(run, p.x) == null
   let x = p.x
   let y = p.y
   let vy = p.vy
   const dt = 1 / 60
   for (let i = 0; i < 72; i++) {
-    x += speedAt(x - run.startX) * dt
+    const previousY = y
+    x += motionSpeedFor(run) * dt
     vy += GRAV * dt
     y += vy * dt
     const road = surfaceAt(run, x)
     if (road != null && vy > 0 && y >= road) {
+      if (startedOverGap && previousY > road) return true
       const blocked = run.obstacles.some(
         (o) => o.kind !== 'ramp' && x + 15 > o.x && x - 15 < o.x + o.w && road - PLAYER_H < o.y + o.h,
       )
       return blocked
     }
   }
-  return surfaceAt(run, x) == null
+  return startedOverGap && surfaceAt(run, x) == null
 }
 
-function crossingAirGap(run: Run): boolean {
+function overAirGap(run: Run): boolean {
   const x = run.player.x
   return run.segments.some(
     (s) => s.airGap && x >= s.x - s.gapBefore && x < s.x,
   )
+}
+
+function shouldAirJumpGap(run: Run): boolean {
+  const p = run.player
+  const gap = run.segments.find(
+    (s) => s.airGap && p.x >= s.x - s.gapBefore && p.x < s.x,
+  )
+  if (!gap || p.vy <= 80) return false
+  const progress = (p.x - (gap.x - gap.gapBefore)) / gap.gapBefore
+  return p.y >= gap.y - 45 || progress >= 0.3
 }
 
 function needsAirJumpForTruck(run: Run): boolean {
@@ -63,7 +81,29 @@ function needsAirJumpForTruck(run: Run): boolean {
     (o) =>
       o.kind === 'truck' &&
       o.x - (p.x + 15) >= 0 &&
-      o.x - (p.x + 15) <= run.speed * 0.3,
+      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.3,
+  )
+}
+
+function needsAirJumpForCrossing(run: Run): boolean {
+  const p = run.player
+  return run.obstacles.some(
+    (o) =>
+      o.kind === 'crossing' &&
+      o.x - (p.x + 15) >= 0 &&
+      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.24,
+  )
+}
+
+function shouldDiveToRoad(run: Run): boolean {
+  const p = run.player
+  if (p.grounded || !p.airJumpUsed || overAirGap(run) || surfaceAt(run, p.x) == null) return false
+  return !run.obstacles.some(
+    (o) =>
+      o.kind !== 'bird' &&
+      o.kind !== 'ramp' &&
+      o.x + o.w > p.x - 24 &&
+      o.x < p.x + 320,
   )
 }
 
@@ -84,17 +124,20 @@ describe('チャリ通のプレイ可能性', () => {
           } else if (
             !run.player.grounded &&
             !run.player.airJumpUsed &&
-            ((run.player.vy > -40 && needsAirJumpForTruck(run)) ||
-              (run.player.vy > 80 && (crossingAirGap(run) || landingUnsafe(run))))
+            ((run.player.vy > -40 &&
+              (needsAirJumpForTruck(run) || needsAirJumpForCrossing(run))) ||
+              (overAirGap(run)
+                ? shouldAirJumpGap(run)
+                : run.player.vy > 80 && landingUnsafe(run)))
           ) {
             jumpPressed = true
-            jumpHeldFrames = 10
+            jumpHeldFrames = 22
           }
           const jumpHeld = jumpHeldFrames-- > 0
-          step(run, { jumpPressed, jumpHeld, diveHeld: false }, 1 / 60)
+          step(run, { jumpPressed, jumpHeld, diveHeld: shouldDiveToRoad(run) }, 1 / 60)
           if (frame % 6 === 0) {
             trace.push(
-              `${frame}:${Math.round(run.player.x)},${Math.round(run.player.y)},${Math.round(run.player.vy)},road${Math.round(surfaceAt(run, run.player.x) ?? -1)},${run.player.grounded ? 'g' : 'a'},${jumpPressed ? 'J' : '-'}`,
+              `${frame}:${Math.round(run.player.x)},${Math.round(run.player.y)},${Math.round(run.player.vy)},road${Math.round(surfaceAt(run, run.player.x) ?? -1)},${run.player.grounded ? 'g' : 'a'},${jumpPressed ? 'J' : '-'},${run.player.airJumpUsed ? 'U' : '-'}`,
             )
             if (trace.length > 12) trace.shift()
           }
