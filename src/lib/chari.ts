@@ -159,10 +159,6 @@ export function deriveRiderTraits(date: string, items: RiderItem[]): RiderTraits
   const hasHat = has(/hat|cap|beanie|帽子|キャップ/)
   const hasShorts = has(/shorts|ショーツ|短パン/)
 
-  if (hasShoes) {
-    traits.speedMul += 0.04
-    traits.effects.push('足まわり：速度+4%')
-  }
   if (hasBag) {
     traits.coinRadius = 120
     traits.effects.push('バッグ：コイン吸引')

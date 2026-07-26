@@ -219,6 +219,14 @@ describe('チャリ通のコース生成', () => {
     expect(light.jumpMul).toBeGreaterThan(1.09)
     expect(light.effects).toContain('軽装セット：ジャンプ強化')
   })
+
+  it('必ず履く靴だけでは速度ボーナスが付かない', () => {
+    const shoesOnly = deriveRiderTraits('2026-01-10', [
+      { category: 'shoes', label: 'スニーカー' },
+    ])
+    expect(shoesOnly.speedMul).toBe(1)
+    expect(shoesOnly.effects).not.toContain('足まわり：速度+4%')
+  })
 })
 
 describe('チャリ通の物理', () => {
