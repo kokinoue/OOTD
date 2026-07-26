@@ -39,6 +39,7 @@ import {
   saveBest,
   scoreOf,
   segmentSurfaceAt,
+  setpieceAt,
   signalStateAt,
   sprinklerStateAt,
   slopeSpeedMultiplierFor,
@@ -89,6 +90,25 @@ describe('チャリ通のコース生成', () => {
     ensureAhead(c, 50_000)
     expect(snapshot(a)).toEqual(snapshot(b))
     expect(snapshot(a)).not.toEqual(snapshot(c))
+  })
+
+  it('大型セットピースを各エリアに生成し、走行位置から判定できる', () => {
+    const found = new Map<string, { run: Run; x: number }>()
+    for (let seed = 1; seed <= 24 && found.size < 3; seed++) {
+      const run = createRun(seed)
+      ensureAhead(run, 300_000)
+      for (const segment of run.segments) {
+        if (segment.setpiece && !found.has(segment.setpiece)) {
+          found.set(segment.setpiece, { run, x: segment.x + segment.w / 2 })
+        }
+      }
+    }
+    expect([...found.keys()].sort()).toEqual(
+      ['longUnderpass', 'parkRun', 'roofRun'].sort(),
+    )
+    for (const [kind, sample] of found) {
+      expect(setpieceAt(sample.run, sample.x)).toBe(kind)
+    }
   })
 
   it('穴幅は地点の速度に応じた上限以下になる', () => {
@@ -646,6 +666,47 @@ describe('チャリ通の物理', () => {
     expect(intoBird.overReason).toBe('crash')
   })
 
+  it('障害物すれすれの通過をニアミスとして加点する', () => {
+    const run = createRun(54)
+    run.segments = [{ ...run.segments[0], x: -500, w: 4000 }]
+    run.platforms = []
+    run.coins = []
+    run.nextX = 10_000
+    run.obstacles = [{
+      id: 4,
+      kind: 'bird',
+      x: 135,
+      y: ROAD_Y - PLAYER_H - 25,
+      w: 42,
+      h: 22,
+      cluster: 4,
+      used: false,
+    }]
+    step(run, idle, 0.1)
+    expect(run.status).toBe('playing')
+    expect(run.nearMisses).toBe(1)
+    expect(run.styleScore).toBe(30)
+    expect(run.events.some((event) => event.kind === 'nearmiss')).toBe(true)
+  })
+
+  it('安定した着地をパーフェクト着地として加点する', () => {
+    const run = createRun(55)
+    run.segments = [{ ...run.segments[0], x: -500, w: 4000 }]
+    run.platforms = []
+    run.obstacles = []
+    run.coins = []
+    run.nextX = 10_000
+    run.player.y = ROAD_Y - 6
+    run.player.vy = 300
+    run.player.grounded = false
+    run.player.airTime = 0.6
+    step(run, idle, 1 / 30)
+    expect(run.player.grounded).toBe(true)
+    expect(run.perfectLandings).toBe(1)
+    expect(run.styleScore).toBe(40)
+    expect(run.events.some((event) => event.kind === 'perfectland')).toBe(true)
+  })
+
   it('配送トラックは通常ジャンプでは越えられず二段ジャンプなら越えられる', () => {
     const makeTruckRun = (seed: number) => {
       const run = createRun(seed)
@@ -1092,14 +1153,15 @@ describe('チャリ通の物理', () => {
 describe('チャリ通のスコアと保存', () => {
   beforeEach(() => localStorage.clear())
 
-  it('距離・コイン・エアボーナスを合算する', () => {
+  it('距離・コイン・エアボーナス・スタイル点を合算する', () => {
     const run = createRun(8)
     run.distance = 30 * 123 + 29
     run.coinsTaken = 4
     run.coinScore = 40
     run.airBonuses = 2
+    run.styleScore = 30
     expect(metersOf(run)).toBe(123)
-    expect(scoreOf(run)).toBe(223)
+    expect(scoreOf(run)).toBe(253)
   })
 
   it('コインを連続取得するとコンボ倍率が上がり、時間切れでリセットする', () => {

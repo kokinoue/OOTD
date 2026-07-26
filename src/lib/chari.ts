@@ -38,6 +38,8 @@ export type EventKind =
   | 'ramp'
   | 'airbonus'
   | 'combo'
+  | 'nearmiss'
+  | 'perfectland'
   | 'crash'
   | 'fall'
 
@@ -54,9 +56,11 @@ export type Segment = {
   gapBefore: number
   airGap?: boolean
   route?: 'underpass'
+  setpiece?: SetpieceKind
   entryClear: number
   exitClear: number
 }
+export type SetpieceKind = 'roofRun' | 'longUnderpass' | 'parkRun'
 export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station' | 'park'
 export type ZoneProfile = {
   gapChance: number
@@ -121,6 +125,7 @@ export type Obstacle = {
   phase?: number
   vx?: number
   originX?: number
+  nearMissed?: boolean
 }
 export type Coin = { id: number; x: number; y: number; taken: boolean; magnetized?: boolean }
 export type Player = {
@@ -151,6 +156,9 @@ export type Run = {
   maxCombo: number
   comboTimer: number
   airBonuses: number
+  nearMisses: number
+  perfectLandings: number
+  styleScore: number
   events: GameEvent[]
   segments: Segment[]
   platforms: Platform[]
@@ -465,6 +473,12 @@ export function surfaceAt(run: Run, x: number): number | null {
     }
   }
   return null
+}
+
+export function setpieceAt(run: Run, x = run.player.x): SetpieceKind | null {
+  return run.segments.find(
+    (segment) => segment.setpiece && x >= segment.x && x <= segment.x + segment.w,
+  )?.setpiece ?? null
 }
 
 function platformAt(run: Run, id: number | null, x: number): Platform | undefined {
@@ -862,10 +876,14 @@ function generateSegment(run: Run) {
   // 地下道は分岐後の選択がしばらく続く、通常区間の倍以上の長さにする。
   const roofLaunchSegment =
     !underpass && zone === 'shopping' && zonePatternStep === 2 && difficulty > 0.18
+  const parkSetpiece =
+    !underpass && zone === 'park' && zonePatternStep === 2 && difficulty > 0.18
   const w = underpass
     ? Math.max(2800, speed * (4.2 + rng() * 0.5))
     : roofLaunchSegment
       ? Math.max(3200, speed * (4 + rng() * 0.25))
+      : parkSetpiece
+        ? Math.max(2800, speed * (3.5 + rng() * 0.25))
       : Math.max(360, speed * (1.65 + rng() * 0.35))
   // 坂ごとに高低差と丸みを変える。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
@@ -905,6 +923,14 @@ function generateSegment(run: Run) {
     exitClear,
   }
   if (underpass) segment.route = 'underpass'
+  segment.setpiece =
+    roofLaunchSegment
+      ? 'roofRun'
+      : underpass && zonePatternStep === 2
+        ? 'longUnderpass'
+        : parkSetpiece
+          ? 'parkRun'
+          : undefined
   run.segments.push(segment)
 
   const safeStart = x + entryClear
@@ -1023,7 +1049,9 @@ function generateSegment(run: Run) {
       ? true
       : routeRoll < (zone === 'park' ? zoneProfile.specialRouteChance : 0.18))
   ) {
-    const heights = [58, 94, 126, 94, 58]
+    const heights = parkSetpiece
+      ? [58, 94, 126, 94, 72, 112, 138, 96, 58]
+      : [58, 94, 126, 94, 58]
     const platformW = 128
     for (let i = 0; i < heights.length; i++) {
       const px = routeStart + i * (platformW + 24)
@@ -1105,6 +1133,9 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
     maxCombo: 0,
     comboTimer: 0,
     airBonuses: 0,
+    nearMisses: 0,
+    perfectLandings: 0,
+    styleScore: 0,
     events: [],
     segments: [first],
     platforms: [],
@@ -1120,6 +1151,22 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
 
 const event = (run: Run, kind: EventKind, value?: number) => {
   run.events.push({ kind, x: run.player.x, y: run.player.y, value })
+}
+
+function awardStyle(
+  run: Run,
+  kind: 'nearmiss' | 'perfectland',
+  basePoints: number,
+) {
+  run.combo++
+  run.maxCombo = Math.max(run.maxCombo, run.combo)
+  run.comboTimer = COMBO_TIMEOUT + run.traits.comboBonus
+  const points = basePoints * Math.min(4, 1 + Math.floor(run.combo / 5))
+  run.styleScore += points
+  if (kind === 'nearmiss') run.nearMisses++
+  else run.perfectLandings++
+  event(run, kind, points)
+  if (run.combo > 1) event(run, 'combo', run.combo)
 }
 
 function finish(run: Run, reason: 'crash' | 'fall') {
@@ -1247,6 +1294,27 @@ export function step(run: Run, input: Input, dt: number): void {
         ? landingSurfaceAt(run, p.x, prevY, p.y, oldRoadSurface)
         : null
       if (landing) {
+        const landingSpeed = p.vy
+        const landingAirTime = p.airTime
+        const landingPlatform = landing.platformId == null
+          ? undefined
+          : run.platforms.find((platform) => platform.id === landing.platformId)
+        const landingSegment = landing.platformId == null
+          ? run.segments.find((segment) => p.x >= segment.x && p.x <= segment.x + segment.w)
+          : undefined
+        const landingStart = landingPlatform?.x ?? landingSegment?.x ?? p.x
+        const landingEnd =
+          landingPlatform != null
+            ? landingPlatform.x + landingPlatform.w
+            : landingSegment != null
+              ? landingSegment.x + landingSegment.w
+              : p.x
+        const landingMargin = Math.min(p.x - landingStart, landingEnd - p.x)
+        const perfectLanding =
+          landingAirTime >= 0.45 &&
+          landingSpeed >= 90 &&
+          landingSpeed <= 520 &&
+          landingMargin >= 36
         p.y = landing.y
         p.vy = 0
         p.grounded = true
@@ -1255,7 +1323,8 @@ export function step(run: Run, input: Input, dt: number): void {
         p.rampLaunchActive = false
         p.airJumpUsed = false
         event(run, 'land')
-        if (p.airTime >= 0.85) {
+        if (perfectLanding) awardStyle(run, 'perfectland', 40)
+        if (landingAirTime >= 0.85) {
           run.airBonuses++
           event(run, 'airbonus', 30)
         }
@@ -1326,6 +1395,27 @@ export function step(run: Run, input: Input, dt: number): void {
       }
     }
 
+    if (run.status === 'playing') {
+      for (const o of run.obstacles) {
+        if (o.nearMissed || o.kind === 'ramp') continue
+        const obstacleRight = o.x + o.w
+        const crossed =
+          oldX - PLAYER_W / 2 <= obstacleRight &&
+          p.x - PLAYER_W / 2 > obstacleRight
+        if (!crossed) continue
+        o.nearMissed = true
+        if (!obstacleActive(run, o)) continue
+        const playerTop = p.y - PLAYER_H
+        const verticalGap =
+          p.y <= o.y
+            ? o.y - p.y
+            : playerTop >= o.y + o.h
+              ? playerTop - (o.y + o.h)
+              : 0
+        if (verticalGap <= 48) awardStyle(run, 'nearmiss', 30)
+      }
+    }
+
     for (const coin of run.coins) {
       if (coin.taken) continue
       const targetY = p.y - PLAYER_H * 0.55
@@ -1375,7 +1465,7 @@ export function metersOf(run: Run): number {
 }
 
 export function scoreOf(run: Run): number {
-  return metersOf(run) + run.coinScore + run.airBonuses * 30
+  return metersOf(run) + run.coinScore + run.airBonuses * 30 + run.styleScore
 }
 
 export function loadBest(): number {

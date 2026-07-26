@@ -15,6 +15,7 @@ import {
   nextZoneInfo,
   saveBest,
   scoreOf,
+  setpieceAt,
   segmentSurfaceAt,
   signalStateAt,
   sprinklerStateAt,
@@ -47,7 +48,15 @@ const outfitByKey = new Map(outfits.map((o) => [o.key, o]))
 const spriteUrl = (key: string) => `${import.meta.env.BASE_URL}cutouts/${key}.webp`
 
 type Props = { data: Data; onBack: () => void }
-type Result = { meters: number; coins: number; combo: number; score: number; best: number }
+type Result = {
+  meters: number
+  coins: number
+  combo: number
+  nearMisses: number
+  perfectLandings: number
+  score: number
+  best: number
+}
 type Particle = {
   kind: 'dust' | 'spark' | 'text'
   x: number
@@ -102,6 +111,8 @@ function createAudio() {
       else if (kind === 'ramp') tone(180, 0.16, 0.05, 2.8)
       else if (kind === 'land') tone(90, 0.05, 0.025, 0.7)
       else if (kind === 'airbonus') tone(520, 0.18, 0.04, 1.8)
+      else if (kind === 'nearmiss') tone(680, 0.1, 0.035, 1.45)
+      else if (kind === 'perfectland') tone(440, 0.12, 0.04, 1.65)
       else if (kind === 'crash') tone(150, 0.38, 0.07, 0.2)
       else if (kind === 'fall') tone(330, 0.45, 0.05, 0.15)
     },
@@ -157,6 +168,12 @@ const zoneIcon = {
   construction: '🚧',
   station: '🚉',
   park: '🌳',
+} as const
+
+const setpieceLabel = {
+  roofRun: '🏬 連続屋根渡り',
+  longUnderpass: '🚇 ロング地下道',
+  parkRun: '🌳 公園パルクール',
 } as const
 
 const weatherIcon = {
@@ -1249,11 +1266,33 @@ export default function ChariGameView({ data, onBack }: Props) {
             vy: -20 - Math.random() * 60, life: 0.45, max: 0.45, color: '#d7cec0',
           })
         }
-      } else if (e.kind === 'coin' || e.kind === 'airbonus' || e.kind === 'combo') {
+      } else if (
+        e.kind === 'coin' ||
+        e.kind === 'airbonus' ||
+        e.kind === 'combo' ||
+        e.kind === 'nearmiss' ||
+        e.kind === 'perfectland'
+      ) {
         particles.push({
           kind: 'text', x: e.x, y: e.y - 70, vx: 0, vy: -42, life: 0.75, max: 0.75,
-          text: e.kind === 'coin' ? `+${e.value ?? 10}` : e.kind === 'combo' ? `${e.value} COMBO` : 'AIR!',
-          color: e.kind === 'coin' ? '#ffd25e' : e.kind === 'combo' ? '#ff9fd0' : '#9ee4ff',
+          text:
+            e.kind === 'coin'
+              ? `+${e.value ?? 10}`
+              : e.kind === 'combo'
+                ? `${e.value} COMBO`
+                : e.kind === 'nearmiss'
+                  ? `NEAR MISS +${e.value}`
+                  : e.kind === 'perfectland'
+                    ? `PERFECT +${e.value}`
+                    : 'AIR!',
+          color:
+            e.kind === 'coin'
+              ? '#ffd25e'
+              : e.kind === 'combo'
+                ? '#ff9fd0'
+                : e.kind === 'nearmiss'
+                  ? '#ffbd72'
+                  : '#9ee4ff',
         })
       } else if (e.kind === 'crash') {
         crashAt = performance.now()
@@ -1273,7 +1312,15 @@ export default function ChariGameView({ data, onBack }: Props) {
       saveBest(score)
       const best = loadBest()
       cachedBest = best
-      setResult({ meters: metersOf(run), coins: run.coinsTaken, combo: run.maxCombo, score, best })
+      setResult({
+        meters: metersOf(run),
+        coins: run.coinsTaken,
+        combo: run.maxCombo,
+        nearMisses: run.nearMisses,
+        perfectLandings: run.perfectLandings,
+        score,
+        best,
+      })
       if (bestRef.current) bestRef.current.textContent = String(best)
     }
 
@@ -1423,11 +1470,15 @@ export default function ChariGameView({ data, onBack }: Props) {
           timeRef.current.dataset.phase = commute.phase
         }
         if (noticeRef.current) {
+          const setpiece = setpieceAt(run)
           const next = nextZoneInfo(run.distance, run.seed)
-          const show = next.distance <= 1500
-          noticeRef.current.textContent = show
-            ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`
-            : ''
+          const show = setpiece != null || next.distance <= 1500
+          noticeRef.current.textContent =
+            setpiece != null
+              ? `SET PIECE · ${setpieceLabel[setpiece]}`
+              : show
+                ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`
+                : ''
           noticeRef.current.classList.toggle('is-visible', show)
         }
         if (bestRef.current) {
@@ -1524,6 +1575,9 @@ export default function ChariGameView({ data, onBack }: Props) {
                 <b className="mono">{result.meters} m</b>
                 <span className="mono">COIN {result.coins} · SCORE {result.score} · BEST {result.best}</span>
                 <span className="mono">MAX COMBO {result.combo}</span>
+                <span className="mono">
+                  NEAR MISS {result.nearMisses} · PERFECT {result.perfectLandings}
+                </span>
                 <span className="chari-result-actions">
                   <button className="chari-btn primary jp" onClick={retry}>もういちど</button>
                   <button className="chari-btn jp" onClick={shareResultOnX}>Xでポスト</button>
