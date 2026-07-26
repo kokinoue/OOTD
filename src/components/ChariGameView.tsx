@@ -219,6 +219,12 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.strokeStyle = 'rgba(190,235,249,.8)'
       ctx.lineWidth = 2
       ctx.stroke()
+      ctx.strokeStyle = 'rgba(225,249,255,.72)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(x + 24, o.y + 3)
+      ctx.quadraticCurveTo(x + o.w * 0.42, o.y - 1, x + o.w - 28, o.y + 4)
+      ctx.stroke()
     } else if (o.kind === 'bird') {
       const flap = Math.sin(t * 12 + o.id) * 7
       ctx.strokeStyle = '#272930'

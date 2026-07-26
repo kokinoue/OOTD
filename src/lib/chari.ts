@@ -10,6 +10,7 @@ export const PLAYER_W = 30
 export const PLAYER_H = 52
 export const WALL_TOL = 22
 export const COIN_RADIUS = 30
+export const PUDDLE_W = 200
 export const GRAV = 2100
 export const JUMP_V = 720
 export const AIR_JUMP_V = 640
@@ -143,7 +144,7 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
       : kind === 'fence'
         ? { w: 42, h: 48 }
         : kind === 'puddle'
-          ? { w: 88, h: 8 }
+          ? { w: PUDDLE_W, h: 12 }
           : kind === 'bird'
             ? { w: 42, h: 22 }
             : { w: 58, h: 18 }
@@ -215,9 +216,10 @@ function generateSegment(run: Run) {
     } else if (kindRoll < 0.63 && difficulty > 0.04) {
       addObstacle(run, 'fence', center, y, cluster)
       addCoinArc(run, center - 28, center + 72, y, 62)
-    } else if (kindRoll < 0.82) {
-      addObstacle(run, 'puddle', center, y, cluster)
-      addCoinArc(run, center - 12, center + 100, y, 38)
+    } else if (kindRoll < 0.82 && room >= PUDDLE_W) {
+      const puddleX = clamp(center - PUDDLE_W / 2, safeStart, safeEnd - PUDDLE_W)
+      addObstacle(run, 'puddle', puddleX, y, cluster)
+      addCoinArc(run, puddleX + 10, puddleX + PUDDLE_W - 10, y, 38)
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
       addObstacle(run, 'bird', center, y, cluster)

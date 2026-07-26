@@ -3,6 +3,7 @@ import {
   AIR_JUMP_V,
   BEST_KEY,
   JUMP_V,
+  PUDDLE_W,
   RAMP_V,
   ROAD_Y,
   STEP_H,
@@ -148,7 +149,16 @@ describe('チャリ通の物理', () => {
   it('水たまりはジャンプ必須、鳥は地上なら通過できるが空中では衝突する', () => {
     const puddle = createRun(51)
     puddle.obstacles = [
-      { id: 1, kind: 'puddle', x: 135, y: ROAD_Y - 8, w: 88, h: 8, cluster: 1, used: false },
+      {
+        id: 1,
+        kind: 'puddle',
+        x: 135,
+        y: ROAD_Y - 12,
+        w: PUDDLE_W,
+        h: 12,
+        cluster: 1,
+        used: false,
+      },
     ]
     step(puddle, idle, 1 / 10)
     expect(puddle.overReason).toBe('crash')
