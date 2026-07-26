@@ -215,7 +215,27 @@ describe('チャリ通のコース生成', () => {
   it('長距離コースに低空の鳥が生成される', () => {
     const run = createRun(777)
     ensureAhead(run, 100_000)
-    expect(run.obstacles.some((o) => o.kind === 'bird')).toBe(true)
+    const birds = run.obstacles.filter((obstacle) => obstacle.kind === 'bird')
+    expect(birds.length).toBeGreaterThan(0)
+    expect(birds.every((bird) => bird.vx === -260 && bird.originX === bird.x)).toBe(true)
+  })
+
+  it('鳥は前方で滞空せず自転車へ向かって飛んでくる', () => {
+    const run = createRun(0)
+    run.obstacles = [{
+      id: 1,
+      kind: 'bird',
+      x: 700,
+      y: ROAD_Y - 160,
+      w: 42,
+      h: 22,
+      cluster: 1,
+      used: false,
+      vx: -260,
+      originX: 700,
+    }]
+    step(run, idle, 0.1)
+    expect(run.obstacles[0].x).toBeCloseTo(674)
   })
 
   it('長距離コースに二段ジャンプ用の配送トラックが生成される', () => {

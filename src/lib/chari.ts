@@ -539,14 +539,19 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
     used: false,
     phase: kind === 'signal' || kind === 'crossing' ? run.rng() * 4 : undefined,
     vx:
-      kind === 'commuter'
+      kind === 'bird'
+        ? -260
+        : kind === 'commuter'
         ? -55 - run.rng() * 55
         : kind === 'ball'
           ? -105 - run.rng() * 45
           : kind === 'students'
             ? -28 - run.rng() * 20
             : undefined,
-    originX: kind === 'commuter' || kind === 'ball' || kind === 'students' ? x : undefined,
+    originX:
+      kind === 'bird' || kind === 'commuter' || kind === 'ball' || kind === 'students'
+        ? x
+        : undefined,
   })
 }
 
@@ -1032,26 +1037,33 @@ export function step(run: Run, input: Input, dt: number): void {
     // ジャンプ台は上面を下向きに横切ったときだけ、一度だけ作動する。
     for (const o of run.obstacles) {
       if (o.vx) {
-        const phase = commuteClockAt(run.distance, run.seed).phase
-        const rushMul =
-          phase === 'eveningRush'
-            ? 1.5
-            : phase === 'morningRush'
-              ? 1.3
-              : phase === 'lunch'
-                ? 1.15
-                : 1
-        const maxDrift =
-          run.speed *
-          (phase === 'eveningRush'
-            ? 0.28
-            : phase === 'morningRush'
-              ? 0.22
-              : phase === 'lunch'
-                ? 0.2
-                : 0.18)
-        const nextX = o.x + o.vx * rushMul * h
-        o.x = Math.max((o.originX ?? o.x) - maxDrift, nextX)
+        // 鳥は前方で滞空せず、そのまま自転車の方向へ飛び抜ける。
+        if (o.kind === 'bird') {
+          // 生成直後の画面外から動かすと、着地用の安全帯へ入り込んでしまう。
+          // 前方に見えてから動き出し、約0.6秒の予告を保ったまま接近させる。
+          if (o.x - p.x <= 650) o.x += o.vx * h
+        } else {
+          const phase = commuteClockAt(run.distance, run.seed).phase
+          const rushMul =
+            phase === 'eveningRush'
+              ? 1.5
+              : phase === 'morningRush'
+                ? 1.3
+                : phase === 'lunch'
+                  ? 1.15
+                  : 1
+          const maxDrift =
+            run.speed *
+            (phase === 'eveningRush'
+              ? 0.28
+              : phase === 'morningRush'
+                ? 0.22
+                : phase === 'lunch'
+                  ? 0.2
+                  : 0.18)
+          const nextX = o.x + o.vx * rushMul * h
+          o.x = Math.max((o.originX ?? o.x) - maxDrift, nextX)
+        }
       }
       if (o.kind !== 'ramp' || o.used) continue
       const overX = p.x + PLAYER_W / 2 > o.x && p.x - PLAYER_W / 2 < o.x + o.w

@@ -616,17 +616,40 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.restore()
     } else if (o.kind === 'bird') {
       const flap = Math.sin(t * 12 + o.id) * 7
+      // 左向きの頭・くちばしと後方の速度線で、こちらへ飛ぶ動きを見せる。
+      ctx.strokeStyle = 'rgba(246,239,216,.7)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(x + 45, o.y + 8)
+      ctx.lineTo(x + 62, o.y + 8)
+      ctx.moveTo(x + 47, o.y + 17)
+      ctx.lineTo(x + 57, o.y + 17)
+      ctx.stroke()
+      ctx.fillStyle = '#343842'
+      ctx.beginPath()
+      ctx.ellipse(x + 25, o.y + 13, 17, 8, -0.08, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(x + 8, o.y + 12, 7, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#e3a43d'
+      ctx.beginPath()
+      ctx.moveTo(x + 2, o.y + 10)
+      ctx.lineTo(x - 8, o.y + 13)
+      ctx.lineTo(x + 2, o.y + 16)
+      ctx.closePath()
+      ctx.fill()
       ctx.strokeStyle = '#272930'
       ctx.lineWidth = 4
       ctx.lineCap = 'round'
       ctx.beginPath()
-      ctx.moveTo(x, o.y + 12)
-      ctx.quadraticCurveTo(x + 10, o.y + flap, x + 20, o.y + 12)
-      ctx.quadraticCurveTo(x + 31, o.y + flap, x + 42, o.y + 12)
+      ctx.moveTo(x + 13, o.y + 12)
+      ctx.quadraticCurveTo(x + 22, o.y + flap, x + 31, o.y + 12)
+      ctx.quadraticCurveTo(x + 36, o.y + flap, x + 42, o.y + 12)
       ctx.stroke()
-      ctx.fillStyle = '#d86f45'
+      ctx.fillStyle = '#f4e8c7'
       ctx.beginPath()
-      ctx.arc(x + 21, o.y + 13, 5, 0, Math.PI * 2)
+      ctx.arc(x + 6, o.y + 10, 1.5, 0, Math.PI * 2)
       ctx.fill()
     } else if (o.kind === 'ball') {
       ctx.fillStyle = '#f2e8d2'
