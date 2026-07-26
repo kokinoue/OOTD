@@ -27,12 +27,14 @@ import {
   metersOf,
   minimumMotionSpeedAt,
   minObstacleSpacing,
+  motionSpeedAt,
   motionSpeedFor,
   nextZoneInfo,
   obstacleActive,
   saveBest,
   scoreOf,
   segmentSurfaceAt,
+  slopeSpeedMultiplierFor,
   speedAt,
   step,
   surfaceAt,
@@ -50,11 +52,12 @@ vi.stubGlobal('localStorage', {
   clear: () => storage.clear(),
 })
 const snapshot = (run: Run) => ({
-  segments: run.segments.map(({ x, w, y, endY, gapBefore, airGap }) => [
+  segments: run.segments.map(({ x, w, y, endY, curve, gapBefore, airGap }) => [
     x,
     w,
     y,
     endY,
+    curve,
     gapBefore,
     airGap,
   ]),
@@ -119,11 +122,51 @@ describe('チャリ通のコース生成', () => {
     const slopes = run.segments.filter((s) => (s.endY ?? s.y) !== s.y)
     expect(slopes.some((s) => (s.endY ?? s.y) < s.y)).toBe(true)
     expect(slopes.some((s) => (s.endY ?? s.y) > s.y)).toBe(true)
+    expect(new Set(slopes.map((s) => Math.round(Math.abs((s.endY ?? s.y) - s.y)))).size)
+      .toBeGreaterThan(5)
+    expect(new Set(slopes.map((s) => s.curve?.toFixed(2))).size).toBeGreaterThan(5)
+    expect(Math.max(...slopes.map((s) => Math.abs((s.endY ?? s.y) - s.y)))).toBeGreaterThan(84)
     for (const s of slopes) {
       const endY = s.endY ?? s.y
       expect(Math.abs(endY - s.y)).toBeLessThanOrEqual(SLOPE_MAX_H)
       expect(surfaceAt(run, s.x + s.w / 2)).toBeCloseTo((s.y + endY) / 2, 5)
+      if (Math.abs(endY - s.y) > 10) {
+        const quarterY = segmentSurfaceAt(s, s.x + s.w / 4)
+        const linearQuarterY = s.y + (endY - s.y) / 4
+        expect(Math.abs(quarterY - linearQuarterY)).toBeGreaterThan(1)
+      }
     }
+  })
+
+  it('上りでは減速し、下りでは加速する', () => {
+    const uphill = createRun(10)
+    uphill.segments = [{
+      id: 1,
+      x: -500,
+      w: 1200,
+      y: ROAD_Y,
+      endY: ROAD_Y - 120,
+      curve: 1,
+      gapBefore: 0,
+      entryClear: 0,
+      exitClear: 0,
+    }]
+    uphill.player.x = 100
+    uphill.player.y = segmentSurfaceAt(uphill.segments[0], uphill.player.x)
+    const flatSpeed = motionSpeedAt(uphill, uphill.distance)
+    expect(slopeSpeedMultiplierFor(uphill)).toBeLessThan(1)
+    expect(motionSpeedFor(uphill)).toBeLessThan(flatSpeed)
+
+    const downhill = createRun(10)
+    downhill.segments = [{
+      ...uphill.segments[0],
+      y: ROAD_Y - 120,
+      endY: ROAD_Y,
+    }]
+    downhill.player.x = 100
+    downhill.player.y = segmentSurfaceAt(downhill.segments[0], downhill.player.x)
+    expect(slopeSpeedMultiplierFor(downhill)).toBeGreaterThan(1)
+    expect(motionSpeedFor(downhill)).toBeGreaterThan(flatSpeed)
   })
 
   it('安全帯に障害物を置かず、別クラスタは最低間隔を空ける', () => {
@@ -474,7 +517,7 @@ describe('チャリ通の物理', () => {
     expect(isUnderpassAt(run)).toBe(true)
     expect(weatherAt(run.distance, run.seed)).toBe('rain')
     expect(effectiveWeatherFor(run)).toBe('clear')
-    expect(motionSpeedFor(run)).toBe(800)
+    expect(motionSpeedFor(run)).toBeLessThan(800)
 
     run.platforms = [{ id: 900, kind: 'street', x: -500, y: ROAD_Y, w: 1200 }]
     run.player.platformId = 900

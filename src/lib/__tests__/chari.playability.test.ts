@@ -45,7 +45,7 @@ function landingUnsafe(run: Run): boolean {
   const dt = 1 / 60
   for (let i = 0; i < 72; i++) {
     const previousY = y
-    x += motionSpeedFor(run) * dt
+    x += motionSpeedFor(run, x) * dt
     vy += GRAV * dt
     y += vy * dt
     const road = surfaceAt(run, x)
@@ -92,7 +92,7 @@ function needsAirJumpForTruck(run: Run): boolean {
     (o) =>
       o.kind === 'truck' &&
       o.x - (p.x + 15) >= 0 &&
-      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.3,
+      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.42,
   )
 }
 
@@ -106,6 +106,17 @@ function needsAirJumpForBarrier(run: Run): boolean {
         o.kind === 'commuter') &&
       o.x - (p.x + 15) >= 0 &&
       o.x - (p.x + 15) <= motionSpeedFor(run) * 0.24,
+  )
+}
+
+function needsAirJumpForObstacle(run: Run): boolean {
+  const p = run.player
+  return run.obstacles.some(
+    (o) =>
+      o.kind !== 'bird' &&
+      o.kind !== 'ramp' &&
+      o.x - (p.x + 15) >= 0 &&
+      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.38,
   )
 }
 
@@ -158,7 +169,9 @@ describe('チャリ通のプレイ可能性', () => {
             !run.player.grounded &&
             !run.player.airJumpUsed &&
             ((run.player.vy > -40 &&
-              (needsAirJumpForTruck(run) || needsAirJumpForBarrier(run))) ||
+              (needsAirJumpForTruck(run) ||
+                needsAirJumpForBarrier(run) ||
+                needsAirJumpForObstacle(run))) ||
               (overAirGap(run)
                 ? shouldAirJumpGap(run)
                 : run.player.vy > 80 && landingUnsafe(run)))

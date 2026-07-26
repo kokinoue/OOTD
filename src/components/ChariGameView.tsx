@@ -370,7 +370,8 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
   for (const s of run.segments) {
     const x = s.x - cameraX
     if (x > VIEW_W + 60 || x + s.w < -60) continue
-    const samples = s.route === 'underpass' ? 24 : 1
+    const isCurved = s.route === 'underpass' || Math.abs((s.endY ?? s.y) - s.y) > 0.5
+    const samples = isCurved ? 24 : 1
     const points = Array.from({ length: samples + 1 }, (_, index) => {
       const worldX = s.x + (s.w * index) / samples
       return { x: worldX - cameraX, y: segmentSurfaceAt(s, worldX) }

@@ -6,7 +6,7 @@ export const ROAD_Y = 384
 export const ROAD_MIN_Y = 252
 export const ROAD_MAX_Y = 428
 export const STEP_H = 44
-export const SLOPE_MAX_H = 84
+export const SLOPE_MAX_H = 140
 export const PLAYER_W = 30
 export const PLAYER_H = 52
 export const WALL_TOL = 22
@@ -47,6 +47,8 @@ export type Segment = {
   w: number
   y: number
   endY?: number
+  /** 0は直線、1に近いほど坂の始端と終端が丸くなる */
+  curve?: number
   gapBefore: number
   airGap?: boolean
   route?: 'underpass'
@@ -295,8 +297,11 @@ export function minimumMotionSpeedAt(run: Run, dist: number): number {
   return Math.max(320, baseSpeed - 145 * (1 - run.traits.windResist))
 }
 
-export function motionSpeedFor(run: Run): number {
-  return motionSpeedWithWeather(run, effectiveWeatherFor(run))
+export function motionSpeedFor(run: Run, x = run.player.x): number {
+  return Math.max(
+    320,
+    motionSpeedWithWeather(run, effectiveWeatherFor(run)) * slopeSpeedMultiplierFor(run, x),
+  )
 }
 
 export function isUnderpassAt(run: Run, x = run.player.x): boolean {
@@ -366,10 +371,27 @@ export function minObstacleSpacing(speed: number): number {
 
 export function segmentSurfaceAt(segment: Segment, x: number): number {
   const t = clamp((x - segment.x) / segment.w, 0, 1)
-  const baseline = segment.y + ((segment.endY ?? segment.y) - segment.y) * t
+  const roundedT = (1 - Math.cos(t * Math.PI)) / 2
+  const curve = clamp(segment.curve ?? 0, 0, 1)
+  const heightT = t + (roundedT - t) * curve
+  const baseline = segment.y + ((segment.endY ?? segment.y) - segment.y) * heightT
   return segment.route === 'underpass'
     ? baseline + Math.sin(t * Math.PI) * UNDERPASS_DEPTH
     : baseline
+}
+
+/**
+ * 現在地の局所勾配を速度へ反映する。画面座標ではYが増える向きが下り。
+ * 急な上りは最大30%減速、急な下りは最大35%加速する。
+ */
+export function slopeSpeedMultiplierFor(run: Run, x = run.player.x): number {
+  if (run.player.platformId != null) return 1
+  const segment = run.segments.find((item) => x >= item.x && x <= item.x + item.w)
+  if (!segment) return 1
+  const sample = Math.min(4, segment.w / 8)
+  const rise = segmentSurfaceAt(segment, x + sample) - segmentSurfaceAt(segment, x - sample)
+  const grade = rise / (sample * 2)
+  return 1 + clamp(grade * 3.5, -0.3, 0.35)
 }
 
 export function surfaceAt(run: Run, x: number): number | null {
@@ -532,15 +554,25 @@ function generateSegment(run: Run) {
 
   const x = run.nextX + gap
   const w = Math.max(360, speed * (1.65 + rng() * 0.35))
-  // 長い道路区間は緩やかな上り／下りにする。区間末端を次区間の始点へ
+  // 坂ごとに高低差と丸みを変える。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
   const slopeRoll = rng()
   const slopeChance = zoneProfile.slopeChance
-  const slopeDelta =
-    !underpass && slopeRoll < slopeChance
-      ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
-      : 0
+  let slopeDelta = 0
+  if (!underpass && slopeRoll < slopeChance) {
+    let direction = rng() < 0.5 ? -1 : 1
+    const height = 42 + rng() * (SLOPE_MAX_H - 42)
+    if (
+      (direction < 0 && y - 42 < ROAD_MIN_Y) ||
+      (direction > 0 && y + 42 > ROAD_MAX_Y)
+    ) {
+      direction *= -1
+    }
+    slopeDelta = direction * height
+  }
   const endY = clamp(y + slopeDelta, ROAD_MIN_Y, ROAD_MAX_Y)
+  // 追加の乱数を消費せず、後続の障害物配置を変えない。
+  const curve = slopeDelta === 0 ? undefined : 0.55 + (slopeRoll / slopeChance) * 0.45
   // 二段ジャンプの大穴は着地が通常より奥になるため、着地側の安全帯を広げる。
   const entryClear = Math.max(90, speed * (airGap ? 1.15 : 0.72))
   // 規定の0.32秒を下限に、障害物ジャンプが着地してから次の穴へ
@@ -552,6 +584,7 @@ function generateSegment(run: Run) {
     w,
     y,
     endY,
+    curve,
     gapBefore: gap,
     airGap,
     entryClear,
