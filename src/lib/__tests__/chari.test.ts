@@ -96,14 +96,17 @@ describe('チャリ通のコース生成', () => {
   })
 
   it('二段ジャンプ専用の大穴は単発ジャンプの理論到達距離を超える', () => {
-    const run = createRun(2027)
-    ensureAhead(run, 100_000)
-    const airGaps = run.segments.filter((s) => s.airGap)
+    // 長い分岐区間を含むため、複数コースから大穴を集めて生成条件を検証する。
+    const runs = Array.from({ length: 8 }, (_, index) => createRun(2027 + index))
+    for (const run of runs) ensureAhead(run, 100_000)
+    const airGaps = runs.flatMap((run) =>
+      run.segments.filter((segment) => segment.airGap).map((segment) => ({ run, segment })),
+    )
     expect(airGaps.length).toBeGreaterThan(0)
-    for (const s of airGaps) {
-      const speed = minimumMotionSpeedAt(run, s.x - run.startX)
-      expect(s.gapBefore).toBeGreaterThan((speed * 2 * JUMP_V) / GRAV)
-      expect(s.gapBefore).toBeLessThanOrEqual(maxAirGapFor(speed))
+    for (const { run, segment } of airGaps) {
+      const speed = minimumMotionSpeedAt(run, segment.x - run.startX)
+      expect(segment.gapBefore).toBeGreaterThan((speed * 2 * JUMP_V) / GRAV)
+      expect(segment.gapBefore).toBeLessThanOrEqual(maxAirGapFor(speed))
     }
   })
 
@@ -558,6 +561,7 @@ describe('チャリ通の物理', () => {
   it('地下道では現在の天候効果を受けない', () => {
     const run = createRun(1)
     run.segments[0].route = 'underpass'
+    run.player.x = run.segments[0].x + run.segments[0].w * 0.9
     run.player.y = segmentSurfaceAt(run.segments[0], run.player.x)
     expect(isUnderpassAt(run)).toBe(true)
     expect(weatherAt(run.distance, run.seed)).toBe('rain')
@@ -611,6 +615,52 @@ describe('チャリ通の物理', () => {
     step(run, idle, 1 / 120)
     expect(run.coins[0].magnetized).not.toBe(true)
     expect(run.coins[0].taken).toBe(false)
+  })
+
+  it('地下道は地上ルートより大幅に多くコインを配置する', () => {
+    const run = createRun(91)
+    ensureAhead(run, 180_000)
+    const underpass = run.segments.find((segment) => segment.route === 'underpass')!
+    const street = run.platforms.find(
+      (platform) =>
+        platform.kind === 'street' &&
+        platform.x >= underpass.x &&
+        platform.x < underpass.x + underpass.w,
+    )!
+    const routeCoins = run.coins.filter(
+      (coin) => coin.x >= underpass.x && coin.x < underpass.x + underpass.w,
+    )
+    const streetCoins = routeCoins.filter((coin) => Math.abs(coin.y - (street.y - 36)) < 1)
+    const undergroundCoins = routeCoins.filter(
+      (coin) => coin.y > street.y + UNDERPASS_STREET_LIFT * 0.6,
+    )
+    expect(streetCoins).toHaveLength(3)
+    expect(undergroundCoins.length).toBeGreaterThan(streetCoins.length * 5)
+  })
+
+  it('地下道は長い分岐になり、障害物は地下ルートだけに配置する', () => {
+    const run = createRun(91)
+    ensureAhead(run, 180_000)
+    const underpass = run.segments.find((segment) => segment.route === 'underpass')!
+    const street = run.platforms.find(
+      (platform) =>
+        platform.kind === 'street' &&
+        platform.x >= underpass.x &&
+        platform.x < underpass.x + underpass.w,
+    )!
+    const undergroundObstacles = run.obstacles.filter(
+      (obstacle) =>
+        obstacle.x >= underpass.x && obstacle.x < underpass.x + underpass.w,
+    )
+
+    expect(underpass.w).toBeGreaterThanOrEqual(2800)
+    expect(street.w).toBeGreaterThan(underpass.w * 0.85)
+    expect(undergroundObstacles).toHaveLength(5)
+    expect(
+      undergroundObstacles.every(
+        (obstacle) => obstacle.y > street.y + PLAYER_H,
+      ),
+    ).toBe(true)
   })
 
   it('雨は踏み切りを弱め、雨支度はジャンプ力の低下を抑える', () => {

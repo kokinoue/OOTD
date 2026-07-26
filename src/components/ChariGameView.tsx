@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import cutoutsJson from '../data/cutouts.json'
 import {
   DEFAULT_RIDER_TRAITS,
+  UNDERPASS_STREET_LIFT,
   commuteClockAt,
   createRun,
   deriveRiderTraits,
@@ -624,6 +625,22 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.strokeStyle = '#f4d38b'
       ctx.stroke()
     }
+  }
+  for (const segment of run.segments) {
+    if (segment.route !== 'underpass') continue
+    const signX = segment.x + 88 - cameraX
+    if (signX < -130 || signX > VIEW_W + 20) continue
+    const upperY = segment.y - UNDERPASS_STREET_LIFT - 42
+    const lowerY = segment.y + 38
+    ctx.font = '700 13px ui-monospace, monospace'
+    ctx.textAlign = 'left'
+    ctx.fillStyle = 'rgba(30,34,40,.88)'
+    ctx.fillRect(signX - 7, upperY - 17, 116, 24)
+    ctx.fillRect(signX - 7, lowerY - 17, 168, 24)
+    ctx.fillStyle = '#dcebf0'
+    ctx.fillText('↑ 地上 SAFE', signX, upperY)
+    ctx.fillStyle = '#ffd45f'
+    ctx.fillText('↓ 地下 COIN / RISK', signX, lowerY)
   }
 }
 

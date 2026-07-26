@@ -419,9 +419,17 @@ export function segmentSurfaceAt(segment: Segment, x: number): number {
   const curve = clamp(segment.curve ?? 0, 0, 1)
   const heightT = t + (roundedT - t) * curve
   const baseline = segment.y + ((segment.endY ?? segment.y) - segment.y) * heightT
-  return segment.route === 'underpass'
-    ? baseline + Math.sin(t * Math.PI) * UNDERPASS_DEPTH
-    : baseline
+  if (segment.route !== 'underpass') return baseline
+
+  // 短い谷ではなく、入口で降りたあと長く地下を走り、出口で戻る形にする。
+  const transition = 0.17
+  const depthT =
+    t < transition
+      ? (1 - Math.cos((t / transition) * Math.PI)) / 2
+      : t > 1 - transition
+        ? (1 - Math.cos(((1 - t) / transition) * Math.PI)) / 2
+        : 1
+  return baseline + depthT * UNDERPASS_DEPTH
 }
 
 /**
@@ -606,7 +614,10 @@ function generateSegment(run: Run) {
   }
 
   const x = run.nextX + gap
-  const w = Math.max(360, speed * (1.65 + rng() * 0.35))
+  // 地下道は分岐後の選択がしばらく続く、通常区間の倍以上の長さにする。
+  const w = underpass
+    ? Math.max(2800, speed * (4.2 + rng() * 0.5))
+    : Math.max(360, speed * (1.65 + rng() * 0.35))
   // 坂ごとに高低差と丸みを変える。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
   const slopeRoll = rng()
@@ -744,10 +755,44 @@ function generateSegment(run: Run) {
     const streetEnd = x + w - Math.max(105, speed * 0.14)
     const streetY = y - UNDERPASS_STREET_LIFT
     addPlatform(run, 'street', streetStart, streetEnd - streetStart, streetY)
-    for (let coinX = streetStart + 36; coinX < streetEnd - 20; coinX += 44) {
+    // 地上は安全な代わりに少額報酬。3枚だけを等間隔に置く。
+    for (let index = 1; index <= 3; index++) {
+      const coinX = streetStart + ((streetEnd - streetStart) * index) / 4
       addCoin(run, coinX, streetY - 36)
     }
-    for (let coinX = x + w * 0.28; coinX < x + w * 0.72; coinX += 54) {
+    // 地下は長い区間に障害物が続く代わりに大量報酬。コイン列は障害物の
+    // 手前で途切れ、ジャンプ軌道へつながるので進路も読み取りやすい。
+    const hazards = [
+      { kind: 'fence' as const, x: x + w * 0.34, span: 42, lift: 66 },
+      { kind: 'pylon' as const, x: x + w * 0.54, span: 104, lift: 54 },
+      { kind: 'fence' as const, x: x + w * 0.74, span: 42, lift: 66 },
+    ]
+    for (const hazard of hazards) {
+      const cluster = run.serial++
+      if (hazard.kind === 'pylon') {
+        for (let index = 0; index < 3; index++) {
+          const obstacleX = hazard.x + index * 40
+          addObstacle(run, 'pylon', obstacleX, roadAt(obstacleX + 12), cluster)
+        }
+      } else {
+        addObstacle(run, 'fence', hazard.x, roadAt(hazard.x + 21), cluster)
+      }
+      addCoinArc(
+        run,
+        hazard.x - 38,
+        hazard.x + hazard.span + 50,
+        roadAt(hazard.x + hazard.span / 2),
+        hazard.lift,
+      )
+    }
+    for (let coinX = x + w * 0.16; coinX < x + w * 0.84; coinX += 38) {
+      if (
+        hazards.some(
+          (hazard) => coinX > hazard.x - 70 && coinX < hazard.x + hazard.span + 80,
+        )
+      ) {
+        continue
+      }
       addCoin(run, coinX, segmentSurfaceAt(segment, coinX) - 45)
     }
   } else if (
