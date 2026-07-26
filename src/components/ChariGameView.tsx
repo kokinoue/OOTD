@@ -4,6 +4,7 @@ import {
   DEFAULT_RIDER_TRAITS,
   UNDERPASS_STREET_LIFT,
   commuteClockAt,
+  crossingStateAt,
   createRun,
   deriveRiderTraits,
   effectiveWeatherTransitionFor,
@@ -604,11 +605,23 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.arc(x + 19, o.y + 10, 8, 0, Math.PI * 2)
       ctx.fill()
     } else if (o.kind === 'crossing') {
+      const crossing = crossingStateAt(run, o)
       ctx.fillStyle = '#33363b'
       ctx.fillRect(x - 4, o.y - 25, 9, 83)
+      ctx.fillStyle = '#25282d'
+      ctx.fillRect(x - 17, o.y - 37, 34, 20)
+      for (let light = 0; light < 2; light++) {
+        ctx.fillStyle =
+          crossing.warning && crossing.lightSide === light
+            ? '#ff4e3f'
+            : '#683a37'
+        ctx.beginPath()
+        ctx.arc(x - 8 + light * 16, o.y - 27, 5, 0, Math.PI * 2)
+        ctx.fill()
+      }
       ctx.save()
       ctx.translate(x, o.y + 3)
-      ctx.rotate(active ? 0 : -Math.PI * 0.43)
+      ctx.rotate(-(1 - crossing.closure) * Math.PI * 0.43)
       ctx.fillStyle = '#f1d9b5'
       ctx.fillRect(0, -6, 92, 12)
       ctx.fillStyle = '#e14f45'

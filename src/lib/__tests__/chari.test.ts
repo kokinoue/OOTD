@@ -18,6 +18,7 @@ import {
   createRun,
   commuteClockAt,
   commuteStartMinute,
+  crossingStateAt,
   deriveRiderTraits,
   effectiveWeatherFor,
   ensureAhead,
@@ -666,6 +667,44 @@ describe('チャリ通の物理', () => {
     expect(obstacleActive(run, signal)).toBe(true)
     run.elapsed = 218.7
     expect(obstacleActive(run, signal)).toBe(true)
+  })
+
+  it('踏切は警告灯のあと徐々に閉まり、徐々に開く', () => {
+    const run = createRun(0)
+    const crossing = {
+      id: 2,
+      kind: 'crossing' as const,
+      x: 500,
+      y: 326,
+      w: 92,
+      h: 12,
+      cluster: 2,
+      used: false,
+      phase: 0,
+    }
+    run.elapsed = 3.5
+    expect(crossingStateAt(run, crossing)).toMatchObject({
+      closure: 0,
+      warning: false,
+    })
+
+    run.elapsed = 4.2
+    const warning = crossingStateAt(run, crossing)
+    run.elapsed = 4.6
+    const closing = crossingStateAt(run, crossing)
+    run.elapsed = 4.9
+    const closed = crossingStateAt(run, crossing)
+    expect(warning.warning).toBe(true)
+    expect(warning.closure).toBeLessThan(closing.closure)
+    expect(closing.closure).toBeLessThan(closed.closure)
+    expect(obstacleActive(run, crossing)).toBe(true)
+
+    run.elapsed = 2.75
+    const opening = crossingStateAt(run, crossing)
+    run.elapsed = 3.05
+    const nearlyOpen = crossingStateAt(run, crossing)
+    expect(opening.closure).toBeGreaterThan(nearlyOpen.closure)
+    expect(obstacleActive(run, crossing)).toBe(false)
   })
 
   it('帰宅ラッシュは出勤ラッシュより通勤者の移動が速い', () => {

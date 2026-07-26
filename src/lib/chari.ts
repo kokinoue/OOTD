@@ -584,8 +584,35 @@ export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
             : 2.45
     return (run.elapsed + (obstacle.phase ?? 0)) % 4 < redTime
   }
-  if (obstacle.kind === 'crossing') return (run.elapsed + (obstacle.phase ?? 0)) % 5 < 3.15
+  if (obstacle.kind === 'crossing') {
+    return crossingStateAt(run, obstacle).closure >= 0.78
+  }
   return true
+}
+
+export function crossingStateAt(
+  run: Run,
+  obstacle: Pick<Obstacle, 'phase'>,
+): { closure: number; warning: boolean; lightSide: 0 | 1 } {
+  const time = run.elapsed + (obstacle.phase ?? 0)
+  const cycle = ((time % 5) + 5) % 5
+  const smooth = (value: number) => {
+    const progress = clamp(value, 0, 1)
+    return progress * progress * (3 - 2 * progress)
+  }
+  let closure = 0
+  if (cycle < 2.6) {
+    closure = 1
+  } else if (cycle < 3.2) {
+    closure = 1 - smooth((cycle - 2.6) / 0.6)
+  } else if (cycle >= 4.15) {
+    closure = smooth((cycle - 4.15) / 0.85)
+  }
+  return {
+    closure,
+    warning: cycle < 3.2 || cycle >= 4.15,
+    lightSide: (Math.floor(time * 6) % 2 === 0 ? 0 : 1),
+  }
 }
 
 function addZonePattern(
