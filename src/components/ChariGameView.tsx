@@ -421,31 +421,41 @@ function drawRoadAndItems(
     if (x > VIEW_W + 60 || x + s.w < -60) continue
     const isCurved = s.route === 'underpass' || Math.abs((s.endY ?? s.y) - s.y) > 0.5
     const samples = isCurved ? 24 : 1
-    const points = Array.from({ length: samples + 1 }, (_, index) => {
-      const worldX = s.x + (s.w * index) / samples
-      return { x: worldX - cameraX, y: segmentSurfaceAt(s, worldX) }
-    })
+    const firstX = s.x - cameraX
+    const firstY = segmentSurfaceAt(s, s.x)
     ctx.fillStyle = '#3a3a41'
     ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y)
-    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y)
+    ctx.moveTo(firstX, firstY)
+    for (let index = 1; index <= samples; index++) {
+      const worldX = s.x + (s.w * index) / samples
+      ctx.lineTo(worldX - cameraX, segmentSurfaceAt(s, worldX))
+    }
     ctx.lineTo(x + s.w, viewHeight)
     ctx.lineTo(x, viewHeight)
     ctx.closePath()
     ctx.fill()
     ctx.fillStyle = '#4d4d57'
     ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y)
-    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y)
-    for (const point of [...points].reverse()) ctx.lineTo(point.x, point.y + 9)
+    ctx.moveTo(firstX, firstY)
+    for (let index = 1; index <= samples; index++) {
+      const worldX = s.x + (s.w * index) / samples
+      ctx.lineTo(worldX - cameraX, segmentSurfaceAt(s, worldX))
+    }
+    for (let index = samples; index >= 0; index--) {
+      const worldX = s.x + (s.w * index) / samples
+      ctx.lineTo(worldX - cameraX, segmentSurfaceAt(s, worldX) + 9)
+    }
     ctx.closePath()
     ctx.fill()
     ctx.strokeStyle = 'rgba(255,255,255,.26)'
     ctx.lineWidth = 3
     ctx.setLineDash([34, 28])
     ctx.beginPath()
-    ctx.moveTo(points[0].x, points[0].y + 75)
-    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y + 75)
+    ctx.moveTo(firstX, firstY + 75)
+    for (let index = 1; index <= samples; index++) {
+      const worldX = s.x + (s.w * index) / samples
+      ctx.lineTo(worldX - cameraX, segmentSurfaceAt(s, worldX) + 75)
+    }
     ctx.stroke()
     ctx.setLineDash([])
   }
@@ -524,10 +534,9 @@ function drawRoadAndItems(
     ctx.stroke()
   }
   ctx.save()
-  ctx.shadowColor = isNightTimeAt(run.elapsed, run.seed)
-    ? 'rgba(255,232,151,.62)'
-    : 'rgba(255,255,255,.52)'
-  ctx.shadowBlur = 7
+  const nightObstacles = isNightTimeAt(run.elapsed, run.seed)
+  ctx.shadowColor = 'rgba(255,232,151,.62)'
+  ctx.shadowBlur = nightObstacles ? 7 : 0
   for (const o of run.obstacles) {
     const x = o.x - cameraX
     if (x < -80 || x > VIEW_W + 80) continue
@@ -934,6 +943,7 @@ function drawAtmosphere(
   t: number,
   viewHeight: number,
   sceneOffsetY: number,
+  reducedEffects: boolean,
 ) {
   const weatherTransition = effectiveWeatherTransitionFor(run)
   const rainStrength = weatherStrength(weatherTransition, 'rain')
@@ -945,7 +955,8 @@ function drawAtmosphere(
     ctx.globalAlpha *= rainStrength
     ctx.strokeStyle = 'rgba(220,239,247,.62)'
     ctx.lineWidth = 2
-    for (let i = 0; i < 75; i++) {
+    const rainCount = reducedEffects ? 44 : 75
+    for (let i = 0; i < rainCount; i++) {
       const x = (i * 73 + t * 310) % (VIEW_W + 80) - 40
       const y = (i * 41 + t * 520) % viewHeight
       ctx.beginPath()
@@ -978,7 +989,8 @@ function drawAtmosphere(
     ctx.strokeStyle = 'rgba(242,247,232,.5)'
     ctx.lineWidth = 3
     const direction = (run.seed & 1) === 0 ? -1 : 1
-    for (let i = 0; i < 12; i++) {
+    const windCount = reducedEffects ? 8 : 12
+    for (let i = 0; i < windCount; i++) {
       const span = VIEW_W + 140
       const x = ((i * 103 + direction * t * 430) % span + span) % span - 70
       const y = 80 + (i * 47) % 300
@@ -997,8 +1009,9 @@ function drawAtmosphere(
     ctx.fillStyle = 'rgba(225,231,226,.24)'
     ctx.fillRect(0, 0, VIEW_W, viewHeight)
     ctx.save()
-    ctx.filter = 'blur(18px)'
-    for (let i = 0; i < 9; i++) {
+    ctx.filter = reducedEffects ? 'blur(12px)' : 'blur(18px)'
+    const fogCount = reducedEffects ? 6 : 9
+    for (let i = 0; i < fogCount; i++) {
       const x = ((i * 173 - t * (24 + (i % 3) * 9)) % (VIEW_W + 360)) - 180
       const y = 90 + (i * 71) % 340
       ctx.fillStyle = `rgba(242,246,242,${0.2 + (i % 3) * 0.07})`
@@ -1042,7 +1055,8 @@ function drawAtmosphere(
   }
   if (zone === 'construction') {
     ctx.fillStyle = 'rgba(199,166,111,.22)'
-    for (let i = 0; i < 16; i++) {
+    const dustCount = reducedEffects ? 10 : 16
+    for (let i = 0; i < dustCount; i++) {
       const phase = (t * 0.18 + i * 0.093) % 1
       const x = (i * 83 - t * 55) % (VIEW_W + 100)
       ctx.beginPath()
@@ -1204,9 +1218,11 @@ export default function ChariGameView({ data, onBack }: Props) {
     const canvas = canvasRef.current
     const screen = screenRef.current
     if (!canvas || !screen) return
-    const ctx = canvas.getContext('2d')!
-    const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const ctx = canvas.getContext('2d', { alpha: false })!
     const isMobileLayout = window.matchMedia('(max-width: 760px)').matches
+    // 論理解像度自体が表示幅より大きいため、Retinaの倍率をそのまま掛けると
+    // スマホでは必要量の約3倍を毎フレーム塗ることになる。
+    const dpr = Math.min(isMobileLayout ? 1.25 : 1.5, window.devicePixelRatio || 1)
     const viewHeight = isMobileLayout ? MOBILE_VIEW_H : VIEW_H
     const baseSceneOffsetY = isMobileLayout ? MOBILE_SCENE_Y : 0
     canvas.width = VIEW_W * dpr
@@ -1222,6 +1238,8 @@ export default function ChariGameView({ data, onBack }: Props) {
     let finished = false
     let crashAt = 0
     let sceneCameraY = baseSceneOffsetY
+    let lastHudAt = -Infinity
+    let cachedBest = loadBest()
 
     const addParticles = (e: GameEvent) => {
       if (e.kind === 'land') {
@@ -1254,6 +1272,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       const score = scoreOf(run)
       saveBest(score)
       const best = loadBest()
+      cachedBest = best
       setResult({ meters: metersOf(run), coins: run.coinsTaken, combo: run.maxCombo, score, best })
       if (bestRef.current) bestRef.current.textContent = String(best)
     }
@@ -1323,14 +1342,15 @@ export default function ChariGameView({ data, onBack }: Props) {
         (targetSceneY - sceneCameraY) *
         (1 - Math.exp(-rawDt * 8))
       const sceneOffsetY = sceneCameraY
+      const timeSeconds = now / 1000
       drawBackground(ctx, run, cameraX, viewHeight, sceneOffsetY)
       ctx.save()
       ctx.translate(0, sceneOffsetY)
-      drawRoadAndItems(ctx, run, cameraX, now / 1000, viewHeight)
+      drawRoadAndItems(ctx, run, cameraX, timeSeconds, viewHeight)
       const crashTilt = run.overReason === 'crash' ? Math.min(1.18, ((now - crashAt) / 420) * 1.18) : 0
       drawBike(ctx, run, spriteRef.current, ratioRef.current, crashTilt)
       ctx.restore()
-      drawAtmosphere(ctx, run, now / 1000, viewHeight, sceneOffsetY)
+      drawAtmosphere(ctx, run, timeSeconds, viewHeight, sceneOffsetY, isMobileLayout)
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i]
@@ -1362,49 +1382,58 @@ export default function ChariGameView({ data, onBack }: Props) {
         ctx.fillStyle = `rgba(255,80,55,${0.3 * (1 - (now - crashAt) / 190)})`
         ctx.fillRect(0, 0, VIEW_W, viewHeight)
       }
-      if (meterRef.current) meterRef.current.textContent = String(metersOf(run))
-      if (coinRef.current) coinRef.current.textContent = String(run.coinsTaken)
-      if (scoreRef.current) scoreRef.current.textContent = String(scoreOf(run))
-      if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
-      const zone = zoneAt(run.distance, run.seed)
-      const weather = weatherAt(run.distance, run.seed)
-      const weatherTransition = weatherTransitionAt(run.distance, run.seed)
-      const commute = commuteClockAt(run.elapsed, run.seed)
-      if (zoneRef.current) {
-        zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
-        zoneRef.current.dataset.zone = zone
+      // HUDは10fpsで十分滑らか。毎フレームのDOM書き換えとlocalStorage参照を避ける。
+      if (now - lastHudAt >= 100) {
+        lastHudAt = now
+        const currentScore = scoreOf(run)
+        if (meterRef.current) meterRef.current.textContent = String(metersOf(run))
+        if (coinRef.current) coinRef.current.textContent = String(run.coinsTaken)
+        if (scoreRef.current) scoreRef.current.textContent = String(currentScore)
+        if (comboRef.current) {
+          comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
+        }
+        const zone = zoneAt(run.distance, run.seed)
+        const weather = weatherAt(run.distance, run.seed)
+        const weatherTransition = weatherTransitionAt(run.distance, run.seed)
+        const commute = commuteClockAt(run.elapsed, run.seed)
+        if (zoneRef.current) {
+          zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
+          zoneRef.current.dataset.zone = zone
+        }
+        if (weatherRef.current) {
+          const sheltered = isUnderpassAt(run)
+          const effect =
+            sheltered
+              ? '地下道・天候無効'
+              : weather === 'wind'
+              ? (run.seed & 1) === 0
+                ? '追い風・大加速'
+                : '向かい風・大減速'
+              : weatherEffectLabel[weather]
+          weatherRef.current.textContent = sheltered
+            ? `🚇 ${effect}`
+            : weatherTransition.progress < 1 && weatherTransition.from !== weatherTransition.to
+              ? `${weatherIcon[weatherTransition.from]}→${weatherIcon[weatherTransition.to]} ` +
+                `${weatherLabel[weatherTransition.from]}→${weatherLabel[weatherTransition.to]}・変化中`
+              : `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
+          weatherRef.current.dataset.weather = sheltered ? 'clear' : weather
+        }
+        if (timeRef.current) {
+          timeRef.current.textContent = `◷ ${commute.label} ${commutePhaseLabel[commute.phase]}`
+          timeRef.current.dataset.phase = commute.phase
+        }
+        if (noticeRef.current) {
+          const next = nextZoneInfo(run.distance, run.seed)
+          const show = next.distance <= 1500
+          noticeRef.current.textContent = show
+            ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`
+            : ''
+          noticeRef.current.classList.toggle('is-visible', show)
+        }
+        if (bestRef.current) {
+          bestRef.current.textContent = String(Math.max(cachedBest, currentScore))
+        }
       }
-      if (weatherRef.current) {
-        const sheltered = isUnderpassAt(run)
-        const effect =
-          sheltered
-            ? '地下道・天候無効'
-            : weather === 'wind'
-            ? (run.seed & 1) === 0
-              ? '追い風・大加速'
-              : '向かい風・大減速'
-            : weatherEffectLabel[weather]
-        weatherRef.current.textContent = sheltered
-          ? `🚇 ${effect}`
-          : weatherTransition.progress < 1 && weatherTransition.from !== weatherTransition.to
-            ? `${weatherIcon[weatherTransition.from]}→${weatherIcon[weatherTransition.to]} ` +
-              `${weatherLabel[weatherTransition.from]}→${weatherLabel[weatherTransition.to]}・変化中`
-            : `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
-        weatherRef.current.dataset.weather = sheltered ? 'clear' : weather
-      }
-      if (timeRef.current) {
-        timeRef.current.textContent = `◷ ${commute.label} ${commutePhaseLabel[commute.phase]}`
-        timeRef.current.dataset.phase = commute.phase
-      }
-      if (noticeRef.current) {
-        const next = nextZoneInfo(run.distance, run.seed)
-        const show = next.distance <= 1500
-        noticeRef.current.textContent = show
-          ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`
-          : ''
-        noticeRef.current.classList.toggle('is-visible', show)
-      }
-      if (bestRef.current) bestRef.current.textContent = String(Math.max(loadBest(), scoreOf(run)))
       raf = requestAnimationFrame(frame)
     }
     raf = requestAnimationFrame(frame)
