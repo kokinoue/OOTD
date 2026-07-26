@@ -25,6 +25,8 @@ export const PRUNE_BEHIND = 700
 export const COMBO_TIMEOUT = 1.8
 export const ZONE_LENGTH = 9000
 export const WEATHER_LENGTH = 6000
+export const UNDERPASS_DEPTH = 96
+export const UNDERPASS_STREET_LIFT = 100
 
 export type EventKind =
   | 'jump'
@@ -337,7 +339,9 @@ export function minObstacleSpacing(speed: number): number {
 export function segmentSurfaceAt(segment: Segment, x: number): number {
   const t = clamp((x - segment.x) / segment.w, 0, 1)
   const baseline = segment.y + ((segment.endY ?? segment.y) - segment.y) * t
-  return segment.route === 'underpass' ? baseline + Math.sin(t * Math.PI) * 96 : baseline
+  return segment.route === 'underpass'
+    ? baseline + Math.sin(t * Math.PI) * UNDERPASS_DEPTH
+    : baseline
 }
 
 export function surfaceAt(run: Run, x: number): number | null {
@@ -598,11 +602,12 @@ function generateSegment(run: Run) {
   if (underpass) {
     const streetStart = x + Math.max(105, speed * 0.14)
     const streetEnd = x + w - Math.max(105, speed * 0.14)
-    addPlatform(run, 'street', streetStart, streetEnd - streetStart, y)
+    const streetY = y - UNDERPASS_STREET_LIFT
+    addPlatform(run, 'street', streetStart, streetEnd - streetStart, streetY)
     for (let coinX = streetStart + 36; coinX < streetEnd - 20; coinX += 44) {
-      addCoin(run, coinX, y - 36)
+      addCoin(run, coinX, streetY - 36)
     }
-    for (let coinX = x + 170; coinX < x + w - 150; coinX += 54) {
+    for (let coinX = x + w * 0.28; coinX < x + w * 0.72; coinX += 54) {
       addCoin(run, coinX, segmentSurfaceAt(segment, coinX) - 45)
     }
   } else if (

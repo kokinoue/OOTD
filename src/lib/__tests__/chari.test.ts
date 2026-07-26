@@ -11,6 +11,8 @@ import {
   ROAD_Y,
   SLOPE_MAX_H,
   STEP_H,
+  UNDERPASS_DEPTH,
+  UNDERPASS_STREET_LIFT,
   WALL_TOL,
   createRun,
   commuteClockAt,
@@ -467,6 +469,48 @@ describe('チャリ通の物理', () => {
     run.player.y = ROAD_Y
     expect(isUnderpassAt(run)).toBe(false)
     expect(effectiveWeatherFor(run)).toBe('rain')
+  })
+
+  it('地下道と地上ルートのコインは吸引半径より離れている', () => {
+    const run = createRun(1)
+    const segment = {
+      id: 1,
+      x: -500,
+      w: 1200,
+      y: ROAD_Y,
+      endY: ROAD_Y,
+      gapBefore: 0,
+      route: 'underpass' as const,
+      entryClear: 0,
+      exitClear: 0,
+    }
+    run.segments = [segment]
+    run.nextX = 10_000
+    run.player.x = 100
+    run.player.y = segmentSurfaceAt(segment, run.player.x)
+    run.traits = { ...DEFAULT_RIDER_TRAITS, coinRadius: 120, effects: ['バッグ'] }
+    const streetCoinY = ROAD_Y - UNDERPASS_STREET_LIFT - 36
+    expect(run.player.y - streetCoinY).toBeGreaterThan(120)
+    expect(run.player.y).toBe(ROAD_Y + UNDERPASS_DEPTH)
+    run.coins = [{ id: 2, x: run.player.x, y: streetCoinY, taken: false }]
+    step(run, idle, 1 / 120)
+    expect(run.coins[0].magnetized).not.toBe(true)
+    expect(run.coins[0].taken).toBe(false)
+
+    run.platforms = [{
+      id: 900,
+      kind: 'street',
+      x: -500,
+      y: ROAD_Y - UNDERPASS_STREET_LIFT,
+      w: 1200,
+    }]
+    run.player.platformId = 900
+    run.player.y = ROAD_Y - UNDERPASS_STREET_LIFT
+    const tunnelCoinY = ROAD_Y + UNDERPASS_DEPTH - 45
+    run.coins = [{ id: 3, x: run.player.x, y: tunnelCoinY, taken: false }]
+    step(run, idle, 1 / 120)
+    expect(run.coins[0].magnetized).not.toBe(true)
+    expect(run.coins[0].taken).toBe(false)
   })
 
   it('雨は踏み切りを弱め、雨支度はジャンプ力の低下を抑える', () => {
