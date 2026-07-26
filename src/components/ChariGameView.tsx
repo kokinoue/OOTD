@@ -169,6 +169,11 @@ const weatherIcon = {
   fog: '▤',
 } as const
 
+function effectLabel(effect: string): string {
+  const separator = effect.indexOf('：')
+  return separator < 0 ? effect : effect.slice(separator + 1)
+}
+
 function mixHex(from: string, to: string, progress: number): string {
   const channel = (color: string, offset: number) => Number.parseInt(color.slice(offset, offset + 2), 16)
   const mixed = [1, 3, 5].map((offset) =>
@@ -1139,7 +1144,7 @@ export default function ChariGameView({ data, onBack }: Props) {
             <b>服効果</b>
             <div className="chari-outfit-effects">
               {traits.effects.map((effect, index) => (
-                <span key={`${effect}-${index}`}>{effect}</span>
+                <span key={`${effect}-${index}`}>{effectLabel(effect)}</span>
               ))}
             </div>
           </div>

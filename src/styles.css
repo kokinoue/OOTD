@@ -5931,18 +5931,19 @@ a {
   line-height: 1.2;
 }
 .chari-outfit-effects {
-  display: grid;
-  padding: 6px;
-  gap: 4px;
+  display: flex;
+  padding: 5px;
+  gap: 3px;
+  flex-wrap: wrap;
 }
 .chari-outfit-effects span {
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: 6px;
   color: #fff;
   background: rgba(255, 255, 255, 0.1);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: normal;
 }
@@ -6092,9 +6093,9 @@ a {
     font-size: 9px;
   }
   .chari-outfit-effects span {
-    padding: 5px 6px;
+    padding: 4px 5px;
     font-size: 8px;
-    line-height: 1.35;
+    line-height: 1.25;
   }
   .chari-change-mobile {
     position: absolute;
