@@ -37,6 +37,7 @@ import GameShareButton from './GameShareButton'
 const VIEW_W = 960
 const VIEW_H = 540
 const MOBILE_VIEW_H = 768
+const MOBILE_SCENE_Y = 82
 const HERO_X = 220
 const SOUND_KEY = 'chari.sound'
 const cutouts = cutoutsJson as CutoutsFile
@@ -182,6 +183,7 @@ function drawBackground(
   run: Run,
   cameraX: number,
   viewHeight: number,
+  sceneOffsetY: number,
 ) {
   const zone = zoneAt(run.distance, run.seed)
   const weatherTransition = weatherTransitionAt(run.distance, run.seed)
@@ -224,6 +226,8 @@ function drawBackground(
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, VIEW_W, viewHeight)
 
+  ctx.save()
+  ctx.translate(0, sceneOffsetY)
   ctx.fillStyle = isNight ? 'rgba(240,244,219,.82)' : 'rgba(255,239,183,.72)'
   ctx.beginPath()
   ctx.arc(750 - (cameraX * 0.015) % 100, 86, 42, 0, Math.PI * 2)
@@ -399,6 +403,7 @@ function drawBackground(
   }
   ctx.fillStyle = separation
   ctx.fillRect(0, 120, VIEW_W, 310)
+  ctx.restore()
 }
 
 function drawRoadAndItems(
@@ -730,6 +735,7 @@ function drawAtmosphere(
   run: Run,
   t: number,
   viewHeight: number,
+  sceneOffsetY: number,
 ) {
   const weatherTransition = effectiveWeatherTransitionFor(run)
   const rainStrength = weatherStrength(weatherTransition, 'rain')
@@ -756,7 +762,7 @@ function drawAtmosphere(
         ctx.beginPath()
         ctx.ellipse(
           HERO_X - 24 - phase * (34 + i * 3),
-          run.player.y - 5 - Math.sin(phase * Math.PI) * 13,
+          run.player.y + sceneOffsetY - 5 - Math.sin(phase * Math.PI) * 13,
           5 - phase * 3,
           2,
           0,
@@ -806,10 +812,10 @@ function drawAtmosphere(
     const fogRelief = run.traits.fogVision
     const visibility = ctx.createRadialGradient(
       HERO_X + 25,
-      305,
+      305 + sceneOffsetY,
       75 + fogRelief * 120,
       HERO_X + 25,
-      305,
+      305 + sceneOffsetY,
       620 + fogRelief * 260,
     )
     visibility.addColorStop(0, 'rgba(218,226,221,0)')
@@ -822,7 +828,14 @@ function drawAtmosphere(
     ctx.restore()
   }
   if (isNightTimeAt(run.elapsed, run.seed)) {
-    const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
+    const light = ctx.createRadialGradient(
+      HERO_X + 55,
+      330 + sceneOffsetY,
+      20,
+      HERO_X + 55,
+      330 + sceneOffsetY,
+      300,
+    )
     light.addColorStop(0, 'rgba(255,244,183,0)')
     light.addColorStop(0.62, 'rgba(7,10,22,.32)')
     light.addColorStop(1, 'rgba(4,7,18,.72)')
@@ -835,7 +848,7 @@ function drawAtmosphere(
       const phase = (t * 0.18 + i * 0.093) % 1
       const x = (i * 83 - t * 55) % (VIEW_W + 100)
       ctx.beginPath()
-      ctx.arc(x, 410 - phase * 190, 18 + phase * 34, 0, Math.PI * 2)
+      ctx.arc(x, 410 + sceneOffsetY - phase * 190, 18 + phase * 34, 0, Math.PI * 2)
       ctx.fill()
     }
   }
@@ -995,9 +1008,9 @@ export default function ChariGameView({ data, onBack }: Props) {
     if (!canvas || !screen) return
     const ctx = canvas.getContext('2d')!
     const dpr = Math.min(2, window.devicePixelRatio || 1)
-    const viewHeight = window.matchMedia('(max-width: 760px)').matches
-      ? MOBILE_VIEW_H
-      : VIEW_H
+    const isMobileLayout = window.matchMedia('(max-width: 760px)').matches
+    const viewHeight = isMobileLayout ? MOBILE_VIEW_H : VIEW_H
+    const sceneOffsetY = isMobileLayout ? MOBILE_SCENE_Y : 0
     canvas.width = VIEW_W * dpr
     canvas.height = viewHeight * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -1102,11 +1115,14 @@ export default function ChariGameView({ data, onBack }: Props) {
       }
 
       const cameraX = run.player.x - HERO_X
-      drawBackground(ctx, run, cameraX, viewHeight)
+      drawBackground(ctx, run, cameraX, viewHeight, sceneOffsetY)
+      ctx.save()
+      ctx.translate(0, sceneOffsetY)
       drawRoadAndItems(ctx, run, cameraX, now / 1000, viewHeight)
       const crashTilt = run.overReason === 'crash' ? Math.min(1.18, ((now - crashAt) / 420) * 1.18) : 0
       drawBike(ctx, run, spriteRef.current, ratioRef.current, crashTilt)
-      drawAtmosphere(ctx, run, now / 1000, viewHeight)
+      ctx.restore()
+      drawAtmosphere(ctx, run, now / 1000, viewHeight, sceneOffsetY)
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i]
@@ -1125,10 +1141,10 @@ export default function ChariGameView({ data, onBack }: Props) {
         if (p.kind === 'text') {
           ctx.font = 'bold 22px ui-monospace, monospace'
           ctx.textAlign = 'center'
-          ctx.fillText(p.text ?? '', sx, p.y)
+          ctx.fillText(p.text ?? '', sx, p.y + sceneOffsetY)
         } else {
           ctx.beginPath()
-          ctx.arc(sx, p.y, p.kind === 'dust' ? 5 : 3, 0, Math.PI * 2)
+          ctx.arc(sx, p.y + sceneOffsetY, p.kind === 'dust' ? 5 : 3, 0, Math.PI * 2)
           ctx.fill()
         }
       }
