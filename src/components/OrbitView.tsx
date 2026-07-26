@@ -313,20 +313,35 @@ export default function OrbitView({
         <div className="orbit-detail-actions">
           <button
             className="orbit-nav-button jp"
+            aria-label="過去へ"
             disabled={selectedIndex === 0}
             onClick={() => navigate(selectedIndex - 1)}
           >
-            ← 過去へ
+            <span className="orbit-nav-long">← 過去へ</span>
+            <span className="orbit-nav-short" aria-hidden="true">
+              ←
+            </span>
           </button>
-          <button className="orbit-open-button jp" onClick={() => setOpenOutfitKey(selected.outfit.key)}>
-            詳細を見る
+          <button
+            className="orbit-open-button jp"
+            aria-label="詳細を見る"
+            onClick={() => setOpenOutfitKey(selected.outfit.key)}
+          >
+            <span className="orbit-open-long">詳細を見る</span>
+            <span className="orbit-open-short" aria-hidden="true">
+              詳細
+            </span>
           </button>
           <button
             className="orbit-nav-button jp"
+            aria-label="現在へ"
             disabled={selectedIndex === orbitEntries.length - 1}
             onClick={() => navigate(selectedIndex + 1)}
           >
-            現在へ →
+            <span className="orbit-nav-long">現在へ →</span>
+            <span className="orbit-nav-short" aria-hidden="true">
+              →
+            </span>
           </button>
         </div>
       </section>
