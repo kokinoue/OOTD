@@ -118,6 +118,21 @@ const weatherLabel = {
   fog: '霧',
 } as const
 
+const zoneIcon = {
+  residential: '🏘',
+  shopping: '🏬',
+  construction: '🚧',
+  riverside: '🌊',
+  night: '🌙',
+} as const
+
+const weatherIcon = {
+  clear: '☀',
+  rain: '☂',
+  wind: '≋',
+  fog: '▤',
+} as const
+
 function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
   const zone = zoneAt(run.distance)
   const weather = weatherAt(run.distance, run.seed)
@@ -524,7 +539,8 @@ export default function ChariGameView({ data, onBack }: Props) {
   const coinRef = useRef<HTMLSpanElement>(null)
   const scoreRef = useRef<HTMLSpanElement>(null)
   const comboRef = useRef<HTMLSpanElement>(null)
-  const areaRef = useRef<HTMLSpanElement>(null)
+  const zoneRef = useRef<HTMLSpanElement>(null)
+  const weatherRef = useRef<HTMLSpanElement>(null)
   const bestRef = useRef<HTMLSpanElement>(null)
   const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false, diveHeld: false })
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
@@ -712,8 +728,15 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (coinRef.current) coinRef.current.textContent = String(run.coinsTaken)
       if (scoreRef.current) scoreRef.current.textContent = String(scoreOf(run))
       if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
-      if (areaRef.current) {
-        areaRef.current.textContent = `${zoneLabel[zoneAt(run.distance)]} · ${weatherLabel[weatherAt(run.distance, run.seed)]}`
+      const zone = zoneAt(run.distance)
+      const weather = weatherAt(run.distance, run.seed)
+      if (zoneRef.current) {
+        zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
+        zoneRef.current.dataset.zone = zone
+      }
+      if (weatherRef.current) {
+        weatherRef.current.textContent = `${weatherIcon[weather]} ${weatherLabel[weather]}`
+        weatherRef.current.dataset.weather = weather
       }
       if (bestRef.current) bestRef.current.textContent = String(Math.max(loadBest(), scoreOf(run)))
       raf = requestAnimationFrame(frame)
@@ -775,6 +798,14 @@ export default function ChariGameView({ data, onBack }: Props) {
         </div>
         <div className="chari-screen">
           <canvas ref={canvasRef} className="chari-canvas" aria-label="チャリ通のゲーム画面" />
+          <div className="chari-environment" aria-label="現在の地域と天候">
+            <span ref={zoneRef} className="chari-zone-badge jp" data-zone="residential">
+              🏘 住宅街
+            </span>
+            <span ref={weatherRef} className="chari-weather-badge jp" data-weather="clear">
+              ☀ 晴れ
+            </span>
+          </div>
           {result && (
             <div className="chari-overlay">
               <div className="chari-result jp">
@@ -806,7 +837,6 @@ export default function ChariGameView({ data, onBack }: Props) {
         </div>
         <div className="chari-foot">
           <span className="chari-caption mono">{caption}</span>
-          <span ref={areaRef} className="chari-area jp">住宅街 · 晴れ</span>
           <span className="jp">
             {touch
               ? '画面タップでジャンプ（長押し・空中でもう1回） · DIVEで急降下 · 鳥はくぐる'

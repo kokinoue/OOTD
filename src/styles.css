@@ -5778,6 +5778,61 @@ a {
   aspect-ratio: 960 / 540;
   touch-action: none;
 }
+.chari-environment {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  gap: 7px;
+  pointer-events: none;
+}
+.chari-zone-badge,
+.chari-weather-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(28, 31, 38, 0.76);
+  box-shadow: 0 3px 12px rgba(20, 22, 28, 0.22);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.chari-zone-badge[data-zone='shopping'] {
+  background: rgba(170, 83, 69, 0.82);
+}
+.chari-zone-badge[data-zone='construction'] {
+  color: #28231c;
+  background: rgba(238, 177, 61, 0.9);
+  text-shadow: none;
+}
+.chari-zone-badge[data-zone='riverside'] {
+  background: rgba(54, 119, 144, 0.84);
+}
+.chari-zone-badge[data-zone='night'] {
+  background: rgba(38, 43, 82, 0.9);
+}
+.chari-weather-badge[data-weather='rain'] {
+  background: rgba(55, 91, 119, 0.86);
+}
+.chari-weather-badge[data-weather='wind'] {
+  color: #283235;
+  background: rgba(226, 239, 232, 0.9);
+  text-shadow: none;
+}
+.chari-weather-badge[data-weather='fog'] {
+  color: #343a3d;
+  background: rgba(220, 226, 222, 0.88);
+  text-shadow: none;
+}
 .chari-overlay {
   position: absolute;
   inset: 0;
@@ -5913,6 +5968,19 @@ a {
     max-width: none;
     height: 100%;
     aspect-ratio: 960 / 540;
+  }
+  .chari-environment {
+    top: 9px;
+    left: 9px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .chari-zone-badge,
+  .chari-weather-badge {
+    min-height: 26px;
+    padding: 4px 9px;
+    font-size: 10px;
   }
   .chari-dive {
     width: 58px;
