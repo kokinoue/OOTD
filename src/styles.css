@@ -5788,7 +5788,8 @@ a {
   pointer-events: none;
 }
 .chari-zone-badge,
-.chari-weather-badge {
+.chari-weather-badge,
+.chari-time-badge {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
@@ -5805,6 +5806,17 @@ a {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+.chari-time-badge[data-phase='early'] {
+  color: #392d29;
+  background: rgba(245, 201, 161, 0.9);
+  text-shadow: none;
+}
+.chari-time-badge[data-phase='rush'] {
+  background: rgba(202, 73, 61, 0.9);
+}
+.chari-time-badge[data-phase='late'] {
+  background: rgba(67, 82, 112, 0.9);
 }
 .chari-zone-badge[data-zone='shopping'] {
   background: rgba(170, 83, 69, 0.82);
@@ -5832,6 +5844,70 @@ a {
   color: #343a3d;
   background: rgba(220, 226, 222, 0.88);
   text-shadow: none;
+}
+.chari-course-notice,
+.chari-danger-notice {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  padding: 7px 14px;
+  border-radius: 7px;
+  color: #fff;
+  background: rgba(31, 35, 41, 0.84);
+  box-shadow: 0 4px 18px rgba(12, 14, 18, 0.25);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.chari-course-notice {
+  top: 58px;
+}
+.chari-danger-notice {
+  top: 98px;
+  color: #2a2118;
+  background: rgba(255, 196, 76, 0.93);
+}
+.chari-course-notice.is-visible,
+.chari-danger-notice.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.chari-outfit-power {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  max-width: 290px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(31, 35, 41, 0.76);
+  box-shadow: 0 3px 12px rgba(20, 22, 28, 0.22);
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.chari-outfit-power b {
+  padding: 7px 8px;
+  color: #292217;
+  background: #f1c05f;
+  white-space: nowrap;
+}
+.chari-outfit-power span {
+  overflow: hidden;
+  padding: 7px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .chari-overlay {
   position: absolute;
@@ -5977,10 +6053,37 @@ a {
     gap: 5px;
   }
   .chari-zone-badge,
-  .chari-weather-badge {
+  .chari-weather-badge,
+  .chari-time-badge {
     min-height: 26px;
     padding: 4px 9px;
     font-size: 10px;
+  }
+  .chari-course-notice,
+  .chari-danger-notice {
+    max-width: 70%;
+    padding: 6px 10px;
+    font-size: 9px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .chari-course-notice {
+    top: 104px;
+  }
+  .chari-danger-notice {
+    top: 136px;
+  }
+  .chari-outfit-power {
+    top: 9px;
+    right: 9px;
+    display: block;
+    max-width: 145px;
+    font-size: 8px;
+  }
+  .chari-outfit-power b,
+  .chari-outfit-power span {
+    display: block;
+    padding: 5px 7px;
   }
   .chari-dive {
     width: 58px;

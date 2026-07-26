@@ -23,6 +23,8 @@ export const PX_PER_M = 30
 export const GENERATE_AHEAD = 1800
 export const PRUNE_BEHIND = 700
 export const COMBO_TIMEOUT = 1.8
+export const ZONE_LENGTH = 9000
+export const WEATHER_LENGTH = 6000
 
 export type EventKind =
   | 'jump'
@@ -50,6 +52,19 @@ export type Segment = {
 }
 export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'riverside' | 'night'
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
+export type CommutePhase = 'early' | 'rush' | 'late'
+export type RiderTraits = {
+  speedMul: number
+  jumpMul: number
+  airJumpMul: number
+  diveMul: number
+  coinRadius: number
+  windResist: number
+  rainGrip: number
+  fogVision: number
+  comboBonus: number
+  effects: string[]
+}
 export type PlatformKind = 'branch' | 'roof'
 export type Platform = {
   id: number
@@ -95,6 +110,7 @@ export type Run = {
   status: 'playing' | 'over'
   overReason: 'crash' | 'fall' | null
   player: Player
+  traits: RiderTraits
   startX: number
   distance: number
   speed: number
@@ -116,6 +132,84 @@ export type Run = {
 }
 
 export const BEST_KEY = 'chari.best'
+
+export const DEFAULT_RIDER_TRAITS: RiderTraits = {
+  speedMul: 1,
+  jumpMul: 1,
+  airJumpMul: 1,
+  diveMul: 1,
+  coinRadius: COIN_RADIUS,
+  windResist: 0,
+  rainGrip: 0,
+  fogVision: 0,
+  comboBonus: 0,
+  effects: ['標準'],
+}
+
+export type RiderItem = { category: string; label?: string; color?: string }
+
+export function deriveRiderTraits(date: string, items: RiderItem[]): RiderTraits {
+  const traits: RiderTraits = { ...DEFAULT_RIDER_TRAITS, effects: [] }
+  const words = items.map((item) => `${item.category} ${item.label ?? ''}`.toLowerCase())
+  const has = (pattern: RegExp) => words.some((word) => pattern.test(word))
+  const hasShoes = has(/shoe|sneaker|boots|loafer|サンダル|靴/)
+  const hasOuter = has(/coat|jacket|outer|blouson|parka|rain|コート|ジャケット/)
+  const hasBag = has(/bag|バッグ|リュック/)
+  const hasHat = has(/hat|cap|beanie|帽子|キャップ/)
+  const hasShorts = has(/shorts|ショーツ|短パン/)
+
+  if (hasShoes) {
+    traits.speedMul += 0.04
+    traits.effects.push('足まわり：速度+4%')
+  }
+  if (hasBag) {
+    traits.coinRadius += 13
+    traits.effects.push('バッグ：コイン吸引')
+  }
+  if (hasHat) {
+    traits.fogVision += 0.22
+    traits.effects.push('帽子：霧視界+')
+  }
+  if (hasOuter) {
+    traits.windResist += 0.22
+    traits.rainGrip += 0.2
+    traits.effects.push('アウター：悪天候耐性')
+  }
+
+  const month = Number(date.slice(5, 7))
+  if (month >= 3 && month <= 5) traits.jumpMul += 0.035
+  else if (month >= 6 && month <= 8) traits.speedMul += 0.03
+  else if (month >= 9 && month <= 11) traits.coinRadius += 8
+  else traits.windResist += 0.18
+
+  const colors = items.map((item) => item.color).filter((color): color is string => Boolean(color))
+  const colorCounts = new Map<string, number>()
+  for (const color of colors) colorCounts.set(color, (colorCounts.get(color) ?? 0) + 1)
+  const dominant = [...colorCounts.entries()].sort((a, b) => b[1] - a[1])[0]
+  if (dominant && dominant[1] >= 3) {
+    traits.comboBonus += 0.5
+    traits.effects.push(`${dominant[0]}統一：コンボ猶予+0.5秒`)
+  }
+  if (hasOuter && hasShoes) {
+    traits.rainGrip += 0.55
+    traits.effects.push('雨支度セット：雨でも安定')
+  }
+  if (hasShorts && !hasOuter) {
+    traits.jumpMul += 0.07
+    traits.airJumpMul += 0.04
+    traits.effects.push('軽装セット：ジャンプ強化')
+  }
+  if (items.length >= 5 && hasOuter) {
+    traits.windResist += 0.38
+    traits.diveMul += 0.08
+    traits.effects.push('重ね着セット：強風耐性')
+  }
+  traits.windResist = clamp(traits.windResist, 0, 0.85)
+  traits.rainGrip = clamp(traits.rainGrip, 0, 0.9)
+  traits.fogVision = clamp(traits.fogVision, 0, 0.65)
+  if (traits.effects.length === 0) traits.effects.push('ベーシック：バランス型')
+  return traits
+}
 
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0
@@ -142,13 +236,31 @@ export function difficultyAt(dist: number): number {
 
 export function zoneAt(dist: number): ZoneKind {
   const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'riverside', 'night']
-  return zones[Math.floor(Math.max(0, dist) / 9000) % zones.length]
+  return zones[Math.floor(Math.max(0, dist) / ZONE_LENGTH) % zones.length]
 }
 
 export function weatherAt(dist: number, seed = 0): WeatherKind {
   const weathers: WeatherKind[] = ['clear', 'rain', 'wind', 'fog']
-  const block = Math.floor(Math.max(0, dist) / 6000)
+  const block = Math.floor(Math.max(0, dist) / WEATHER_LENGTH)
   return weathers[(block + (seed >>> 0)) % weathers.length]
+}
+
+export function commuteClockAt(dist: number): {
+  hour: number
+  minute: number
+  label: string
+  phase: CommutePhase
+} {
+  const total = 7 * 60 + 20 + Math.floor(Math.max(0, dist) / 300)
+  const hour = Math.floor(total / 60) % 24
+  const minute = total % 60
+  const phase: CommutePhase = total < 8 * 60 ? 'early' : total < 8 * 60 + 45 ? 'rush' : 'late'
+  return { hour, minute, label: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`, phase }
+}
+
+export function nextZoneInfo(dist: number): { zone: ZoneKind; distance: number } {
+  const boundary = (Math.floor(Math.max(0, dist) / ZONE_LENGTH) + 1) * ZONE_LENGTH
+  return { zone: zoneAt(boundary), distance: boundary - Math.max(0, dist) }
 }
 
 export function maxGapFor(speed: number): number {
@@ -258,7 +370,10 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
 }
 
 export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
-  if (obstacle.kind === 'signal') return (run.elapsed + (obstacle.phase ?? 0)) % 4 < 2.45
+  if (obstacle.kind === 'signal') {
+    const redTime = commuteClockAt(run.distance).phase === 'rush' ? 3.05 : 2.45
+    return (run.elapsed + (obstacle.phase ?? 0)) % 4 < redTime
+  }
   if (obstacle.kind === 'crossing') return (run.elapsed + (obstacle.phase ?? 0)) % 5 < 3.15
   return true
 }
@@ -438,6 +553,7 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
       airJumpUsed: false,
       airTime: 0,
     },
+    traits: { ...DEFAULT_RIDER_TRAITS, effects: [...DEFAULT_RIDER_TRAITS.effects] },
     startX,
     distance: 0,
     speed: speedAt(0),
@@ -512,24 +628,29 @@ export function step(run: Run, input: Input, dt: number): void {
 
     if (first && input.jumpPressed) {
       if (p.grounded) {
-        p.vy = -JUMP_V
+        p.vy = -JUMP_V * run.traits.jumpMul
         p.grounded = false
         p.platformId = null
         p.airTime = 0
         event(run, 'jump')
       } else if (!p.airJumpUsed) {
-        p.vy = -AIR_JUMP_V
+        p.vy = -AIR_JUMP_V * run.traits.airJumpMul
         p.airJumpUsed = true
         event(run, 'airjump')
       }
     }
     if (!p.grounded && !input.jumpHeld && p.vy < -JUMP_CUT_V) p.vy = -JUMP_CUT_V
-    if (!p.grounded && input.diveHeld && p.vy < DIVE_V) p.vy = DIVE_V
+    if (!p.grounded && input.diveHeld && p.vy < DIVE_V * run.traits.diveMul) {
+      p.vy = DIVE_V * run.traits.diveMul
+    }
 
     const weather = weatherAt(run.distance, run.seed)
-    const windPush = weather === 'wind' ? ((run.seed & 1) === 0 ? 38 : -38) : 0
-    const wetRoadBoost = weather === 'rain' ? 1.025 : 1
-    p.x += Math.max(320, run.speed * wetRoadBoost + windPush) * h
+    const windPush =
+      weather === 'wind'
+        ? ((run.seed & 1) === 0 ? 62 : -62) * (1 - run.traits.windResist)
+        : 0
+    const wetRoadBoost = weather === 'rain' ? 1 + 0.045 * (1 - run.traits.rainGrip) : 1
+    p.x += Math.max(320, run.speed * run.traits.speedMul * wetRoadBoost + windPush) * h
     run.distance = Math.max(0, p.x - run.startX)
     run.speed = speedAt(run.distance)
     run.elapsed += h
@@ -584,7 +705,10 @@ export function step(run: Run, input: Input, dt: number): void {
 
     // ジャンプ台は上面を下向きに横切ったときだけ、一度だけ作動する。
     for (const o of run.obstacles) {
-      if (o.vx) o.x += o.vx * h
+      if (o.vx) {
+        const rushMul = commuteClockAt(run.distance).phase === 'rush' ? 1.3 : 1
+        o.x += o.vx * rushMul * h
+      }
       if (o.kind !== 'ramp' || o.used) continue
       const overX = p.x + PLAYER_W / 2 > o.x && p.x - PLAYER_W / 2 < o.x + o.w
       if (overX && p.y >= o.y && p.y <= o.y + o.h + 8 && p.vy >= 0) {
@@ -606,12 +730,12 @@ export function step(run: Run, input: Input, dt: number): void {
 
     for (const coin of run.coins) {
       if (coin.taken) continue
-      if (Math.hypot(p.x - coin.x, p.y - PLAYER_H * 0.55 - coin.y) <= COIN_RADIUS) {
+      if (Math.hypot(p.x - coin.x, p.y - PLAYER_H * 0.55 - coin.y) <= run.traits.coinRadius) {
         coin.taken = true
         run.coinsTaken++
         run.combo++
         run.maxCombo = Math.max(run.maxCombo, run.combo)
-        run.comboTimer = COMBO_TIMEOUT
+        run.comboTimer = COMBO_TIMEOUT + run.traits.comboBonus
         const points = 10 * Math.min(4, 1 + Math.floor(run.combo / 5))
         run.coinScore += points
         event(run, 'coin', points)

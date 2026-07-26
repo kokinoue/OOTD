@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   AIR_JUMP_V,
   BEST_KEY,
+  COIN_RADIUS,
   COMBO_TIMEOUT,
+  DEFAULT_RIDER_TRAITS,
   GRAV,
   JUMP_V,
   RAMP_V,
@@ -11,12 +13,15 @@ import {
   STEP_H,
   WALL_TOL,
   createRun,
+  commuteClockAt,
+  deriveRiderTraits,
   ensureAhead,
   loadBest,
   maxAirGapFor,
   maxGapFor,
   metersOf,
   minObstacleSpacing,
+  nextZoneInfo,
   obstacleActive,
   saveBest,
   scoreOf,
@@ -173,6 +178,41 @@ describe('チャリ通のコース生成', () => {
       new Set(['clear', 'rain', 'wind', 'fog']),
     )
   })
+
+  it('通勤時刻が距離で進み、早朝・ラッシュ・遅刻帯へ切り替わる', () => {
+    expect(commuteClockAt(0)).toMatchObject({ label: '07:20', phase: 'early' })
+    expect(commuteClockAt(12_000)).toMatchObject({ label: '08:00', phase: 'rush' })
+    expect(commuteClockAt(25_500)).toMatchObject({ label: '08:45', phase: 'late' })
+  })
+
+  it('次のエリアと境界までの距離を返す', () => {
+    expect(nextZoneInfo(8_100)).toEqual({ zone: 'shopping', distance: 900 })
+    expect(nextZoneInfo(9_000)).toEqual({ zone: 'construction', distance: 9000 })
+  })
+
+  it('服のカテゴリ・季節・色から能力差とセット効果を作る', () => {
+    const rainSet = deriveRiderTraits('2026-07-10', [
+      { category: 'shoes', label: 'スニーカー', color: 'navy' },
+      { category: 'jacket', label: 'レインジャケット', color: 'navy' },
+      { category: 'bag', label: 'バッグ', color: 'navy' },
+      { category: 'pants', label: 'パンツ', color: 'navy' },
+      { category: 'hat', label: 'キャップ', color: 'navy' },
+    ])
+    expect(rainSet.speedMul).toBeGreaterThan(1)
+    expect(rainSet.coinRadius).toBeGreaterThan(COIN_RADIUS)
+    expect(rainSet.rainGrip).toBeGreaterThanOrEqual(0.7)
+    expect(rainSet.windResist).toBeGreaterThanOrEqual(0.6)
+    expect(rainSet.comboBonus).toBe(0.5)
+    expect(rainSet.effects).toContain('雨支度セット：雨でも安定')
+    expect(rainSet.effects).toContain('重ね着セット：強風耐性')
+
+    const light = deriveRiderTraits('2026-05-10', [
+      { category: 't-shirt', label: 'Tシャツ' },
+      { category: 'shorts', label: 'ショーツ' },
+    ])
+    expect(light.jumpMul).toBeGreaterThan(1.09)
+    expect(light.effects).toContain('軽装セット：ジャンプ強化')
+  })
 })
 
 describe('チャリ通の物理', () => {
@@ -307,6 +347,20 @@ describe('チャリ通の物理', () => {
     run.elapsed = 3.3
     expect(obstacleActive(run, signal)).toBe(false)
     expect(obstacleActive(run, crossing)).toBe(false)
+    run.distance = 12_000
+    run.elapsed = 2.7
+    expect(obstacleActive(run, signal)).toBe(true)
+  })
+
+  it('雨支度セットは雨天の滑り加速を抑える', () => {
+    const slippery = createRun(1)
+    const protectedRun = createRun(1)
+    slippery.obstacles = []
+    protectedRun.obstacles = []
+    protectedRun.traits = { ...DEFAULT_RIDER_TRAITS, rainGrip: 0.9, effects: ['雨支度'] }
+    step(slippery, idle, 0.1)
+    step(protectedRun, idle, 0.1)
+    expect(slippery.player.x).toBeGreaterThan(protectedRun.player.x)
   })
 
   it('WALL_TOL以下の段差は乗り上げる', () => {

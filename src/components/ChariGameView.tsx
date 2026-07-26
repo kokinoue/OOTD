@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import cutoutsJson from '../data/cutouts.json'
 import {
+  DEFAULT_RIDER_TRAITS,
+  commuteClockAt,
   createRun,
+  deriveRiderTraits,
   loadBest,
   metersOf,
+  nextZoneInfo,
   obstacleActive,
   saveBest,
   scoreOf,
@@ -12,6 +16,7 @@ import {
   zoneAt,
   type GameEvent,
   type Input,
+  type RiderTraits,
   type Run,
 } from '../lib/chari'
 import type { CutoutsFile } from '../lib/platform'
@@ -118,6 +123,19 @@ const weatherLabel = {
   fog: '霧',
 } as const
 
+const weatherEffectLabel = {
+  clear: '安定',
+  rain: '路面スリップ',
+  wind: '風に流される',
+  fog: '視界低下',
+} as const
+
+const commutePhaseLabel = {
+  early: '早朝',
+  rush: 'ラッシュ',
+  late: '遅刻注意',
+} as const
+
 const zoneIcon = {
   residential: '🏘',
   shopping: '🏬',
@@ -133,12 +151,44 @@ const weatherIcon = {
   fog: '▤',
 } as const
 
+const dangerLabel = {
+  pylon: 'コーン',
+  fence: '工事柵',
+  truck: '大型トラック',
+  bird: '低空の鳥',
+  ramp: 'ジャンプ台',
+  signal: '赤信号',
+  commuter: '対向自転車',
+  crossing: '踏切',
+} as const
+
 function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
   const zone = zoneAt(run.distance)
   const weather = weatherAt(run.distance, run.seed)
+  const commute = commuteClockAt(run.distance)
   const sky = ctx.createLinearGradient(0, 0, 0, 410)
-  sky.addColorStop(0, zone === 'night' ? '#11182d' : weather === 'rain' ? '#8194a0' : '#b9dcf2')
-  sky.addColorStop(0.58, zone === 'night' ? '#27314a' : weather === 'fog' ? '#c8cfcb' : '#e8d9bd')
+  sky.addColorStop(
+    0,
+    zone === 'night'
+      ? '#11182d'
+      : weather === 'rain'
+        ? '#8194a0'
+        : commute.phase === 'early'
+          ? '#e6b5a1'
+          : commute.phase === 'late'
+            ? '#82a7c4'
+            : '#b9dcf2',
+  )
+  sky.addColorStop(
+    0.58,
+    zone === 'night'
+      ? '#27314a'
+      : weather === 'fog'
+        ? '#c8cfcb'
+        : commute.phase === 'early'
+          ? '#f0d0ac'
+          : '#e8d9bd',
+  )
   sky.addColorStop(1, zone === 'night' ? '#3a4050' : '#f3e7d3')
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, VIEW_W, VIEW_H)
@@ -456,11 +506,19 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
       ctx.fill()
     }
     ctx.restore()
-    const visibility = ctx.createRadialGradient(HERO_X + 25, 305, 75, HERO_X + 25, 305, 620)
+    const fogRelief = run.traits.fogVision
+    const visibility = ctx.createRadialGradient(
+      HERO_X + 25,
+      305,
+      75 + fogRelief * 120,
+      HERO_X + 25,
+      305,
+      620 + fogRelief * 260,
+    )
     visibility.addColorStop(0, 'rgba(218,226,221,0)')
     visibility.addColorStop(0.3, 'rgba(218,226,221,.12)')
     visibility.addColorStop(0.62, 'rgba(218,226,221,.48)')
-    visibility.addColorStop(1, 'rgba(218,226,221,.78)')
+    visibility.addColorStop(1, `rgba(218,226,221,${0.78 - fogRelief * 0.36})`)
     ctx.fillStyle = visibility
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
@@ -561,13 +619,21 @@ export default function ChariGameView({ data, onBack }: Props) {
   const comboRef = useRef<HTMLSpanElement>(null)
   const zoneRef = useRef<HTMLSpanElement>(null)
   const weatherRef = useRef<HTMLSpanElement>(null)
+  const timeRef = useRef<HTMLSpanElement>(null)
+  const noticeRef = useRef<HTMLDivElement>(null)
+  const dangerRef = useRef<HTMLDivElement>(null)
   const bestRef = useRef<HTMLSpanElement>(null)
   const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false, diveHeld: false })
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
   const spriteRef = useRef<HTMLImageElement | null>(null)
   const ratioRef = useRef(0.5)
   const changeOutfitRef = useRef<() => void>(() => {})
+  const traitsRef = useRef<RiderTraits>({
+    ...DEFAULT_RIDER_TRAITS,
+    effects: [...DEFAULT_RIDER_TRAITS.effects],
+  })
   const [caption, setCaption] = useState('')
+  const [traits, setTraits] = useState<RiderTraits>(traitsRef.current)
   const [muted, setMuted] = useState(() => localStorage.getItem(SOUND_KEY) === 'off')
   const [touch, setTouch] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
@@ -583,11 +649,20 @@ export default function ChariGameView({ data, onBack }: Props) {
     const sp = cutouts.sprites[key]
     ratioRef.current = sp.w / sp.h
     const outfit = outfitByKey.get(key)
+    const itemIds = data.outfitItemIds.get(key) ?? new Set<string>()
+    const riderItems = [...itemIds]
+      .map((id) => data.itemMap.get(id))
+      .filter((item) => item != null)
+      .map((item) => ({ category: item.category, label: item.label, color: item.color }))
+    const nextTraits = deriveRiderTraits(outfit?.date ?? '', riderItems)
+    traitsRef.current = nextTraits
+    setTraits(nextTraits)
     setCaption(outfit?.no ? `#${outfit.no} · ${fmtDate(outfit.date)}` : fmtDate(outfit?.date ?? ''))
   }
   changeOutfitRef.current = changeOutfit
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
     setTouch(window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
     audioRef.current = createAudio()
     changeOutfit()
@@ -609,6 +684,7 @@ export default function ChariGameView({ data, onBack }: Props) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     const run = createRun()
+    run.traits = traitsRef.current
     const particles: Particle[] = []
     let raf = 0
     let last = performance.now()
@@ -698,6 +774,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       last = now
       const slow = crashAt && now - crashAt < 480 ? 0.24 : 1
       if (run.status === 'playing') {
+        run.traits = traitsRef.current
         step(run, inputRef.current, rawDt * slow)
         inputRef.current.jumpPressed = false
         for (const e of run.events) {
@@ -750,13 +827,42 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
       const zone = zoneAt(run.distance)
       const weather = weatherAt(run.distance, run.seed)
+      const commute = commuteClockAt(run.distance)
       if (zoneRef.current) {
         zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
         zoneRef.current.dataset.zone = zone
       }
       if (weatherRef.current) {
-        weatherRef.current.textContent = `${weatherIcon[weather]} ${weatherLabel[weather]}`
+        weatherRef.current.textContent = `${weatherIcon[weather]} ${weatherLabel[weather]}・${weatherEffectLabel[weather]}`
         weatherRef.current.dataset.weather = weather
+      }
+      if (timeRef.current) {
+        timeRef.current.textContent = `◷ ${commute.label} ${commutePhaseLabel[commute.phase]}`
+        timeRef.current.dataset.phase = commute.phase
+      }
+      if (noticeRef.current) {
+        const next = nextZoneInfo(run.distance)
+        const show = next.distance <= 1500
+        noticeRef.current.textContent = show
+          ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`
+          : ''
+        noticeRef.current.classList.toggle('is-visible', show)
+      }
+      if (dangerRef.current) {
+        const warningRange = run.speed * (weather === 'fog' ? 0.75 : 1.25)
+        const danger = run.obstacles
+          .filter(
+            (o) =>
+              o.kind !== 'ramp' &&
+              obstacleActive(run, o) &&
+              o.x - run.player.x > 0 &&
+              o.x - run.player.x <= warningRange,
+          )
+          .sort((a, b) => a.x - b.x)[0]
+        dangerRef.current.textContent = danger
+          ? `⚠ ${dangerLabel[danger.kind]} ${Math.max(1, Math.ceil((danger.x - run.player.x) / 30))}m`
+          : ''
+        dangerRef.current.classList.toggle('is-visible', Boolean(danger))
       }
       if (bestRef.current) bestRef.current.textContent = String(Math.max(loadBest(), scoreOf(run)))
       raf = requestAnimationFrame(frame)
@@ -823,8 +929,17 @@ export default function ChariGameView({ data, onBack }: Props) {
               🏘 住宅街
             </span>
             <span ref={weatherRef} className="chari-weather-badge jp" data-weather="clear">
-              ☀ 晴れ
+              ☀ 晴れ・安定
             </span>
+            <span ref={timeRef} className="chari-time-badge mono" data-phase="early">
+              ◷ 07:20 早朝
+            </span>
+          </div>
+          <div ref={noticeRef} className="chari-course-notice jp" aria-live="polite" />
+          <div ref={dangerRef} className="chari-danger-notice jp" aria-live="polite" />
+          <div className="chari-outfit-power jp" title={traits.effects.join(' / ')}>
+            <b>服効果</b>
+            <span>{traits.effects.slice(0, 2).join(' · ')}</span>
           </div>
           {result && (
             <div className="chari-overlay">
