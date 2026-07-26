@@ -3,7 +3,6 @@ import {
   AIR_JUMP_V,
   BEST_KEY,
   JUMP_V,
-  PUDDLE_W,
   RAMP_V,
   ROAD_Y,
   STEP_H,
@@ -84,10 +83,9 @@ describe('チャリ通のコース生成', () => {
     }
   })
 
-  it('長距離コースに水たまりと低空の鳥が生成される', () => {
+  it('長距離コースに低空の鳥が生成される', () => {
     const run = createRun(777)
     ensureAhead(run, 100_000)
-    expect(run.obstacles.some((o) => o.kind === 'puddle')).toBe(true)
     expect(run.obstacles.some((o) => o.kind === 'bird')).toBe(true)
   })
 })
@@ -146,23 +144,7 @@ describe('チャリ通の物理', () => {
     expect(fall.overReason).toBe('fall')
   })
 
-  it('水たまりはジャンプ必須、鳥は地上なら通過できるが空中では衝突する', () => {
-    const puddle = createRun(51)
-    puddle.obstacles = [
-      {
-        id: 1,
-        kind: 'puddle',
-        x: 135,
-        y: ROAD_Y - 12,
-        w: PUDDLE_W,
-        h: 12,
-        cluster: 1,
-        used: false,
-      },
-    ]
-    step(puddle, idle, 1 / 10)
-    expect(puddle.overReason).toBe('crash')
-
+  it('鳥は地上なら通過できるが空中では衝突する', () => {
     const underBird = createRun(52)
     underBird.obstacles = [
       { id: 2, kind: 'bird', x: 135, y: ROAD_Y - 160, w: 42, h: 22, cluster: 2, used: false },

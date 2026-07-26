@@ -10,7 +10,6 @@ export const PLAYER_W = 30
 export const PLAYER_H = 52
 export const WALL_TOL = 22
 export const COIN_RADIUS = 30
-export const PUDDLE_W = 200
 export const GRAV = 2100
 export const JUMP_V = 720
 export const AIR_JUMP_V = 640
@@ -44,7 +43,7 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ObstacleKind = 'pylon' | 'fence' | 'puddle' | 'bird' | 'ramp'
+export type ObstacleKind = 'pylon' | 'fence' | 'bird' | 'ramp'
 export type Obstacle = {
   id: number
   kind: ObstacleKind
@@ -143,11 +142,9 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
       ? { w: 24, h: 32 }
       : kind === 'fence'
         ? { w: 42, h: 48 }
-        : kind === 'puddle'
-          ? { w: PUDDLE_W, h: 12 }
-          : kind === 'bird'
-            ? { w: 42, h: 22 }
-            : { w: 58, h: 18 }
+        : kind === 'bird'
+          ? { w: 42, h: 22 }
+          : { w: 58, h: 18 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
   const y = kind === 'bird' ? roadY - 160 : roadY - dims.h
@@ -213,13 +210,9 @@ function generateSegment(run: Run) {
       const first = clamp(center - ((count - 1) * spread) / 2, safeStart, safeEnd - (count - 1) * spread)
       for (let i = 0; i < count; i++) addObstacle(run, 'pylon', first + i * spread, y, cluster)
       addCoinArc(run, first - 5, first + Math.max(75, (count - 1) * spread + 30), y, 48)
-    } else if (kindRoll < 0.63 && difficulty > 0.04) {
+    } else if (kindRoll < 0.75 && difficulty > 0.04) {
       addObstacle(run, 'fence', center, y, cluster)
       addCoinArc(run, center - 28, center + 72, y, 62)
-    } else if (kindRoll < 0.82 && room >= PUDDLE_W) {
-      const puddleX = clamp(center - PUDDLE_W / 2, safeStart, safeEnd - PUDDLE_W)
-      addObstacle(run, 'puddle', puddleX, y, cluster)
-      addCoinArc(run, puddleX + 10, puddleX + PUDDLE_W - 10, y, 38)
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
       addObstacle(run, 'bird', center, y, cluster)
