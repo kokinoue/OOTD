@@ -499,7 +499,7 @@ describe('チャリ通の物理', () => {
   })
 
   it('商店街の屋根はジャンプ台を踏んだときだけ着地できる', () => {
-    const makeRun = (rampRoute: boolean) => {
+    const makeRun = (rampRoute: boolean, rampLaunchActive = false) => {
       const run = createRun(30)
       run.segments = [{ ...run.segments[0], x: -500, w: 2000 }]
       run.platforms = [{
@@ -509,6 +509,7 @@ describe('チャリ通の物理', () => {
         w: 300,
         y: 300,
         requiresRamp: true,
+        requiresRampLaunch: true,
       }]
       run.obstacles = []
       run.coins = []
@@ -517,13 +518,17 @@ describe('チャリ通の物理', () => {
       run.player.vy = 250
       run.player.grounded = false
       run.player.rampRoute = rampRoute
+      run.player.rampLaunchActive = rampLaunchActive
       return run
     }
     const normalJump = makeRun(false)
-    const rampJump = makeRun(true)
+    const staleRampRoute = makeRun(true)
+    const rampJump = makeRun(true, true)
     step(normalJump, idle, 1 / 30)
+    step(staleRampRoute, idle, 1 / 30)
     step(rampJump, idle, 1 / 30)
     expect(normalJump.player.platformId).toBeNull()
+    expect(staleRampRoute.player.platformId).toBeNull()
     expect(rampJump.player.platformId).toBe(900)
   })
 

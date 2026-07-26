@@ -16,7 +16,7 @@ export const JUMP_V = 720
 export const AIR_JUMP_V = 900
 export const JUMP_CUT_V = 250
 export const MAX_FALL = 1150
-export const RAMP_V = 1020
+export const RAMP_V = 1200
 export const JUMP_AIRTIME = (2 * JUMP_V) / GRAV
 export const PX_PER_M = 30
 export const GENERATE_AHEAD = 1800
@@ -93,6 +93,7 @@ export type Platform = {
   w: number
   y: number
   requiresRamp?: boolean
+  requiresRampLaunch?: boolean
 }
 export type ObstacleKind =
   | 'pylon'
@@ -485,6 +486,7 @@ function landingSurfaceAt(
   }
   for (const platform of run.platforms) {
     if (platform.requiresRamp && !run.player.rampRoute) continue
+    if (platform.requiresRampLaunch && !run.player.rampLaunchActive) continue
     if (
       x >= platform.x &&
       x <= platform.x + platform.w &&
@@ -516,8 +518,17 @@ function addPlatform(
   w: number,
   y: number,
   requiresRamp = false,
+  requiresRampLaunch = false,
 ) {
-  run.platforms.push({ id: run.serial++, kind, x, w, y, requiresRamp })
+  run.platforms.push({
+    id: run.serial++,
+    kind,
+    x,
+    w,
+    y,
+    requiresRamp,
+    requiresRampLaunch,
+  })
 }
 
 function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, cluster: number) {
@@ -922,18 +933,18 @@ function generateSegment(run: Run) {
     // 商店街の屋根はジャンプ台からだけ入れる専用ルート。
     // 打ち上げ軌道の下降位置へ最初の屋根を置き、その後を連続させる。
     const roofs = [
-      { offset: 400, w: 400, lift: 180 },
-      { offset: 1100, w: 300, lift: 165 },
-      { offset: 1700, w: 320, lift: 150 },
+      { offset: 700, w: 400, lift: 200 },
+      { offset: 1200, w: 300, lift: 175 },
+      { offset: 1800, w: 320, lift: 155 },
     ]
     const firstRoofX = shoppingRamp.x + roofs[0].offset
-    for (const roof of roofs) {
+    for (const [index, roof] of roofs.entries()) {
       const platformX = shoppingRamp.x + roof.offset
       const platformW = roof.w
       if (platformX + platformW > routeEnd) break
       const platformY =
         roadAt(platformX + platformW / 2) - roof.lift
-      addPlatform(run, 'roof', platformX, platformW, platformY, true)
+      addPlatform(run, 'roof', platformX, platformW, platformY, true, index === 0)
       for (
         let coinX = platformX + 24;
         coinX < platformX + platformW - 10;
