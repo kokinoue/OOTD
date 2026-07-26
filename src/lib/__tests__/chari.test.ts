@@ -9,6 +9,8 @@ import {
   JUMP_V,
   PLAYER_H,
   RAMP_V,
+  ROAD_MAX_Y,
+  ROAD_MIN_Y,
   ROAD_Y,
   SLOPE_MAX_H,
   STEP_H,
@@ -835,6 +837,39 @@ describe('チャリ通の物理', () => {
     step(morning, idle, 1 / 120)
     step(evening, idle, 1 / 120)
     expect(evening.obstacles[0].x).toBeLessThan(morning.obstacles[0].x)
+  })
+
+  it('移動する通勤者は坂道の路面高に追従する', () => {
+    const run = createRun(0)
+    run.segments = [{
+      id: 1,
+      x: -500,
+      w: 2000,
+      y: ROAD_MAX_Y,
+      endY: ROAD_MIN_Y,
+      gapBefore: 0,
+      entryClear: 0,
+      exitClear: 0,
+    }]
+    run.nextX = 10_000
+    run.obstacles = [{
+      id: 1,
+      kind: 'commuter',
+      x: 600,
+      y: ROAD_Y - 64,
+      w: 34,
+      h: 64,
+      cluster: 1,
+      used: false,
+      vx: -100,
+      originX: 600,
+    }]
+    step(run, idle, 1 / 120)
+    const commuter = run.obstacles[0]
+    expect(commuter.y + commuter.h).toBeCloseTo(
+      surfaceAt(run, commuter.x + commuter.w / 2)!,
+      5,
+    )
   })
 
   it('雨支度セットは雨天の滑り加速を抑える', () => {

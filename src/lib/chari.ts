@@ -1293,6 +1293,16 @@ export function step(run: Run, input: Input, dt: number): void {
                     : 0.18)
           const nextX = o.x + o.vx * rushMul * h
           o.x = Math.max((o.originX ?? o.x) - maxDrift, nextX)
+          const movingSurface = surfaceAt(run, o.x + o.w / 2)
+          if (
+            movingSurface != null &&
+            (o.kind === 'commuter' ||
+              o.kind === 'ball' ||
+              o.kind === 'dog' ||
+              o.kind === 'jogger')
+          ) {
+            o.y = movingSurface - o.h
+          }
         }
       }
       if (o.kind !== 'ramp' || o.used) continue
