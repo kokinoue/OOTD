@@ -35,7 +35,6 @@ import GameShareButton from './GameShareButton'
 const VIEW_W = 960
 const VIEW_H = 540
 const HERO_X = 220
-const MOBILE_TIME_SCALE = 0.55
 const SOUND_KEY = 'chari.sound'
 const cutouts = cutoutsJson as CutoutsFile
 const spriteKeys = Object.keys(cutouts.sprites)
@@ -892,9 +891,6 @@ export default function ChariGameView({ data, onBack }: Props) {
 
     const run = createRun()
     run.traits = traitsRef.current
-    const timeScale = window.matchMedia('(max-width: 760px)').matches
-      ? MOBILE_TIME_SCALE
-      : 1
     const particles: Particle[] = []
     let raf = 0
     let last = performance.now()
@@ -982,7 +978,7 @@ export default function ChariGameView({ data, onBack }: Props) {
         run.traits = traitsRef.current
         inputRef.current.jumpPressed = jumpQueueRef.current > 0
         if (jumpQueueRef.current > 0) jumpQueueRef.current--
-        step(run, inputRef.current, rawDt * slow * timeScale)
+        step(run, inputRef.current, rawDt * slow)
         inputRef.current.jumpPressed = false
         for (const e of run.events) {
           audioRef.current?.play(e.kind)
