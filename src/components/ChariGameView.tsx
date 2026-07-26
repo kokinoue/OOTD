@@ -428,6 +428,8 @@ export default function ChariGameView({ data, onBack }: Props) {
         e.preventDefault()
         audioRef.current?.unlock()
         inputRef.current.diveHeld = true
+      } else if (key === 'c' && !e.repeat) {
+        changeOutfitRef.current()
       } else if (key === 'r') {
         changeOutfitRef.current()
         setResult(null)
@@ -601,7 +603,7 @@ export default function ChariGameView({ data, onBack }: Props) {
           <span className="jp">
             {touch
               ? '画面タップでジャンプ（長押し・空中でもう1回） · DIVEで急降下 · 水たまりはジャンプ / 鳥はくぐる'
-              : 'Space / Z / ↑ ジャンプ · ↓ / X 急降下 · 水たまりはジャンプ / 鳥はくぐる · R やりなおし · ESC もどる'}
+              : 'Space / Z / ↑ ジャンプ · ↓ / X 急降下 · C 着替え · 水たまりはジャンプ / 鳥はくぐる · R やりなおし · ESC もどる'}
           </span>
         </div>
       </div>
