@@ -5832,6 +5832,11 @@ a {
 .chari-zone-badge[data-zone='station'] {
   background: rgba(73, 102, 113, 0.9);
 }
+.chari-zone-badge[data-zone='school'] {
+  color: #302a20;
+  background: rgba(238, 199, 91, 0.92);
+  text-shadow: none;
+}
 .chari-weather-badge[data-weather='rain'] {
   background: rgba(55, 91, 119, 0.86);
 }

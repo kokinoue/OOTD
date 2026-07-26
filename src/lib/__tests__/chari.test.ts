@@ -15,7 +15,9 @@ import {
   createRun,
   commuteClockAt,
   deriveRiderTraits,
+  effectiveWeatherFor,
   ensureAhead,
+  isUnderpassAt,
   loadBest,
   maxAirGapFor,
   maxGapFor,
@@ -149,23 +151,31 @@ describe('チャリ通のコース生成', () => {
     expect(run.obstacles.some((o) => o.kind === 'truck')).toBe(true)
   })
 
-  it('信号・通勤者・踏切と、分岐・連続屋根ルートを生成する', () => {
+  it('信号・通勤者・踏切・スクール障害物と、分岐・屋根・歩道橋・地下道を生成する', () => {
     const kinds = new Set<string>()
     let hasBranch = false
     let hasRoofChain = false
+    let hasFootbridge = false
+    let hasUnderpass = false
     for (let seed = 1; seed <= 12; seed++) {
       const run = createRun(seed)
       ensureAhead(run, 180_000)
       run.obstacles.forEach((o) => kinds.add(o.kind))
       hasBranch ||= run.platforms.some((p) => p.kind === 'branch')
+      hasFootbridge ||= run.platforms.some((p) => p.kind === 'footbridge')
+      hasUnderpass ||= run.segments.some((segment) => segment.route === 'underpass')
       const roofs = run.platforms.filter((p) => p.kind === 'roof').sort((a, b) => a.x - b.x)
       hasRoofChain ||= roofs.some((p, i) => i > 0 && p.x - (roofs[i - 1].x + roofs[i - 1].w) < 80)
     }
     expect(kinds.has('signal')).toBe(true)
     expect(kinds.has('commuter')).toBe(true)
     expect(kinds.has('crossing')).toBe(true)
+    expect(kinds.has('ball')).toBe(true)
+    expect(kinds.has('students')).toBe(true)
     expect(hasBranch).toBe(true)
     expect(hasRoofChain).toBe(true)
+    expect(hasFootbridge).toBe(true)
+    expect(hasUnderpass).toBe(true)
   })
 
   it('エリアはプレイごとのシードでランダムになる', () => {
@@ -175,7 +185,7 @@ describe('チャリ通のコース生成', () => {
     expect(first).toEqual(sameSeed)
     expect(first).not.toEqual(anotherSeed)
     expect(new Set(first)).toEqual(
-      new Set(['residential', 'shopping', 'construction', 'station']),
+      new Set(['residential', 'shopping', 'construction', 'station', 'school']),
     )
   })
 
@@ -196,7 +206,7 @@ describe('チャリ通のコース生成', () => {
   it('夜間モードとエリアは独立して組み合わせられる', () => {
     const nightDistance = 192_000
     const area = zoneAt(nightDistance, 77)
-    expect(['residential', 'shopping', 'construction', 'station']).toContain(area)
+    expect(['residential', 'shopping', 'construction', 'station', 'school']).toContain(area)
     expect(commuteClockAt(nightDistance).phase).toBe('night')
   })
 
@@ -400,6 +410,15 @@ describe('チャリ通の物理', () => {
     expect(motionSpeedFor(headwind)).toBeCloseTo(655)
     headwind.traits = { ...DEFAULT_RIDER_TRAITS, windResist: 0.8, effects: ['強風耐性'] }
     expect(motionSpeedFor(headwind)).toBeCloseTo(771)
+  })
+
+  it('地下道では現在の天候効果を受けない', () => {
+    const run = createRun(1)
+    run.segments[0].route = 'underpass'
+    expect(isUnderpassAt(run)).toBe(true)
+    expect(weatherAt(run.distance, run.seed)).toBe('rain')
+    expect(effectiveWeatherFor(run)).toBe('clear')
+    expect(motionSpeedFor(run)).toBe(800)
   })
 
   it('雨は踏み切りを弱め、雨支度はジャンプ力の低下を抑える', () => {

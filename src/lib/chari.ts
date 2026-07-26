@@ -13,7 +13,7 @@ export const WALL_TOL = 22
 export const COIN_RADIUS = 30
 export const GRAV = 2100
 export const JUMP_V = 720
-export const AIR_JUMP_V = 820
+export const AIR_JUMP_V = 900
 export const JUMP_CUT_V = 250
 export const MAX_FALL = 1150
 export const DIVE_V = 1480
@@ -47,10 +47,11 @@ export type Segment = {
   endY?: number
   gapBefore: number
   airGap?: boolean
+  route?: 'underpass'
   entryClear: number
   exitClear: number
 }
-export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station'
+export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station' | 'school'
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
 export type CommutePhase = 'early' | 'rush' | 'late' | 'night'
 export type RiderTraits = {
@@ -65,7 +66,7 @@ export type RiderTraits = {
   comboBonus: number
   effects: string[]
 }
-export type PlatformKind = 'branch' | 'roof'
+export type PlatformKind = 'branch' | 'roof' | 'footbridge'
 export type Platform = {
   id: number
   kind: PlatformKind
@@ -82,6 +83,8 @@ export type ObstacleKind =
   | 'signal'
   | 'commuter'
   | 'crossing'
+  | 'ball'
+  | 'students'
 export type Obstacle = {
   id: number
   kind: ObstacleKind
@@ -238,7 +241,7 @@ function zoneIndexAt(block: number, seed: number): number {
 }
 
 export function zoneAt(dist: number, seed = 0): ZoneKind {
-  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'station']
+  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'station', 'school']
   const block = Math.floor(Math.max(0, dist) / ZONE_LENGTH)
   return zones[zoneIndexAt(block, seed) % zones.length]
 }
@@ -250,13 +253,21 @@ export function weatherAt(dist: number, seed = 0): WeatherKind {
 }
 
 export function motionSpeedFor(run: Run): number {
-  const weather = weatherAt(run.distance, run.seed)
+  const weather = effectiveWeatherFor(run)
   const windPush =
     weather === 'wind'
       ? ((run.seed & 1) === 0 ? 145 : -145) * (1 - run.traits.windResist)
       : 0
   const wetRoadBoost = weather === 'rain' ? 1 + 0.11 * (1 - run.traits.rainGrip) : 1
   return Math.max(320, run.speed * run.traits.speedMul * wetRoadBoost + windPush)
+}
+
+export function isUnderpassAt(run: Run, x = run.player.x): boolean {
+  return run.segments.some((segment) => segment.route === 'underpass' && x >= segment.x && x <= segment.x + segment.w)
+}
+
+export function effectiveWeatherFor(run: Run): WeatherKind {
+  return isUnderpassAt(run) ? 'clear' : weatherAt(run.distance, run.seed)
 }
 
 export function commuteClockAt(dist: number): {
@@ -371,9 +382,13 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
               ? { w: 58, h: 18 }
               : kind === 'signal'
                 ? { w: 72, h: 58 }
-                : kind === 'commuter'
-                  ? { w: 34, h: 64 }
-                  : { w: 92, h: 12 }
+      : kind === 'commuter'
+        ? { w: 34, h: 64 }
+        : kind === 'ball'
+          ? { w: 28, h: 28 }
+          : kind === 'students'
+            ? { w: 58, h: 74 }
+          : { w: 92, h: 12 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
   const y = kind === 'bird' ? roadY - 160 : kind === 'crossing' ? roadY - 32 : roadY - dims.h
@@ -387,8 +402,15 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
     cluster,
     used: false,
     phase: kind === 'signal' || kind === 'crossing' ? run.rng() * 4 : undefined,
-    vx: kind === 'commuter' ? -55 - run.rng() * 55 : undefined,
-    originX: kind === 'commuter' ? x : undefined,
+    vx:
+      kind === 'commuter'
+        ? -55 - run.rng() * 55
+        : kind === 'ball'
+          ? -105 - run.rng() * 45
+          : kind === 'students'
+            ? -28 - run.rng() * 20
+            : undefined,
+    originX: kind === 'commuter' || kind === 'ball' || kind === 'students' ? x : undefined,
   })
 }
 
@@ -453,6 +475,8 @@ function generateSegment(run: Run) {
     entryClear,
     exitClear,
   }
+  const underpass = difficulty > 0.12 && zone === 'station' && rng() < 0.3
+  if (underpass) segment.route = 'underpass'
   run.segments.push(segment)
 
   const safeStart = x + entryClear
@@ -460,7 +484,7 @@ function generateSegment(run: Run) {
   const room = safeEnd - safeStart
   const roadAt = (px: number) => y + (endY - y) * clamp((px - x) / w, 0, 1)
   const roll = rng()
-  if (room > 120 && roll < 1) {
+  if (!underpass && room > 120 && roll < 1) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
     const kindRoll = rng()
@@ -473,6 +497,10 @@ function generateSegment(run: Run) {
       addObstacle(run, 'fence', clamp(center + 95, safeStart, safeEnd - 42), roadAt(center + 116), cluster)
     } else if (zone === 'station' && kindRoll < 0.16 && difficulty > 0.25) {
       addObstacle(run, 'crossing', center, roadAt(center + 10), cluster)
+    } else if (zone === 'school' && kindRoll < 0.18 && difficulty > 0.08) {
+      addObstacle(run, 'students', center, roadAt(center + 29), cluster)
+    } else if (zone === 'school' && kindRoll < 0.34) {
+      addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
     } else if ((zone === 'residential' || zone === 'shopping') && kindRoll < 0.13 && difficulty > 0.12) {
       addObstacle(run, 'signal', clamp(center, safeStart, safeEnd - 104), roadAt(center + 52), cluster)
     } else if (kindRoll < 0.35) {
@@ -521,7 +549,28 @@ function generateSegment(run: Run) {
   const routeClear = Math.max(120, speed * 0.22)
   const routeStart = x + routeClear
   const routeEnd = x + w - routeClear
-  if (routeEnd - routeStart > 620 && difficulty > 0.18 && routeRoll < (zone === 'shopping' ? 0.72 : 0.2)) {
+  if (
+    !underpass &&
+    routeEnd - routeStart > 620 &&
+    difficulty > 0.18 &&
+    zone !== 'shopping' &&
+    routeRoll < (zone === 'school' ? 0.62 : 0.18)
+  ) {
+    const heights = [58, 94, 126, 94, 58]
+    const platformW = 128
+    for (let i = 0; i < heights.length; i++) {
+      const px = routeStart + i * (platformW + 24)
+      if (px + platformW > routeEnd) break
+      const py = roadAt(px + platformW / 2) - heights[i]
+      addPlatform(run, 'footbridge', px, platformW, py)
+      for (let coinX = px + 25; coinX < px + platformW - 10; coinX += 40) addCoin(run, coinX, py - 32)
+    }
+  } else if (
+    !underpass &&
+    routeEnd - routeStart > 620 &&
+    difficulty > 0.18 &&
+    routeRoll < (zone === 'shopping' ? 0.72 : 0.38)
+  ) {
     const roofRoute = zone === 'shopping'
     const count = roofRoute ? 4 : 3
     const platformW = roofRoute ? 150 : 180
@@ -648,7 +697,7 @@ export function step(run: Run, input: Input, dt: number): void {
     const oldRoadSurface = surfaceAt(run, oldX)
     const oldPlatform = platformAt(run, p.platformId, oldX)
     const oldSurface = oldPlatform?.y ?? oldRoadSurface
-    const weather = weatherAt(run.distance, run.seed)
+    const weather = effectiveWeatherFor(run)
 
     if (first && input.jumpPressed) {
       if (p.grounded) {

@@ -5,6 +5,8 @@ import {
   commuteClockAt,
   createRun,
   deriveRiderTraits,
+  effectiveWeatherFor,
+  isUnderpassAt,
   loadBest,
   metersOf,
   nextZoneInfo,
@@ -113,6 +115,7 @@ const zoneLabel = {
   shopping: '商店街',
   construction: '工事区間',
   station: '駅前',
+  school: 'スクールゾーン',
 } as const
 
 const weatherLabel = {
@@ -141,6 +144,7 @@ const zoneIcon = {
   shopping: '🏬',
   construction: '🚧',
   station: '🚉',
+  school: '🏫',
 } as const
 
 const weatherIcon = {
@@ -266,6 +270,39 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
       ctx.fillStyle = '#d45b4c'
       ctx.fillRect(x + 92, 258, 48, 7)
     }
+  } else if (zone === 'school') {
+    for (let i = -1; i < 5; i++) {
+      const x = i * 300 - ((cameraX * 0.2) % 300)
+      ctx.fillStyle = '#d8c59d'
+      ctx.fillRect(x, 242, 248, 123)
+      ctx.fillStyle = '#7898a2'
+      for (let wx = 18; wx < 220; wx += 48) ctx.fillRect(x + wx, 264, 28, 31)
+      ctx.fillStyle = '#c66b55'
+      ctx.fillRect(x + 94, 318, 56, 47)
+      ctx.fillStyle = '#f3e8c8'
+      ctx.fillRect(x + 78, 248, 88, 10)
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.72)'
+    for (let x = -80 - ((cameraX * 0.65) % 150); x < VIEW_W; x += 150) {
+      ctx.fillRect(x, 346, 76, 9)
+    }
+  }
+
+  for (const segment of run.segments) {
+    if (segment.route !== 'underpass') continue
+    const x = segment.x - cameraX
+    if (x > VIEW_W || x + segment.w < 0) continue
+    const y = Math.min(segment.y, segment.endY ?? segment.y)
+    ctx.fillStyle = '#343a40'
+    ctx.fillRect(x, y - 176, segment.w, 160)
+    ctx.fillStyle = '#20252b'
+    ctx.fillRect(x, y - 176, segment.w, 18)
+    ctx.fillStyle = 'rgba(255,235,166,.8)'
+    for (let lx = x + 65; lx < x + segment.w - 20; lx += 170) {
+      ctx.fillRect(lx, y - 146, 74, 8)
+    }
+    ctx.fillStyle = '#697078'
+    ctx.fillRect(x, y - 20, segment.w, 8)
   }
 }
 
@@ -302,6 +339,14 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
   for (const platform of run.platforms) {
     const x = platform.x - cameraX
     if (x > VIEW_W + 60 || x + platform.w < -60) continue
+    if (platform.kind === 'footbridge') {
+      ctx.fillStyle = '#69757b'
+      ctx.fillRect(x, platform.y, platform.w, 12)
+      ctx.strokeStyle = '#9aa5a8'
+      ctx.lineWidth = 4
+      ctx.strokeRect(x + 3, platform.y - 25, platform.w - 6, 25)
+      continue
+    }
     ctx.fillStyle = platform.kind === 'roof' ? '#875e55' : '#596b72'
     ctx.fillRect(x, platform.y, platform.w, 14)
     ctx.fillStyle = platform.kind === 'roof' ? '#b77a67' : '#82959a'
@@ -456,6 +501,26 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.beginPath()
       ctx.arc(x + 21, o.y + 13, 5, 0, Math.PI * 2)
       ctx.fill()
+    } else if (o.kind === 'ball') {
+      ctx.fillStyle = '#f2e8d2'
+      ctx.beginPath()
+      ctx.arc(x + o.w / 2, o.y + o.h / 2, o.w / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#d45c4b'
+      ctx.lineWidth = 5
+      ctx.beginPath()
+      ctx.arc(x + o.w / 2, o.y + o.h / 2, 8, 0, Math.PI * 2)
+      ctx.stroke()
+    } else if (o.kind === 'students') {
+      for (let i = 0; i < 3; i++) {
+        const sx = x + 8 + i * 19
+        ctx.fillStyle = i % 2 ? '#e0b24c' : '#4b7089'
+        ctx.fillRect(sx - 7, o.y + 25, 14, 34)
+        ctx.fillStyle = '#d9aa86'
+        ctx.beginPath()
+        ctx.arc(sx, o.y + 15, 8, 0, Math.PI * 2)
+        ctx.fill()
+      }
     } else {
       ctx.fillStyle = o.used ? '#77747b' : '#dc9b36'
       ctx.beginPath()
@@ -471,7 +536,7 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
 }
 
 function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
-  const weather = weatherAt(run.distance, run.seed)
+  const weather = effectiveWeatherFor(run)
   if (weather === 'rain') {
     ctx.strokeStyle = 'rgba(220,239,247,.62)'
     ctx.lineWidth = 2
@@ -572,7 +637,7 @@ function drawBike(
     : undefined
   const roadTilt = road ? Math.atan2((road.endY ?? road.y) - road.y, road.w) : 0
   const windLean =
-    weatherAt(run.distance, run.seed) === 'wind'
+    effectiveWeatherFor(run) === 'wind'
       ? ((run.seed & 1) === 0 ? 1 : -1) * 0.055 * (1 - run.traits.windResist)
       : 0
   ctx.save()
@@ -863,14 +928,19 @@ export default function ChariGameView({ data, onBack }: Props) {
         zoneRef.current.dataset.zone = zone
       }
       if (weatherRef.current) {
+        const sheltered = isUnderpassAt(run)
         const effect =
-          weather === 'wind'
+          sheltered
+            ? '地下道・天候無効'
+            : weather === 'wind'
             ? (run.seed & 1) === 0
               ? '追い風・大加速'
               : '向かい風・大減速'
             : weatherEffectLabel[weather]
-        weatherRef.current.textContent = `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
-        weatherRef.current.dataset.weather = weather
+        weatherRef.current.textContent = sheltered
+          ? `🚇 ${effect}`
+          : `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
+        weatherRef.current.dataset.weather = sheltered ? 'clear' : weather
       }
       if (timeRef.current) {
         timeRef.current.textContent = `◷ ${commute.label} ${commutePhaseLabel[commute.phase]}`

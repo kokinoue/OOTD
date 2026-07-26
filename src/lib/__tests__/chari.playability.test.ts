@@ -28,10 +28,10 @@ function needsJump(run: Run): boolean {
           ? motionSpeed * 0.55
           : o.kind === 'crossing'
             ? motionSpeed * 0.72
-            : o.kind === 'signal'
+            : o.kind === 'signal' || o.kind === 'students'
               ? motionSpeed * 0.58
               : o.kind === 'commuter'
-                ? motionSpeed * 0.36
+                ? motionSpeed * 0.58
             : look),
   )
 }
@@ -67,6 +67,15 @@ function overAirGap(run: Run): boolean {
   )
 }
 
+function approachingGap(run: Run): boolean {
+  const p = run.player
+  return run.segments.some((segment) => {
+    if (segment.gapBefore <= 0) return false
+    const distance = segment.x - segment.gapBefore - p.x
+    return distance >= 0 && distance <= motionSpeedFor(run) * 0.38
+  })
+}
+
 function shouldAirJumpGap(run: Run): boolean {
   const p = run.player
   const gap = run.segments.find(
@@ -74,7 +83,7 @@ function shouldAirJumpGap(run: Run): boolean {
   )
   if (!gap || p.vy <= 80) return false
   const progress = (p.x - (gap.x - gap.gapBefore)) / gap.gapBefore
-  return p.y >= gap.y - 45 || progress >= 0.3
+  return p.y >= gap.y - 45 || progress >= 0.28
 }
 
 function needsAirJumpForTruck(run: Run): boolean {
@@ -91,7 +100,10 @@ function needsAirJumpForBarrier(run: Run): boolean {
   const p = run.player
   return run.obstacles.some(
     (o) =>
-      (o.kind === 'crossing' || o.kind === 'signal') &&
+      (o.kind === 'crossing' ||
+        o.kind === 'signal' ||
+        o.kind === 'students' ||
+        o.kind === 'commuter') &&
       o.x - (p.x + 15) >= 0 &&
       o.x - (p.x + 15) <= motionSpeedFor(run) * 0.24,
   )
@@ -99,7 +111,15 @@ function needsAirJumpForBarrier(run: Run): boolean {
 
 function shouldDiveToRoad(run: Run): boolean {
   const p = run.player
-  if (p.grounded || !p.airJumpUsed || overAirGap(run) || surfaceAt(run, p.x) == null) return false
+  const road = surfaceAt(run, p.x)
+  if (
+    p.grounded ||
+    !p.airJumpUsed ||
+    overAirGap(run) ||
+    approachingGap(run) ||
+    road == null ||
+    p.y > road
+  ) return false
   return !run.obstacles.some(
     (o) =>
       o.kind !== 'bird' &&
