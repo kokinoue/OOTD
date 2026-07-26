@@ -165,16 +165,29 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
   for (const s of run.segments) {
     const x = s.x - cameraX
     if (x > VIEW_W + 60 || x + s.w < -60) continue
+    const endY = s.endY ?? s.y
     ctx.fillStyle = '#3a3a41'
-    ctx.fillRect(x, s.y, s.w, VIEW_H - s.y)
+    ctx.beginPath()
+    ctx.moveTo(x, s.y)
+    ctx.lineTo(x + s.w, endY)
+    ctx.lineTo(x + s.w, VIEW_H)
+    ctx.lineTo(x, VIEW_H)
+    ctx.closePath()
+    ctx.fill()
     ctx.fillStyle = '#4d4d57'
-    ctx.fillRect(x, s.y, s.w, 9)
+    ctx.beginPath()
+    ctx.moveTo(x, s.y)
+    ctx.lineTo(x + s.w, endY)
+    ctx.lineTo(x + s.w, endY + 9)
+    ctx.lineTo(x, s.y + 9)
+    ctx.closePath()
+    ctx.fill()
     ctx.strokeStyle = 'rgba(255,255,255,.26)'
     ctx.lineWidth = 3
     ctx.setLineDash([34, 28])
     ctx.beginPath()
     ctx.moveTo(x, s.y + 75)
-    ctx.lineTo(x + s.w, s.y + 75)
+    ctx.lineTo(x + s.w, endY + 75)
     ctx.stroke()
     ctx.setLineDash([])
   }
@@ -250,9 +263,13 @@ function drawBike(
   const x = HERO_X
   const y = p.y
   const spin = run.distance / 18
+  const road = p.grounded
+    ? run.segments.find((s) => p.x >= s.x && p.x <= s.x + s.w)
+    : undefined
+  const roadTilt = road ? Math.atan2((road.endY ?? road.y) - road.y, road.w) : 0
   ctx.save()
   ctx.translate(x, y)
-  ctx.rotate(crashTilt)
+  ctx.rotate(crashTilt + roadTilt)
   const wheelY = -15
   for (const wx of [-27, 29]) {
     ctx.strokeStyle = '#202126'

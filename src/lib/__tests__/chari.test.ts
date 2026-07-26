@@ -5,6 +5,7 @@ import {
   JUMP_V,
   RAMP_V,
   ROAD_Y,
+  SLOPE_MAX_H,
   STEP_H,
   WALL_TOL,
   createRun,
@@ -17,6 +18,7 @@ import {
   scoreOf,
   speedAt,
   step,
+  surfaceAt,
   type Run,
 } from '../chari'
 
@@ -28,7 +30,7 @@ vi.stubGlobal('localStorage', {
   clear: () => storage.clear(),
 })
 const snapshot = (run: Run) => ({
-  segments: run.segments.map(({ x, w, y, gapBefore }) => [x, w, y, gapBefore]),
+  segments: run.segments.map(({ x, w, y, endY, gapBefore }) => [x, w, y, endY, gapBefore]),
   obstacles: run.obstacles.map(({ kind, x, y, cluster }) => [kind, x, y, cluster]),
   coins: run.coins.map(({ x, y }) => [x, y]),
 })
@@ -59,8 +61,22 @@ describe('チャリ通のコース生成', () => {
     for (let i = 1; i < run.segments.length; i++) {
       const prev = run.segments[i - 1]
       const cur = run.segments[i]
-      if (cur.y !== prev.y) expect(cur.gapBefore).toBeGreaterThan(0)
-      expect(prev.y - cur.y).toBeLessThanOrEqual(STEP_H)
+      const prevEnd = prev.endY ?? prev.y
+      if (cur.y !== prevEnd) expect(cur.gapBefore).toBeGreaterThan(0)
+      expect(prevEnd - cur.y).toBeLessThanOrEqual(STEP_H)
+    }
+  })
+
+  it('上り坂と下り坂を生成し、路面高度が区間内で滑らかに変わる', () => {
+    const run = createRun(314)
+    ensureAhead(run, 100_000)
+    const slopes = run.segments.filter((s) => (s.endY ?? s.y) !== s.y)
+    expect(slopes.some((s) => (s.endY ?? s.y) < s.y)).toBe(true)
+    expect(slopes.some((s) => (s.endY ?? s.y) > s.y)).toBe(true)
+    for (const s of slopes) {
+      const endY = s.endY ?? s.y
+      expect(Math.abs(endY - s.y)).toBeLessThanOrEqual(SLOPE_MAX_H)
+      expect(surfaceAt(run, s.x + s.w / 2)).toBeCloseTo((s.y + endY) / 2, 5)
     }
   })
 

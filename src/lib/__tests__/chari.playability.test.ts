@@ -72,7 +72,7 @@ describe('チャリ通のプレイ可能性', () => {
           step(run, { jumpPressed, jumpHeld, diveHeld: false }, 1 / 60)
           if (frame % 6 === 0) {
             trace.push(
-              `${frame}:${Math.round(run.player.x)},${Math.round(run.player.y)},${Math.round(run.player.vy)},${run.player.grounded ? 'g' : 'a'},${jumpPressed ? 'J' : '-'}`,
+              `${frame}:${Math.round(run.player.x)},${Math.round(run.player.y)},${Math.round(run.player.vy)},road${Math.round(surfaceAt(run, run.player.x) ?? -1)},${run.player.grounded ? 'g' : 'a'},${jumpPressed ? 'J' : '-'}`,
             )
             if (trace.length > 12) trace.shift()
           }
@@ -82,7 +82,10 @@ describe('チャリ通のプレイ可能性', () => {
         )
         const nearby = run.segments
           .filter((s) => s.x + s.w > run.player.x - 1200 && s.x < run.player.x + 1200)
-          .map((s) => `${Math.round(s.x)}-${Math.round(s.x + s.w)}@${s.y}/gap${Math.round(s.gapBefore)}`)
+          .map(
+            (s) =>
+              `${Math.round(s.x)}-${Math.round(s.x + s.w)}@${Math.round(s.y)}>${Math.round(s.endY ?? s.y)}/gap${Math.round(s.gapBefore)}`,
+          )
         expect(
           run.status,
           `seed ${seed}: ${run.overReason}, ${logs.at(-1)} [${trace.join(' ')}] roads=${nearby.join(',')}`,

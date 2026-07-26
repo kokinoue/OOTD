@@ -6,6 +6,7 @@ export const ROAD_Y = 384
 export const ROAD_MIN_Y = 252
 export const ROAD_MAX_Y = 428
 export const STEP_H = 44
+export const SLOPE_MAX_H = 84
 export const PLAYER_W = 30
 export const PLAYER_H = 52
 export const WALL_TOL = 22
@@ -39,6 +40,7 @@ export type Segment = {
   x: number
   w: number
   y: number
+  endY?: number
   gapBefore: number
   entryClear: number
   exitClear: number
@@ -119,7 +121,10 @@ export function minObstacleSpacing(speed: number): number {
 
 export function surfaceAt(run: Run, x: number): number | null {
   for (const s of run.segments) {
-    if (x >= s.x && x <= s.x + s.w) return s.y
+    if (x >= s.x && x <= s.x + s.w) {
+      const t = clamp((x - s.x) / s.w, 0, 1)
+      return s.y + ((s.endY ?? s.y) - s.y) * t
+    }
   }
   return null
 }
@@ -180,6 +185,14 @@ function generateSegment(run: Run) {
 
   const x = run.nextX + gap
   const w = Math.max(360, speed * (1.65 + rng() * 0.35))
+  // 長い道路区間は緩やかな上り／下りにする。区間末端を次区間の始点へ
+  // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
+  const slopeRoll = rng()
+  const slopeDelta =
+    slopeRoll < 0.64
+      ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
+      : 0
+  const endY = clamp(y + slopeDelta, ROAD_MIN_Y, ROAD_MAX_Y)
   const entryClear = Math.max(90, speed * 0.72)
   // 規定の0.32秒を下限に、障害物ジャンプが着地してから次の穴へ
   // 踏み切れる余白まで確保する（二段ジャンプを使っても穴へ直結しない）。
@@ -189,6 +202,7 @@ function generateSegment(run: Run) {
     x,
     w,
     y,
+    endY,
     gapBefore: gap,
     entryClear,
     exitClear,
@@ -198,6 +212,7 @@ function generateSegment(run: Run) {
   const safeStart = x + entryClear
   const safeEnd = x + w - exitClear
   const room = safeEnd - safeStart
+  const roadAt = (px: number) => y + (endY - y) * clamp((px - x) / w, 0, 1)
   const roll = rng()
   if (room > 120 && roll < 1) {
     const cluster = run.serial++
@@ -208,32 +223,39 @@ function generateSegment(run: Run) {
       const count = difficulty > 0.2 ? (rng() < 0.88 ? 3 : 2) : 2
       const spread = 40
       const first = clamp(center - ((count - 1) * spread) / 2, safeStart, safeEnd - (count - 1) * spread)
-      for (let i = 0; i < count; i++) addObstacle(run, 'pylon', first + i * spread, y, cluster)
-      addCoinArc(run, first - 5, first + Math.max(75, (count - 1) * spread + 30), y, 48)
+      for (let i = 0; i < count; i++) {
+        const px = first + i * spread
+        addObstacle(run, 'pylon', px, roadAt(px + 12), cluster)
+      }
+      const arcEnd = first + Math.max(75, (count - 1) * spread + 30)
+      addCoinArc(run, first - 5, arcEnd, roadAt((first + arcEnd) / 2), 48)
     } else if (kindRoll < 0.75 && difficulty > 0.04) {
-      addObstacle(run, 'fence', center, y, cluster)
-      addCoinArc(run, center - 28, center + 72, y, 62)
+      addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
+      addCoinArc(run, center - 28, center + 72, roadAt(center + 22), 62)
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
-      addObstacle(run, 'bird', center, y, cluster)
-      for (let px = center - 35; px <= center + 75; px += 42) addCoin(run, px, y + 116)
+      addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
+      for (let px = center - 35; px <= center + 75; px += 42) {
+        addCoin(run, px, roadAt(px) - 44)
+      }
     } else {
-      addObstacle(run, 'ramp', center, y, cluster)
-      addCoinArc(run, center + 38, Math.min(safeEnd, center + 250), y, 115)
+      addObstacle(run, 'ramp', center, roadAt(center + 29), cluster)
+      const arcEnd = Math.min(safeEnd, center + 250)
+      addCoinArc(run, center + 38, arcEnd, roadAt((center + 38 + arcEnd) / 2), 115)
     }
   } else if (room > 180) {
     const start = safeStart + 35
     const end = Math.min(safeEnd - 20, start + 150)
-    for (let px = start; px <= end; px += 42) addCoin(run, px, y - 48)
+    for (let px = start; px <= end; px += 42) addCoin(run, px, roadAt(px) - 48)
   }
 
   if (gap > 0) {
     const prev = run.segments[run.segments.length - 2]
     const left = prev.x + prev.w + 12
-    addCoinArc(run, left, x - 12, Math.min(prev.y, y), 46)
+    addCoinArc(run, left, x - 12, Math.min(prev.endY ?? prev.y, y), 46)
   }
   run.nextX = x + w
-  run.nextY = y
+  run.nextY = endY
 }
 
 export function ensureAhead(run: Run, untilX: number): void {
@@ -248,6 +270,7 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
     x: -500,
     w: 1200,
     y: ROAD_Y,
+    endY: ROAD_Y,
     gapBefore: 0,
     entryClear: 0,
     exitClear: 120,
@@ -368,7 +391,11 @@ export function step(run: Run, input: Input, dt: number): void {
       p.vy = Math.min(MAX_FALL, p.vy + GRAV * h)
       p.y += p.vy * h
       p.airTime += h
-      if (newSurface != null && p.vy >= 0 && prevY <= newSurface && p.y >= newSurface) {
+      // 上り坂では路面もフレーム間で上へ動くため、直前位置は直前の路面と
+      // 比較する。現在路面だけとの比較では交差瞬間を取り逃がすことがある。
+      const wasAboveSurface =
+        newSurface != null && (oldSurface == null ? prevY <= newSurface : prevY <= oldSurface)
+      if (newSurface != null && p.vy >= 0 && wasAboveSurface && p.y >= newSurface) {
         p.y = newSurface
         p.vy = 0
         p.grounded = true
