@@ -310,6 +310,7 @@ export default function ChariGameView({ data, onBack }: Props) {
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
   const spriteRef = useRef<HTMLImageElement | null>(null)
   const ratioRef = useRef(0.5)
+  const changeOutfitRef = useRef<() => void>(() => {})
   const [caption, setCaption] = useState('')
   const [muted, setMuted] = useState(() => localStorage.getItem(SOUND_KEY) === 'off')
   const [touch, setTouch] = useState(false)
@@ -328,6 +329,7 @@ export default function ChariGameView({ data, onBack }: Props) {
     const outfit = outfitByKey.get(key)
     setCaption(outfit?.no ? `#${outfit.no} · ${fmtDate(outfit.date)}` : fmtDate(outfit?.date ?? ''))
   }
+  changeOutfitRef.current = changeOutfit
 
   useEffect(() => {
     setTouch(window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0)
@@ -405,6 +407,7 @@ export default function ChariGameView({ data, onBack }: Props) {
         audioRef.current?.unlock()
         inputRef.current.diveHeld = true
       } else if (key === 'r') {
+        changeOutfitRef.current()
         setResult(null)
         setResetTick((n) => n + 1)
       } else if (key === 'escape') onBack()
@@ -501,6 +504,7 @@ export default function ChariGameView({ data, onBack }: Props) {
   }, [onBack, resetTick])
 
   const retry = () => {
+    changeOutfitRef.current()
     setResult(null)
     setResetTick((n) => n + 1)
   }
