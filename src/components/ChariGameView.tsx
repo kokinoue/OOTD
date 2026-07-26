@@ -1264,11 +1264,6 @@ export default function ChariGameView({ data, onBack }: Props) {
             <span aria-hidden="true">👕</span>
             <b>着替え</b>
           </button>
-          {!result && (
-            <div className="chari-touch-hint mono" aria-hidden="true">
-              ↑ TAP JUMP
-            </div>
-          )}
           {result && (
             <div className="chari-overlay">
               <div className="chari-result jp">
