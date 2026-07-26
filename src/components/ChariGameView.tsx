@@ -230,6 +230,13 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   ctx.arc(750 - (cameraX * 0.015) % 100, 86, 42, 0, Math.PI * 2)
   ctx.fill()
 
+  // 背景は不透明のまま彩度とコントラストだけを落とす。
+  // 要素ごとに透明化すると、建物や木が重なって透けた見た目になる。
+  ctx.save()
+  ctx.filter = isNight
+    ? 'saturate(65%) contrast(88%) brightness(82%)'
+    : 'saturate(58%) contrast(84%) brightness(106%)'
+
   // 遠景ビル
   ctx.fillStyle = '#a8b2b3'
   for (let i = -2; i < 15; i++) {
@@ -378,6 +385,21 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
     ctx.fillStyle = '#697078'
     ctx.fillRect(x, y + 10, segment.w, 8)
   }
+  ctx.restore()
+
+  // 建物や木の輪郭をなじませ、直後に描く道路・障害物との明度差を作る。
+  const separation = ctx.createLinearGradient(0, 120, 0, 430)
+  if (isNight) {
+    separation.addColorStop(0, 'rgba(8,12,23,.02)')
+    separation.addColorStop(0.58, 'rgba(8,12,23,.1)')
+    separation.addColorStop(1, 'rgba(8,12,23,.2)')
+  } else {
+    separation.addColorStop(0, 'rgba(246,243,235,.02)')
+    separation.addColorStop(0.58, 'rgba(246,243,235,.12)')
+    separation.addColorStop(1, 'rgba(246,243,235,.28)')
+  }
+  ctx.fillStyle = separation
+  ctx.fillRect(0, 120, VIEW_W, 310)
 }
 
 function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: number, t: number) {
@@ -455,6 +477,13 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     const x = coin.x - cameraX
     if (x < -30 || x > VIEW_W + 30) continue
     const squash = 0.35 + Math.abs(Math.cos(t * 5 + coin.id)) * 0.65
+    const coinGlow = ctx.createRadialGradient(x, coin.y, 4, x, coin.y, 22)
+    coinGlow.addColorStop(0, 'rgba(255,221,96,.48)')
+    coinGlow.addColorStop(1, 'rgba(255,221,96,0)')
+    ctx.fillStyle = coinGlow
+    ctx.beginPath()
+    ctx.arc(x, coin.y, 22, 0, Math.PI * 2)
+    ctx.fill()
     if (coin.magnetized) {
       const glow = ctx.createRadialGradient(x, coin.y, 2, x, coin.y, 25)
       glow.addColorStop(0, 'rgba(255,224,112,.7)')
@@ -478,6 +507,11 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     ctx.lineWidth = 2
     ctx.stroke()
   }
+  ctx.save()
+  ctx.shadowColor = isNightTimeAt(run.distance, run.seed)
+    ? 'rgba(255,232,151,.62)'
+    : 'rgba(255,255,255,.52)'
+  ctx.shadowBlur = 7
   for (const o of run.obstacles) {
     const x = o.x - cameraX
     if (x < -80 || x > VIEW_W + 80) continue
@@ -626,6 +660,7 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.stroke()
     }
   }
+  ctx.restore()
   for (const segment of run.segments) {
     if (segment.route !== 'underpass') continue
     const signX = segment.x + 88 - cameraX
