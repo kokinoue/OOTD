@@ -7,7 +7,8 @@ import {
   buildOrbitLayout,
   outfitIndicesForItem,
 } from '../lib/orbit'
-import { createOrbitScene, type OrbitSceneController } from '../lib/orbitScene'
+import type { OrbitSceneController } from '../lib/orbitScene'
+import { createCompatibleOrbitScene } from '../lib/orbitSceneFallback'
 import { colorBuckets, fmtDate, outfits, type Data } from '../lib/useData'
 import { SKY_LABELS, skyOfDay, type Sky } from '../lib/weather'
 import type { CutoutsFile } from '../lib/platform'
@@ -109,7 +110,7 @@ export default function OrbitView({
     const container = canvasHostRef.current
     if (!container) return
     try {
-      const controller = createOrbitScene({
+      const controller = createCompatibleOrbitScene({
         container,
         entries: orbitEntries,
         sprites: cutouts.sprites,

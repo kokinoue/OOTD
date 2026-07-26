@@ -11,7 +11,7 @@ import type { Sky } from './weather'
 
 type SpriteSize = { w: number; h: number }
 
-type OrbitSceneOptions = {
+export type OrbitSceneOptions = {
   container: HTMLElement
   entries: OrbitEntry[]
   sprites: Record<string, SpriteSize>
