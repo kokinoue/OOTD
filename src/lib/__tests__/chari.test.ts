@@ -5,6 +5,7 @@ import {
   COMBO_TIMEOUT,
   COMMUTE_MINUTE_SECONDS,
   DEFAULT_RIDER_TRAITS,
+  GAME_TIME_SCALE,
   GRAV,
   JUMP_V,
   PLAYER_H,
@@ -76,9 +77,10 @@ const snapshot = (run: Run) => ({
 })
 
 describe('チャリ通のコース生成', () => {
-  it('基本走行速度は距離にかかわらず800px/sになる', () => {
+  it('基本走行速度を保ちつつ、画面上の60fps移動量を時間倍率で抑える', () => {
     expect(speedAt(0)).toBe(800)
     expect(speedAt(100_000)).toBe(800)
+    expect(speedAt(0) * GAME_TIME_SCALE / 60).toBeLessThanOrEqual(10)
   })
 
   it('同じシードは同じコース、別シードは別のコースになる', () => {

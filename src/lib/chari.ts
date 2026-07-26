@@ -27,6 +27,9 @@ export const ZONE_LENGTH = 9000
 export const WEATHER_LENGTH = 12000
 export const WEATHER_TRANSITION_LENGTH = 2400
 export const COMMUTE_MINUTE_SECONDS = 0.375
+// 走行・ジャンプ・動的障害物を同じ比率で進め、空間上のゲーム性を保ったまま
+// 60fpsでの背景移動を10px以内に抑える。
+export const GAME_TIME_SCALE = 0.75
 export const UNDERPASS_DEPTH = 96
 export const UNDERPASS_STREET_LIFT = 100
 

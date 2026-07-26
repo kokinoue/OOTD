@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import cutoutsJson from '../data/cutouts.json'
 import {
   DEFAULT_RIDER_TRAITS,
+  GAME_TIME_SCALE,
   UNDERPASS_STREET_LIFT,
   commuteClockAt,
   crossingStateAt,
@@ -1237,9 +1238,10 @@ export default function ChariGameView({ data, onBack }: Props) {
     if (!canvas || !screen) return
     const ctx = canvas.getContext('2d', { alpha: false })!
     const isMobileLayout = window.matchMedia('(max-width: 760px)').matches
-    // 論理解像度自体が表示幅より大きいため、Retinaの倍率をそのまま掛けると
-    // スマホでは必要量の約3倍を毎フレーム塗ることになる。
-    const dpr = Math.min(isMobileLayout ? 1.25 : 1.5, window.devicePixelRatio || 1)
+    // 論理解像度自体が表示幅より大きいため、Retinaの倍率をそのまま掛けない。
+    // 特にスマホは960px幅を縮小表示するので1倍でも十分な密度があり、
+    // これ以上は見た目より毎フレームの塗りつぶし負荷の方が大きくなる。
+    const dpr = Math.min(isMobileLayout ? 1 : 1.25, window.devicePixelRatio || 1)
     const viewHeight = isMobileLayout ? MOBILE_VIEW_H : VIEW_H
     const baseSceneOffsetY = isMobileLayout ? MOBILE_SCENE_Y : 0
     canvas.width = VIEW_W * dpr
@@ -1370,7 +1372,7 @@ export default function ChariGameView({ data, onBack }: Props) {
         run.traits = traitsRef.current
         inputRef.current.jumpPressed = jumpQueueRef.current > 0
         if (jumpQueueRef.current > 0) jumpQueueRef.current--
-        step(run, inputRef.current, rawDt * slow)
+        step(run, inputRef.current, rawDt * slow * GAME_TIME_SCALE)
         inputRef.current.jumpPressed = false
         for (const e of run.events) {
           audioRef.current?.play(e.kind)
