@@ -5902,7 +5902,17 @@ a {
     font-size: 10px;
   }
   .chari-screen {
+    aspect-ratio: 9 / 16;
     border-radius: 7px;
+  }
+  .chari-canvas {
+    position: absolute;
+    top: 0;
+    left: -46%;
+    width: auto;
+    max-width: none;
+    height: 100%;
+    aspect-ratio: 960 / 540;
   }
   .chari-dive {
     width: 58px;
