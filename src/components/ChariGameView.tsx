@@ -1139,18 +1139,14 @@ export default function ChariGameView({ data, onBack }: Props) {
             </span>
           </div>
           <div ref={noticeRef} className="chari-course-notice jp" aria-live="polite" />
-          <details className="chari-outfit-power jp">
-            <summary>
-              <span>服効果</span>
-              <b>{traits.effects.length}</b>
-              <i aria-hidden="true">⌄</i>
-            </summary>
+          <div className="chari-outfit-power jp" aria-label="現在の服効果">
+            <b>服効果</b>
             <div className="chari-outfit-effects">
               {traits.effects.map((effect, index) => (
                 <span key={`${effect}-${index}`}>{effect}</span>
               ))}
             </div>
-          </details>
+          </div>
           <button
             className="chari-change-mobile jp"
             onClick={changeOutfit}
