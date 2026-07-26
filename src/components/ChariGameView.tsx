@@ -681,6 +681,12 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.fill()
       ctx.strokeStyle = '#f4d38b'
       ctx.stroke()
+      if (!o.used) {
+        ctx.fillStyle = '#fff0b8'
+        ctx.font = '800 11px ui-monospace, monospace'
+        ctx.textAlign = 'center'
+        ctx.fillText('ROOF ↑', x + o.w / 2, o.y - 10)
+      }
     }
   }
   ctx.restore()

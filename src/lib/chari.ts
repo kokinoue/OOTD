@@ -92,6 +92,7 @@ export type Platform = {
   x: number
   w: number
   y: number
+  requiresRamp?: boolean
 }
 export type ObstacleKind =
   | 'pylon'
@@ -124,6 +125,8 @@ export type Player = {
   vy: number
   grounded: boolean
   platformId: number | null
+  rampRoute: boolean
+  rampLaunchActive: boolean
   airJumpUsed: boolean
   airTime: number
 }
@@ -481,6 +484,7 @@ function landingSurfaceAt(
     candidates.push({ y: road, platformId: null })
   }
   for (const platform of run.platforms) {
+    if (platform.requiresRamp && !run.player.rampRoute) continue
     if (
       x >= platform.x &&
       x <= platform.x + platform.w &&
@@ -505,8 +509,15 @@ function addCoinArc(run: Run, x0: number, x1: number, roadY: number, lift: numbe
   }
 }
 
-function addPlatform(run: Run, kind: PlatformKind, x: number, w: number, y: number) {
-  run.platforms.push({ id: run.serial++, kind, x, w, y })
+function addPlatform(
+  run: Run,
+  kind: PlatformKind,
+  x: number,
+  w: number,
+  y: number,
+  requiresRamp = false,
+) {
+  run.platforms.push({ id: run.serial++, kind, x, w, y, requiresRamp })
 }
 
 function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, cluster: number) {
@@ -615,8 +626,12 @@ function addZonePattern(
       addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
       addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
     } else {
-      addObstacle(run, 'ramp', center, roadAt(center + 29), cluster)
-      addCoinArc(run, center + 38, safeEnd, roadAt(center + 80), 115)
+      if (difficulty > 0.18) {
+        addObstacle(run, 'ramp', center, roadAt(center + 29), cluster)
+      } else {
+        addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
+        addCoinArc(run, center - 28, center + 72, roadAt(center + 21), 62)
+      }
     }
     return
   }
@@ -717,15 +732,19 @@ function generateSegment(run: Run) {
 
   const x = run.nextX + gap
   // 地下道は分岐後の選択がしばらく続く、通常区間の倍以上の長さにする。
+  const roofLaunchSegment =
+    !underpass && zone === 'shopping' && zonePatternStep === 2 && difficulty > 0.18
   const w = underpass
     ? Math.max(2800, speed * (4.2 + rng() * 0.5))
-    : Math.max(360, speed * (1.65 + rng() * 0.35))
+    : roofLaunchSegment
+      ? Math.max(3200, speed * (4 + rng() * 0.25))
+      : Math.max(360, speed * (1.65 + rng() * 0.35))
   // 坂ごとに高低差と丸みを変える。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
   const slopeRoll = rng()
   const slopeChance = zoneProfile.slopeChance
   let slopeDelta = 0
-  if (!underpass && slopeRoll < slopeChance) {
+  if (!underpass && !roofLaunchSegment && slopeRoll < slopeChance) {
     let direction = rng() < 0.5 ? -1 : 1
     const height = 42 + rng() * (SLOPE_MAX_H - 42)
     if (
@@ -739,8 +758,9 @@ function generateSegment(run: Run) {
   const endY = clamp(y + slopeDelta, ROAD_MIN_Y, ROAD_MAX_Y)
   // 追加の乱数を消費せず、後続の障害物配置を変えない。
   const curve = slopeDelta === 0 ? undefined : 0.55 + (slopeRoll / slopeChance) * 0.45
-  // 二段ジャンプの大穴は着地が通常より奥になるため、着地側の安全帯を広げる。
-  const entryClear = Math.max(90, speed * (airGap ? 1.15 : 0.72))
+  // 穴越えで空中ジャンプを使った場合も、着地前に次の専用パターンへ
+  // 突っ込まないよう、穴がある区間は種類を問わず着地側を広く空ける。
+  const entryClear = Math.max(90, speed * (hasGap ? 1.15 : 0.72))
   // 規定の0.32秒を下限に、障害物ジャンプが着地してから次の穴へ
   // 踏み切れる余白まで確保する（二段ジャンプを使っても穴へ直結しない）。
   const exitClear = Math.max(90, speed * 0.72)
@@ -765,7 +785,9 @@ function generateSegment(run: Run) {
   const roadAt = (px: number) => segmentSurfaceAt(segment, px)
   const roll = rng()
   if (!underpass && room > 120 && roll < 1) {
-    const center = safeStart + room * (0.25 + rng() * 0.5)
+    const center = roofLaunchSegment
+      ? safeStart + 80
+      : safeStart + room * (0.25 + rng() * 0.5)
     addZonePattern(run, zone, zonePatternStep, center, safeStart, safeEnd, roadAt, difficulty)
   } else if (room > 180) {
     const start = safeStart + 35
@@ -781,6 +803,12 @@ function generateSegment(run: Run) {
   const routeEnd = x + w - routeClear
   const hasBirdOnSegment = run.obstacles.some(
     (obstacle) => obstacle.kind === 'bird' && obstacle.x >= x && obstacle.x < x + w,
+  )
+  const shoppingRamp = run.obstacles.find(
+    (obstacle) =>
+      obstacle.kind === 'ramp' &&
+      obstacle.x >= x &&
+      obstacle.x < x + w,
   )
   if (underpass) {
     const streetStart = x + Math.max(105, speed * 0.14)
@@ -827,6 +855,37 @@ function generateSegment(run: Run) {
       }
       addCoin(run, coinX, segmentSurfaceAt(segment, coinX) - 45)
     }
+  } else if (shoppingRamp && routeEnd - routeStart > 620) {
+    // 商店街の屋根はジャンプ台からだけ入れる専用ルート。
+    // 打ち上げ軌道の下降位置へ最初の屋根を置き、その後を連続させる。
+    const roofs = [
+      { offset: 400, w: 400, lift: 180 },
+      { offset: 1100, w: 300, lift: 165 },
+      { offset: 1700, w: 320, lift: 150 },
+    ]
+    const firstRoofX = shoppingRamp.x + roofs[0].offset
+    for (const roof of roofs) {
+      const platformX = shoppingRamp.x + roof.offset
+      const platformW = roof.w
+      if (platformX + platformW > routeEnd) break
+      const platformY =
+        roadAt(platformX + platformW / 2) - roof.lift
+      addPlatform(run, 'roof', platformX, platformW, platformY, true)
+      for (
+        let coinX = platformX + 24;
+        coinX < platformX + platformW - 10;
+        coinX += 36
+      ) {
+        addCoin(run, coinX, platformY - 34)
+      }
+    }
+    addCoinArc(
+      run,
+      shoppingRamp.x + 42,
+      firstRoofX + 80,
+      roadAt((shoppingRamp.x + firstRoofX) / 2),
+      178,
+    )
   } else if (
     routeEnd - routeStart > 620 &&
     !hasBirdOnSegment &&
@@ -849,19 +908,17 @@ function generateSegment(run: Run) {
     routeEnd - routeStart > 620 &&
     !hasBirdOnSegment &&
     difficulty > 0.18 &&
-    (zone === 'shopping' && zonePatternStep !== 1
-      ? true
-      : routeRoll < (zone === 'shopping' ? zoneProfile.specialRouteChance : 0.38))
+    zone !== 'shopping' &&
+    routeRoll < 0.38
   ) {
-    const roofRoute = zone === 'shopping'
-    const count = roofRoute ? 4 : 3
-    const platformW = roofRoute ? 150 : 180
+    const count = 3
+    const platformW = 180
     for (let i = 0; i < count; i++) {
       const px = routeStart + i * (platformW + 38)
       if (px + platformW > routeEnd) break
-      const lift = roofRoute ? 88 + (i % 2) * 42 : 82 + i * 20
+      const lift = 82 + i * 20
       const py = roadAt(px + platformW / 2) - lift
-      addPlatform(run, roofRoute ? 'roof' : 'branch', px, platformW, py)
+      addPlatform(run, 'branch', px, platformW, py)
       for (let coinX = px + 28; coinX < px + platformW - 12; coinX += 42) addCoin(run, coinX, py - 34)
     }
   }
@@ -904,6 +961,8 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
       vy: 0,
       grounded: true,
       platformId: null,
+      rampRoute: false,
+      rampLaunchActive: false,
       airJumpUsed: false,
       airTime: 0,
     },
@@ -989,9 +1048,10 @@ export function step(run: Run, input: Input, dt: number): void {
         p.vy = -JUMP_V * run.traits.jumpMul * wetTakeoff
         p.grounded = false
         p.platformId = null
+        p.rampLaunchActive = false
         p.airTime = 0
         event(run, 'jump')
-      } else if (!p.airJumpUsed) {
+      } else if (!p.airJumpUsed && !p.rampLaunchActive) {
         // 上昇中に早押ししても速度を弱めず、必ず追加の上向き加速を与える。
         // 下降中は最低限の空中ジャンプ速度まで戻し、早押し時だけ過剰に
         // 加速しないよう通常ジャンプの1.35倍で上限を設ける。
@@ -1003,11 +1063,19 @@ export function step(run: Run, input: Input, dt: number): void {
           -JUMP_V * run.traits.jumpMul * 1.35,
           Math.min(p.vy - airJumpV * 0.56, -airJumpV),
         )
+        p.rampLaunchActive = false
         p.airJumpUsed = true
         event(run, 'airjump')
       }
     }
-    if (!p.grounded && !input.jumpHeld && p.vy < -JUMP_CUT_V) p.vy = -JUMP_CUT_V
+    if (
+      !p.grounded &&
+      !p.rampLaunchActive &&
+      !input.jumpHeld &&
+      p.vy < -JUMP_CUT_V
+    ) {
+      p.vy = -JUMP_CUT_V
+    }
     p.x += motionSpeedFor(run) * h
     run.distance = Math.max(0, p.x - run.startX)
     run.speed = speedAt(run.distance)
@@ -1055,6 +1123,8 @@ export function step(run: Run, input: Input, dt: number): void {
         p.vy = 0
         p.grounded = true
         p.platformId = landing.platformId
+        if (landing.platformId == null) p.rampRoute = false
+        p.rampLaunchActive = false
         p.airJumpUsed = false
         event(run, 'land')
         if (p.airTime >= 0.85) {
@@ -1103,6 +1173,8 @@ export function step(run: Run, input: Input, dt: number): void {
         p.y = o.y
         p.vy = -RAMP_V
         p.grounded = false
+        p.rampRoute = true
+        p.rampLaunchActive = true
         p.airTime = 0
         event(run, 'ramp')
       }

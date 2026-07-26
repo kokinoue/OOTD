@@ -252,6 +252,7 @@ describe('チャリ通のコース生成', () => {
     let hasFootbridge = false
     let hasUnderpass = false
     let hasStreetRoute = false
+    let hasRampLinkedRoofs = false
     for (let seed = 1; seed <= 12; seed++) {
       const run = createRun(seed)
       ensureAhead(run, 180_000)
@@ -261,7 +262,27 @@ describe('チャリ通のコース生成', () => {
       hasUnderpass ||= run.segments.some((segment) => segment.route === 'underpass')
       hasStreetRoute ||= run.platforms.some((platform) => platform.kind === 'street')
       const roofs = run.platforms.filter((p) => p.kind === 'roof').sort((a, b) => a.x - b.x)
-      hasRoofChain ||= roofs.some((p, i) => i > 0 && p.x - (roofs[i - 1].x + roofs[i - 1].w) < 80)
+      hasRoofChain ||= run.obstacles.some(
+        (obstacle) =>
+          obstacle.kind === 'ramp' &&
+          roofs.filter(
+            (roof) =>
+              roof.x > obstacle.x &&
+              roof.x < obstacle.x + 2300,
+          ).length >= 3,
+      )
+      if (roofs.length > 0) {
+        hasRampLinkedRoofs ||= roofs.every(
+          (roof) =>
+            roof.requiresRamp === true &&
+            run.obstacles.some(
+              (obstacle) =>
+                obstacle.kind === 'ramp' &&
+                obstacle.x < roof.x &&
+                roof.x - obstacle.x <= 2300,
+            ),
+        )
+      }
     }
     expect(kinds.has('signal')).toBe(true)
     expect(kinds.has('commuter')).toBe(true)
@@ -270,6 +291,7 @@ describe('チャリ通のコース生成', () => {
     expect(kinds.has('students')).toBe(true)
     expect(hasBranch).toBe(true)
     expect(hasRoofChain).toBe(true)
+    expect(hasRampLinkedRoofs).toBe(true)
     expect(hasFootbridge).toBe(true)
     expect(hasUnderpass).toBe(true)
     expect(hasStreetRoute).toBe(true)
@@ -465,12 +487,86 @@ describe('チャリ通の物理', () => {
     run.obstacles = [{ id: 999, kind: 'ramp', x: 125, y: ROAD_Y - 18, w: 58, h: 18, cluster: 1, used: false }]
     step(run, idle, 1 / 60)
     expect(run.events.some((e) => e.kind === 'ramp')).toBe(true)
+    expect(run.player.rampRoute).toBe(true)
     expect(run.player.vy).toBeGreaterThan(-RAMP_V)
     run.player.y = ROAD_Y
     run.player.vy = 0
     run.player.grounded = true
     step(run, idle, 1 / 60)
     expect(run.events.some((e) => e.kind === 'ramp')).toBe(false)
+  })
+
+  it('商店街の屋根はジャンプ台を踏んだときだけ着地できる', () => {
+    const makeRun = (rampRoute: boolean) => {
+      const run = createRun(30)
+      run.segments = [{ ...run.segments[0], x: -500, w: 2000 }]
+      run.platforms = [{
+        id: 900,
+        kind: 'roof',
+        x: 125,
+        w: 300,
+        y: 300,
+        requiresRamp: true,
+      }]
+      run.obstacles = []
+      run.coins = []
+      run.nextX = 10_000
+      run.player.y = 298
+      run.player.vy = 250
+      run.player.grounded = false
+      run.player.rampRoute = rampRoute
+      return run
+    }
+    const normalJump = makeRun(false)
+    const rampJump = makeRun(true)
+    step(normalJump, idle, 1 / 30)
+    step(rampJump, idle, 1 / 30)
+    expect(normalJump.player.platformId).toBeNull()
+    expect(rampJump.player.platformId).toBe(900)
+  })
+
+  it('商店街のジャンプ台は最初の屋根へ着地する軌道になる', () => {
+    let selected:
+      | { run: ReturnType<typeof createRun>; ramp: NonNullable<ReturnType<typeof createRun>['obstacles'][number]>; roofId: number }
+      | undefined
+    for (let seed = 1; seed <= 20 && !selected; seed++) {
+      const run = createRun(seed)
+      ensureAhead(run, 200_000)
+      const roof = run.platforms.find((platform) => platform.kind === 'roof')
+      const ramp = roof
+        ? run.obstacles.find(
+            (obstacle) =>
+              obstacle.kind === 'ramp' &&
+              obstacle.x < roof.x &&
+              roof.x - obstacle.x <= 700,
+          )
+        : undefined
+      if (roof && ramp) selected = { run, ramp, roofId: roof.id }
+    }
+    expect(selected).toBeDefined()
+    const { run, ramp, roofId } = selected!
+    const selectedRoof = run.platforms.find((platform) => platform.id === roofId)!
+    const startX = ramp.x - 24
+    run.player.x = startX
+    run.player.y = surfaceAt(run, startX)!
+    run.player.vy = 0
+    run.player.grounded = true
+    run.player.platformId = null
+    run.player.rampRoute = false
+    run.obstacles = [ramp]
+    ramp.used = false
+
+    for (
+      let frame = 0;
+      frame < 180 && run.player.platformId !== roofId;
+      frame++
+    ) {
+      step(run, idle, 1 / 120)
+    }
+    expect(
+      run.player.platformId,
+      `ramp=${ramp.used}/${Math.round(ramp.x)}, roof=${Math.round(selectedRoof.x)}-${Math.round(selectedRoof.x + selectedRoof.w)}@${Math.round(selectedRoof.y)}, player=${Math.round(run.player.x)},${Math.round(run.player.y)}, route=${run.player.rampRoute}, status=${run.status}/${run.overReason}`,
+    ).toBe(roofId)
   })
 
   it('柵への正面衝突はcrash、穴への落下はfallになる', () => {
