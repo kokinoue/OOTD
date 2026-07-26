@@ -4,9 +4,12 @@ import {
   createRun,
   loadBest,
   metersOf,
+  obstacleActive,
   saveBest,
   scoreOf,
   step,
+  weatherAt,
+  zoneAt,
   type GameEvent,
   type Input,
   type Run,
@@ -28,7 +31,7 @@ const outfitByKey = new Map(outfits.map((o) => [o.key, o]))
 const spriteUrl = (key: string) => `${import.meta.env.BASE_URL}cutouts/${key}.webp`
 
 type Props = { data: Data; onBack: () => void }
-type Result = { meters: number; coins: number; score: number; best: number }
+type Result = { meters: number; coins: number; combo: number; score: number; best: number }
 type Particle = {
   kind: 'dust' | 'spark' | 'text'
   x: number
@@ -79,6 +82,7 @@ function createAudio() {
       if (kind === 'jump') tone(260, 0.08, 0.035, 1.8)
       else if (kind === 'airjump') tone(390, 0.1, 0.04, 1.7)
       else if (kind === 'coin') tone(760, 0.07, 0.035, 1.35)
+      else if (kind === 'combo') tone(900, 0.08, 0.025, 1.15)
       else if (kind === 'ramp') tone(180, 0.16, 0.05, 2.8)
       else if (kind === 'land') tone(90, 0.05, 0.025, 0.7)
       else if (kind === 'airbonus') tone(520, 0.18, 0.04, 1.8)
@@ -99,15 +103,32 @@ function createAudio() {
   }
 }
 
-function drawBackground(ctx: CanvasRenderingContext2D, cameraX: number) {
+const zoneLabel = {
+  residential: '住宅街',
+  shopping: '商店街',
+  construction: '工事区間',
+  riverside: '河川敷',
+  night: '夜間',
+} as const
+
+const weatherLabel = {
+  clear: '晴れ',
+  rain: '雨',
+  wind: '強風',
+  fog: '霧',
+} as const
+
+function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
+  const zone = zoneAt(run.distance)
+  const weather = weatherAt(run.distance, run.seed)
   const sky = ctx.createLinearGradient(0, 0, 0, 410)
-  sky.addColorStop(0, '#b9dcf2')
-  sky.addColorStop(0.58, '#e8d9bd')
-  sky.addColorStop(1, '#f3e7d3')
+  sky.addColorStop(0, zone === 'night' ? '#11182d' : weather === 'rain' ? '#8194a0' : '#b9dcf2')
+  sky.addColorStop(0.58, zone === 'night' ? '#27314a' : weather === 'fog' ? '#c8cfcb' : '#e8d9bd')
+  sky.addColorStop(1, zone === 'night' ? '#3a4050' : '#f3e7d3')
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, VIEW_W, VIEW_H)
 
-  ctx.fillStyle = 'rgba(255,239,183,.72)'
+  ctx.fillStyle = zone === 'night' ? 'rgba(240,244,219,.82)' : 'rgba(255,239,183,.72)'
   ctx.beginPath()
   ctx.arc(750 - (cameraX * 0.015) % 100, 86, 42, 0, Math.PI * 2)
   ctx.fill()
@@ -159,6 +180,38 @@ function drawBackground(ctx: CanvasRenderingContext2D, cameraX: number) {
   ctx.moveTo(0, 357)
   ctx.lineTo(VIEW_W, 357)
   ctx.stroke()
+
+  if (zone === 'shopping') {
+    for (let i = -1; i < 7; i++) {
+      const x = i * 170 - ((cameraX * 0.3) % 170)
+      ctx.fillStyle = i % 2 ? '#b65f55' : '#d39752'
+      ctx.fillRect(x, 305, 128, 18)
+      ctx.fillStyle = '#eee2c8'
+      ctx.fillRect(x + 9, 323, 110, 42)
+    }
+  } else if (zone === 'construction') {
+    ctx.strokeStyle = '#d89b38'
+    ctx.lineWidth = 7
+    for (let i = -1; i < 4; i++) {
+      const x = i * 310 - ((cameraX * 0.2) % 310)
+      ctx.beginPath()
+      ctx.moveTo(x + 80, 365)
+      ctx.lineTo(x + 80, 205)
+      ctx.lineTo(x + 235, 205)
+      ctx.stroke()
+    }
+  } else if (zone === 'riverside') {
+    ctx.fillStyle = '#739ca8'
+    ctx.fillRect(0, 334, VIEW_W, 46)
+    ctx.strokeStyle = 'rgba(224,244,241,.55)'
+    ctx.lineWidth = 3
+    for (let x = -40 - ((cameraX * 0.4) % 90); x < VIEW_W; x += 90) {
+      ctx.beginPath()
+      ctx.moveTo(x, 350)
+      ctx.lineTo(x + 48, 350)
+      ctx.stroke()
+    }
+  }
 }
 
 function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: number, t: number) {
@@ -191,6 +244,19 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     ctx.stroke()
     ctx.setLineDash([])
   }
+  for (const platform of run.platforms) {
+    const x = platform.x - cameraX
+    if (x > VIEW_W + 60 || x + platform.w < -60) continue
+    ctx.fillStyle = platform.kind === 'roof' ? '#875e55' : '#596b72'
+    ctx.fillRect(x, platform.y, platform.w, 14)
+    ctx.fillStyle = platform.kind === 'roof' ? '#b77a67' : '#82959a'
+    ctx.beginPath()
+    ctx.moveTo(x - 8, platform.y)
+    ctx.lineTo(x + platform.w / 2, platform.y - (platform.kind === 'roof' ? 27 : 12))
+    ctx.lineTo(x + platform.w + 8, platform.y)
+    ctx.closePath()
+    ctx.fill()
+  }
   for (const coin of run.coins) {
     if (coin.taken) continue
     const x = coin.x - cameraX
@@ -207,6 +273,7 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
   for (const o of run.obstacles) {
     const x = o.x - cameraX
     if (x < -80 || x > VIEW_W + 80) continue
+    const active = obstacleActive(run, o)
     if (o.kind === 'pylon') {
       ctx.fillStyle = '#ed713e'
       ctx.beginPath()
@@ -251,6 +318,60 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
         ctx.arc(x + wheelX, o.y + o.h - 15, 6, 0, Math.PI * 2)
         ctx.fill()
       }
+    } else if (o.kind === 'signal') {
+      ctx.strokeStyle = '#4b5054'
+      ctx.lineWidth = 7
+      ctx.beginPath()
+      ctx.moveTo(x + 88, o.y + o.h)
+      ctx.lineTo(x + 88, o.y - 70)
+      ctx.stroke()
+      ctx.fillStyle = '#303338'
+      ctx.fillRect(x + 72, o.y - 78, 32, 62)
+      ctx.fillStyle = active ? '#e85a47' : '#435048'
+      ctx.beginPath()
+      ctx.arc(x + 88, o.y - 62, 8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = active ? '#425049' : '#62c97a'
+      ctx.beginPath()
+      ctx.arc(x + 88, o.y - 34, 8, 0, Math.PI * 2)
+      ctx.fill()
+      if (active) {
+        ctx.fillStyle = '#b94f42'
+        ctx.fillRect(x, o.y + 18, 72, 31)
+        ctx.fillStyle = '#cae0e3'
+        ctx.fillRect(x + 13, o.y + 8, 34, 18)
+        ctx.fillStyle = '#26282c'
+        for (const wx of [17, 57]) {
+          ctx.beginPath()
+          ctx.arc(x + wx, o.y + 52, 9, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+    } else if (o.kind === 'commuter') {
+      ctx.strokeStyle = '#38434a'
+      ctx.lineWidth = 4
+      for (const wx of [8, 28]) {
+        ctx.beginPath()
+        ctx.arc(x + wx, o.y + o.h - 9, 9, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      ctx.fillStyle = '#596f86'
+      ctx.fillRect(x + 12, o.y + 18, 14, 28)
+      ctx.fillStyle = '#d6a681'
+      ctx.beginPath()
+      ctx.arc(x + 19, o.y + 10, 8, 0, Math.PI * 2)
+      ctx.fill()
+    } else if (o.kind === 'crossing') {
+      ctx.fillStyle = '#33363b'
+      ctx.fillRect(x - 4, o.y - 25, 9, 83)
+      ctx.save()
+      ctx.translate(x, o.y + 3)
+      ctx.rotate(active ? 0 : -Math.PI * 0.43)
+      ctx.fillStyle = '#f1d9b5'
+      ctx.fillRect(0, -6, 92, 12)
+      ctx.fillStyle = '#e14f45'
+      for (let stripe = 11; stripe < 88; stripe += 24) ctx.fillRect(stripe, -6, 12, 12)
+      ctx.restore()
     } else if (o.kind === 'bird') {
       const flap = Math.sin(t * 12 + o.id) * 7
       ctx.strokeStyle = '#272930'
@@ -276,6 +397,45 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.strokeStyle = '#f4d38b'
       ctx.stroke()
     }
+  }
+}
+
+function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
+  const weather = weatherAt(run.distance, run.seed)
+  const zone = zoneAt(run.distance)
+  if (weather === 'rain') {
+    ctx.strokeStyle = 'rgba(220,239,247,.62)'
+    ctx.lineWidth = 2
+    for (let i = 0; i < 75; i++) {
+      const x = (i * 73 + t * 310) % (VIEW_W + 80) - 40
+      const y = (i * 41 + t * 520) % VIEW_H
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.lineTo(x - 9, y + 22)
+      ctx.stroke()
+    }
+  } else if (weather === 'wind') {
+    ctx.strokeStyle = 'rgba(242,247,232,.5)'
+    ctx.lineWidth = 3
+    for (let i = 0; i < 12; i++) {
+      const x = (i * 103 - t * 240) % (VIEW_W + 140)
+      const y = 80 + (i * 47) % 300
+      ctx.beginPath()
+      ctx.moveTo(x, y)
+      ctx.quadraticCurveTo(x + 45, y - 10, x + 95, y)
+      ctx.stroke()
+    }
+  } else if (weather === 'fog') {
+    ctx.fillStyle = 'rgba(225,231,226,.34)'
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+  }
+  if (zone === 'night') {
+    const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
+    light.addColorStop(0, 'rgba(255,244,183,0)')
+    light.addColorStop(0.62, 'rgba(7,10,22,.32)')
+    light.addColorStop(1, 'rgba(4,7,18,.72)')
+    ctx.fillStyle = light
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
 }
 
@@ -363,6 +523,8 @@ export default function ChariGameView({ data, onBack }: Props) {
   const meterRef = useRef<HTMLSpanElement>(null)
   const coinRef = useRef<HTMLSpanElement>(null)
   const scoreRef = useRef<HTMLSpanElement>(null)
+  const comboRef = useRef<HTMLSpanElement>(null)
+  const areaRef = useRef<HTMLSpanElement>(null)
   const bestRef = useRef<HTMLSpanElement>(null)
   const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false, diveHeld: false })
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
@@ -426,10 +588,11 @@ export default function ChariGameView({ data, onBack }: Props) {
             vy: -20 - Math.random() * 60, life: 0.45, max: 0.45, color: '#d7cec0',
           })
         }
-      } else if (e.kind === 'coin' || e.kind === 'airbonus') {
+      } else if (e.kind === 'coin' || e.kind === 'airbonus' || e.kind === 'combo') {
         particles.push({
           kind: 'text', x: e.x, y: e.y - 70, vx: 0, vy: -42, life: 0.75, max: 0.75,
-          text: e.kind === 'coin' ? '+10' : 'AIR!', color: e.kind === 'coin' ? '#ffd25e' : '#9ee4ff',
+          text: e.kind === 'coin' ? `+${e.value ?? 10}` : e.kind === 'combo' ? `${e.value} COMBO` : 'AIR!',
+          color: e.kind === 'coin' ? '#ffd25e' : e.kind === 'combo' ? '#ff9fd0' : '#9ee4ff',
         })
       } else if (e.kind === 'crash') {
         crashAt = performance.now()
@@ -448,7 +611,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       const score = scoreOf(run)
       saveBest(score)
       const best = loadBest()
-      setResult({ meters: metersOf(run), coins: run.coinsTaken, score, best })
+      setResult({ meters: metersOf(run), coins: run.coinsTaken, combo: run.maxCombo, score, best })
       if (bestRef.current) bestRef.current.textContent = String(best)
     }
 
@@ -509,10 +672,11 @@ export default function ChariGameView({ data, onBack }: Props) {
       }
 
       const cameraX = run.player.x - HERO_X
-      drawBackground(ctx, cameraX)
+      drawBackground(ctx, run, cameraX)
       drawRoadAndItems(ctx, run, cameraX, now / 1000)
       const crashTilt = run.overReason === 'crash' ? Math.min(1.18, ((now - crashAt) / 420) * 1.18) : 0
       drawBike(ctx, run, spriteRef.current, ratioRef.current, crashTilt)
+      drawAtmosphere(ctx, run, now / 1000)
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i]
@@ -547,6 +711,10 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (meterRef.current) meterRef.current.textContent = String(metersOf(run))
       if (coinRef.current) coinRef.current.textContent = String(run.coinsTaken)
       if (scoreRef.current) scoreRef.current.textContent = String(scoreOf(run))
+      if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
+      if (areaRef.current) {
+        areaRef.current.textContent = `${zoneLabel[zoneAt(run.distance)]} · ${weatherLabel[weatherAt(run.distance, run.seed)]}`
+      }
       if (bestRef.current) bestRef.current.textContent = String(Math.max(loadBest(), scoreOf(run)))
       raf = requestAnimationFrame(frame)
     }
@@ -593,6 +761,7 @@ export default function ChariGameView({ data, onBack }: Props) {
           <span className="chari-stats mono">
             <span ref={meterRef}>0</span>m · COIN <span ref={coinRef}>0</span> · SCORE{' '}
             <span ref={scoreRef}>0</span> · BEST <span ref={bestRef}>{loadBest()}</span>
+            <span ref={comboRef} />
           </span>
           <button className="chari-change jp" onClick={changeOutfit}>着替え</button>
           <button
@@ -612,6 +781,7 @@ export default function ChariGameView({ data, onBack }: Props) {
                 <small>{result.score >= result.best ? '自己ベスト更新！' : '通勤終了'}</small>
                 <b className="mono">{result.meters} m</b>
                 <span className="mono">COIN {result.coins} · SCORE {result.score} · BEST {result.best}</span>
+                <span className="mono">MAX COMBO {result.combo}</span>
                 <span className="chari-result-actions">
                   <button className="chari-btn primary jp" onClick={retry}>もういちど</button>
                   <button className="chari-btn jp" onClick={shareResultOnX}>Xでポスト</button>
@@ -636,6 +806,7 @@ export default function ChariGameView({ data, onBack }: Props) {
         </div>
         <div className="chari-foot">
           <span className="chari-caption mono">{caption}</span>
+          <span ref={areaRef} className="chari-area jp">住宅街 · 晴れ</span>
           <span className="jp">
             {touch
               ? '画面タップでジャンプ（長押し・空中でもう1回） · DIVEで急降下 · 鳥はくぐる'

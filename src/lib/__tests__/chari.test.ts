@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   AIR_JUMP_V,
   BEST_KEY,
+  COMBO_TIMEOUT,
   GRAV,
   JUMP_V,
   RAMP_V,
@@ -16,11 +17,14 @@ import {
   maxGapFor,
   metersOf,
   minObstacleSpacing,
+  obstacleActive,
   saveBest,
   scoreOf,
   speedAt,
   step,
   surfaceAt,
+  weatherAt,
+  zoneAt,
   type Run,
 } from '../chari'
 
@@ -133,6 +137,42 @@ describe('チャリ通のコース生成', () => {
     ensureAhead(run, 100_000)
     expect(run.obstacles.some((o) => o.kind === 'truck')).toBe(true)
   })
+
+  it('信号・通勤者・踏切と、分岐・連続屋根ルートを生成する', () => {
+    const kinds = new Set<string>()
+    let hasBranch = false
+    let hasRoofChain = false
+    for (let seed = 1; seed <= 12; seed++) {
+      const run = createRun(seed)
+      ensureAhead(run, 180_000)
+      run.obstacles.forEach((o) => kinds.add(o.kind))
+      hasBranch ||= run.platforms.some((p) => p.kind === 'branch')
+      const roofs = run.platforms.filter((p) => p.kind === 'roof').sort((a, b) => a.x - b.x)
+      hasRoofChain ||= roofs.some((p, i) => i > 0 && p.x - (roofs[i - 1].x + roofs[i - 1].w) < 80)
+    }
+    expect(kinds.has('signal')).toBe(true)
+    expect(kinds.has('commuter')).toBe(true)
+    expect(kinds.has('crossing')).toBe(true)
+    expect(hasBranch).toBe(true)
+    expect(hasRoofChain).toBe(true)
+  })
+
+  it('住宅街・商店街・工事区間・河川敷・夜間を順番に巡回する', () => {
+    expect([0, 9000, 18000, 27000, 36000, 45000].map(zoneAt)).toEqual([
+      'residential',
+      'shopping',
+      'construction',
+      'riverside',
+      'night',
+      'residential',
+    ])
+  })
+
+  it('晴れ・雨・強風・霧が距離に応じて切り替わる', () => {
+    expect(new Set([0, 6000, 12000, 18000].map((d) => weatherAt(d, 0)))).toEqual(
+      new Set(['clear', 'rain', 'wind', 'fog']),
+    )
+  })
 })
 
 describe('チャリ通の物理', () => {
@@ -241,6 +281,34 @@ describe('チャリ通の物理', () => {
     expect(double.player.x).toBeGreaterThan(538)
   })
 
+  it('上ルートの足場へ着地して走れる', () => {
+    const run = createRun(56)
+    run.segments = [{ ...run.segments[0], x: -500, w: 2000 }]
+    run.platforms = [{ id: 900, kind: 'branch', x: 250, w: 300, y: ROAD_Y - 88 }]
+    run.obstacles = []
+    run.coins = []
+    run.nextX = 10_000
+    let landed = false
+    for (let frame = 0; frame < 180 && !landed; frame++) {
+      step(run, { jumpPressed: frame === 0, jumpHeld: true, diveHeld: false }, 1 / 120)
+      landed = run.player.grounded && run.player.platformId === 900
+    }
+    expect(landed).toBe(true)
+    expect(run.player.y).toBe(ROAD_Y - 88)
+  })
+
+  it('信号と踏切は時間で開閉する', () => {
+    const run = createRun(57)
+    const signal = { id: 1, kind: 'signal' as const, x: 300, y: 326, w: 72, h: 58, cluster: 1, used: false, phase: 0 }
+    const crossing = { id: 2, kind: 'crossing' as const, x: 500, y: 326, w: 92, h: 12, cluster: 2, used: false, phase: 0 }
+    run.elapsed = 0
+    expect(obstacleActive(run, signal)).toBe(true)
+    expect(obstacleActive(run, crossing)).toBe(true)
+    run.elapsed = 3.3
+    expect(obstacleActive(run, signal)).toBe(false)
+    expect(obstacleActive(run, crossing)).toBe(false)
+  })
+
   it('WALL_TOL以下の段差は乗り上げる', () => {
     const run = createRun(6)
     run.segments = [
@@ -271,9 +339,29 @@ describe('チャリ通のスコアと保存', () => {
     const run = createRun(8)
     run.distance = 30 * 123 + 29
     run.coinsTaken = 4
+    run.coinScore = 40
     run.airBonuses = 2
     expect(metersOf(run)).toBe(123)
     expect(scoreOf(run)).toBe(223)
+  })
+
+  it('コインを連続取得するとコンボ倍率が上がり、時間切れでリセットする', () => {
+    const run = createRun(58)
+    run.segments = [{ ...run.segments[0], x: -500, w: 4000 }]
+    run.obstacles = []
+    run.coins = Array.from({ length: 5 }, (_, i) => ({
+      id: 1000 + i,
+      x: run.player.x + 4 + i * 5,
+      y: run.player.y - 28,
+      taken: false,
+    }))
+    run.nextX = 10_000
+    step(run, idle, 1 / 20)
+    expect(run.combo).toBe(5)
+    expect(run.maxCombo).toBe(5)
+    expect(run.coinScore).toBe(60)
+    for (let i = 0; i < Math.ceil((COMBO_TIMEOUT + 0.1) / 0.1); i++) step(run, idle, 0.1)
+    expect(run.combo).toBe(0)
   })
 
   it('ベスト以下では上書きしない', () => {

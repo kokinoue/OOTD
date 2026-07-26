@@ -20,7 +20,12 @@ function needsJump(run: Run): boolean {
       o.kind !== 'ramp' &&
       o.kind !== 'bird' &&
       o.x - (p.x + 15) >= 0 &&
-      o.x - (p.x + 15) <= (o.kind === 'truck' ? run.speed * 0.55 : look),
+      o.x - (p.x + 15) <=
+        (o.kind === 'truck'
+          ? run.speed * 0.55
+          : o.kind === 'commuter' || o.kind === 'signal' || o.kind === 'crossing'
+            ? run.speed * 0.36
+            : look),
   )
 }
 

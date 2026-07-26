@@ -22,6 +22,7 @@ export const JUMP_AIRTIME = (2 * JUMP_V) / GRAV
 export const PX_PER_M = 30
 export const GENERATE_AHEAD = 1800
 export const PRUNE_BEHIND = 700
+export const COMBO_TIMEOUT = 1.8
 
 export type EventKind =
   | 'jump'
@@ -30,6 +31,7 @@ export type EventKind =
   | 'coin'
   | 'ramp'
   | 'airbonus'
+  | 'combo'
   | 'crash'
   | 'fall'
 
@@ -46,7 +48,25 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ObstacleKind = 'pylon' | 'fence' | 'truck' | 'bird' | 'ramp'
+export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'riverside' | 'night'
+export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
+export type PlatformKind = 'branch' | 'roof'
+export type Platform = {
+  id: number
+  kind: PlatformKind
+  x: number
+  w: number
+  y: number
+}
+export type ObstacleKind =
+  | 'pylon'
+  | 'fence'
+  | 'truck'
+  | 'bird'
+  | 'ramp'
+  | 'signal'
+  | 'commuter'
+  | 'crossing'
 export type Obstacle = {
   id: number
   kind: ObstacleKind
@@ -56,6 +76,8 @@ export type Obstacle = {
   h: number
   cluster: number
   used: boolean
+  phase?: number
+  vx?: number
 }
 export type Coin = { id: number; x: number; y: number; taken: boolean }
 export type Player = {
@@ -63,6 +85,7 @@ export type Player = {
   y: number
   vy: number
   grounded: boolean
+  platformId: number | null
   airJumpUsed: boolean
   airTime: number
 }
@@ -77,9 +100,14 @@ export type Run = {
   speed: number
   elapsed: number
   coinsTaken: number
+  coinScore: number
+  combo: number
+  maxCombo: number
+  comboTimer: number
   airBonuses: number
   events: GameEvent[]
   segments: Segment[]
+  platforms: Platform[]
   obstacles: Obstacle[]
   coins: Coin[]
   nextX: number
@@ -112,6 +140,17 @@ export function difficultyAt(dist: number): number {
   return clamp(dist / 26000, 0, 1)
 }
 
+export function zoneAt(dist: number): ZoneKind {
+  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'riverside', 'night']
+  return zones[Math.floor(Math.max(0, dist) / 9000) % zones.length]
+}
+
+export function weatherAt(dist: number, seed = 0): WeatherKind {
+  const weathers: WeatherKind[] = ['clear', 'rain', 'wind', 'fog']
+  const block = Math.floor(Math.max(0, dist) / 6000)
+  return weathers[(block + (seed >>> 0)) % weathers.length]
+}
+
 export function maxGapFor(speed: number): number {
   return Math.max(64, Math.min(300, speed * JUMP_AIRTIME * 0.52))
 }
@@ -135,6 +174,39 @@ export function surfaceAt(run: Run, x: number): number | null {
   return null
 }
 
+function platformAt(run: Run, id: number | null, x: number): Platform | undefined {
+  return id == null ? undefined : run.platforms.find((p) => p.id === id && x >= p.x && x <= p.x + p.w)
+}
+
+function landingSurfaceAt(
+  run: Run,
+  x: number,
+  previousY: number,
+  currentY: number,
+  previousRoadY: number | null,
+): { y: number; platformId: number | null } | null {
+  const candidates: Array<{ y: number; platformId: number | null }> = []
+  const road = surfaceAt(run, x)
+  if (
+    road != null &&
+    previousY <= (previousRoadY ?? road) &&
+    currentY >= road
+  ) {
+    candidates.push({ y: road, platformId: null })
+  }
+  for (const platform of run.platforms) {
+    if (
+      x >= platform.x &&
+      x <= platform.x + platform.w &&
+      previousY <= platform.y &&
+      currentY >= platform.y
+    ) {
+      candidates.push({ y: platform.y, platformId: platform.id })
+    }
+  }
+  return candidates.sort((a, b) => a.y - b.y)[0] ?? null
+}
+
 function addCoin(run: Run, x: number, y: number) {
   run.coins.push({ id: run.serial++, x, y, taken: false })
 }
@@ -147,6 +219,10 @@ function addCoinArc(run: Run, x0: number, x1: number, roadY: number, lift: numbe
   }
 }
 
+function addPlatform(run: Run, kind: PlatformKind, x: number, w: number, y: number) {
+  run.platforms.push({ id: run.serial++, kind, x, w, y })
+}
+
 function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, cluster: number) {
   const dims =
     kind === 'pylon'
@@ -157,10 +233,16 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
           ? { w: 118, h: 128 }
           : kind === 'bird'
             ? { w: 42, h: 22 }
-            : { w: 58, h: 18 }
+            : kind === 'ramp'
+              ? { w: 58, h: 18 }
+              : kind === 'signal'
+                ? { w: 72, h: 58 }
+                : kind === 'commuter'
+                  ? { w: 34, h: 64 }
+                  : { w: 92, h: 12 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
-  const y = kind === 'bird' ? roadY - 160 : roadY - dims.h
+  const y = kind === 'bird' ? roadY - 160 : kind === 'crossing' ? roadY - 58 : roadY - dims.h
   run.obstacles.push({
     id: run.serial++,
     kind,
@@ -170,13 +252,22 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
     h: dims.h,
     cluster,
     used: false,
+    phase: kind === 'signal' || kind === 'crossing' ? run.rng() * 4 : undefined,
+    vx: kind === 'commuter' ? -55 - run.rng() * 55 : undefined,
   })
+}
+
+export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
+  if (obstacle.kind === 'signal') return (run.elapsed + (obstacle.phase ?? 0)) % 4 < 2.45
+  if (obstacle.kind === 'crossing') return (run.elapsed + (obstacle.phase ?? 0)) % 5 < 3.15
+  return true
 }
 
 function generateSegment(run: Run) {
   const dist = Math.max(0, run.nextX - run.startX)
   const speed = speedAt(dist)
   const difficulty = difficultyAt(dist)
+  const zone = zoneAt(dist)
   const rng = run.rng
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
@@ -202,8 +293,9 @@ function generateSegment(run: Run) {
   // 長い道路区間は緩やかな上り／下りにする。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
   const slopeRoll = rng()
+  const slopeChance = zone === 'riverside' ? 0.86 : 0.64
   const slopeDelta =
-    slopeRoll < 0.64
+    slopeRoll < slopeChance
       ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
       : 0
   const endY = clamp(y + slopeDelta, ROAD_MIN_Y, ROAD_MAX_Y)
@@ -234,7 +326,18 @@ function generateSegment(run: Run) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
     const kindRoll = rng()
-    if (kindRoll < 0.35) {
+    if (zone === 'construction' && kindRoll < 0.3) {
+      const count = 3
+      for (let i = 0; i < count; i++) {
+        const px = clamp(center - 40 + i * 40, safeStart, safeEnd)
+        addObstacle(run, 'pylon', px, roadAt(px + 12), cluster)
+      }
+      addObstacle(run, 'fence', clamp(center + 95, safeStart, safeEnd - 42), roadAt(center + 116), cluster)
+    } else if (zone === 'riverside' && kindRoll < 0.16 && difficulty > 0.25) {
+      addObstacle(run, 'crossing', center, roadAt(center + 10), cluster)
+    } else if ((zone === 'residential' || zone === 'shopping') && kindRoll < 0.13 && difficulty > 0.12) {
+      addObstacle(run, 'signal', clamp(center, safeStart, safeEnd - 104), roadAt(center + 52), cluster)
+    } else if (kindRoll < 0.35) {
       // 最初から2連、少し走ればほぼ3連。ひと跳びで越せるクラスタ幅に収める。
       const count = difficulty > 0.2 ? (rng() < 0.88 ? 3 : 2) : 2
       const spread = 40
@@ -245,15 +348,18 @@ function generateSegment(run: Run) {
       }
       const arcEnd = first + Math.max(75, (count - 1) * spread + 30)
       addCoinArc(run, first - 5, arcEnd, roadAt((first + arcEnd) / 2), 48)
-    } else if (kindRoll < 0.65 && difficulty > 0.04) {
+    } else if (kindRoll < 0.61 && difficulty > 0.04) {
       addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
       addCoinArc(run, center - 28, center + 72, roadAt(center + 22), 62)
-    } else if (kindRoll < 0.78 && difficulty > 0.3) {
+    } else if (kindRoll < 0.72 && difficulty > 0.3) {
       // 通常ジャンプの最高点より高い配送トラック。手前から跳び、
       // 空中ジャンプを重ねないと車体上端を越えられない。
       const truckX = clamp(center, safeStart, safeEnd - 118)
       addObstacle(run, 'truck', truckX, roadAt(truckX + 59), cluster)
       addCoinArc(run, truckX - 45, truckX + 165, roadAt(truckX + 59), 155)
+    } else if (kindRoll < 0.82 && difficulty > 0.22) {
+      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
+      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
       addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
@@ -269,6 +375,26 @@ function generateSegment(run: Run) {
     const start = safeStart + 35
     const end = Math.min(safeEnd - 20, start + 150)
     for (let px = start; px <= end; px += 42) addCoin(run, px, roadAt(px) - 48)
+  }
+
+  // 地上の安全ルートに対し、ジャンプで乗れる上ルートを重ねる。
+  // 商店街では屋根が連続し、それ以外では短い分岐として現れる。
+  const routeRoll = rng()
+  const routeClear = Math.max(120, speed * 0.22)
+  const routeStart = x + routeClear
+  const routeEnd = x + w - routeClear
+  if (routeEnd - routeStart > 620 && difficulty > 0.18 && routeRoll < (zone === 'shopping' ? 0.72 : 0.2)) {
+    const roofRoute = zone === 'shopping'
+    const count = roofRoute ? 4 : 3
+    const platformW = roofRoute ? 150 : 180
+    for (let i = 0; i < count; i++) {
+      const px = routeStart + i * (platformW + 38)
+      if (px + platformW > routeEnd) break
+      const lift = roofRoute ? 88 + (i % 2) * 42 : 82 + i * 20
+      const py = roadAt(px + platformW / 2) - lift
+      addPlatform(run, roofRoute ? 'roof' : 'branch', px, platformW, py)
+      for (let coinX = px + 28; coinX < px + platformW - 12; coinX += 42) addCoin(run, coinX, py - 34)
+    }
   }
 
   if (gap > 0) {
@@ -308,6 +434,7 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
       y: ROAD_Y,
       vy: 0,
       grounded: true,
+      platformId: null,
       airJumpUsed: false,
       airTime: 0,
     },
@@ -316,9 +443,14 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
     speed: speedAt(0),
     elapsed: 0,
     coinsTaken: 0,
+    coinScore: 0,
+    combo: 0,
+    maxCombo: 0,
+    comboTimer: 0,
     airBonuses: 0,
     events: [],
     segments: [first],
+    platforms: [],
     obstacles: [],
     coins: [],
     nextX: first.x + first.w,
@@ -341,7 +473,7 @@ function finish(run: Run, reason: 'crash' | 'fall') {
 }
 
 function overlapsObstacle(run: Run, obstacle: Obstacle): boolean {
-  if (obstacle.kind === 'ramp') return false
+  if (obstacle.kind === 'ramp' || !obstacleActive(run, obstacle)) return false
   const p = run.player
   const left = p.x - PLAYER_W / 2
   const right = p.x + PLAYER_W / 2
@@ -358,6 +490,7 @@ function prune(run: Run) {
   const cutoff = run.player.x - PRUNE_BEHIND
   // surfaceAt が現在地の直後まで参照できるよう、終端が cutoff より後のものを残す。
   run.segments = run.segments.filter((s) => s.x + s.w >= cutoff)
+  run.platforms = run.platforms.filter((p) => p.x + p.w >= cutoff)
   run.obstacles = run.obstacles.filter((o) => o.x + o.w >= cutoff)
   run.coins = run.coins.filter((c) => c.x >= cutoff)
 }
@@ -373,12 +506,15 @@ export function step(run: Run, input: Input, dt: number): void {
     const p = run.player
     const wasGrounded = p.grounded
     const oldX = p.x
-    const oldSurface = surfaceAt(run, oldX)
+    const oldRoadSurface = surfaceAt(run, oldX)
+    const oldPlatform = platformAt(run, p.platformId, oldX)
+    const oldSurface = oldPlatform?.y ?? oldRoadSurface
 
     if (first && input.jumpPressed) {
       if (p.grounded) {
         p.vy = -JUMP_V
         p.grounded = false
+        p.platformId = null
         p.airTime = 0
         event(run, 'jump')
       } else if (!p.airJumpUsed) {
@@ -390,16 +526,28 @@ export function step(run: Run, input: Input, dt: number): void {
     if (!p.grounded && !input.jumpHeld && p.vy < -JUMP_CUT_V) p.vy = -JUMP_CUT_V
     if (!p.grounded && input.diveHeld && p.vy < DIVE_V) p.vy = DIVE_V
 
-    p.x += run.speed * h
+    const weather = weatherAt(run.distance, run.seed)
+    const windPush = weather === 'wind' ? ((run.seed & 1) === 0 ? 38 : -38) : 0
+    const wetRoadBoost = weather === 'rain' ? 1.025 : 1
+    p.x += Math.max(320, run.speed * wetRoadBoost + windPush) * h
     run.distance = Math.max(0, p.x - run.startX)
     run.speed = speedAt(run.distance)
     run.elapsed += h
+    if (run.combo > 0) {
+      run.comboTimer -= h
+      if (run.comboTimer <= 0) {
+        run.combo = 0
+        run.comboTimer = 0
+      }
+    }
     ensureAhead(run, p.x + GENERATE_AHEAD)
 
-    const newSurface = surfaceAt(run, p.x)
+    const continuedPlatform = platformAt(run, p.platformId, p.x)
+    const newSurface = p.platformId == null ? surfaceAt(run, p.x) : continuedPlatform?.y ?? null
     if (p.grounded) {
       if (newSurface == null) {
         p.grounded = false
+        p.platformId = null
         p.airTime = 0
       } else if (oldSurface != null && newSurface < oldSurface - WALL_TOL) {
         finish(run, 'crash')
@@ -416,12 +564,14 @@ export function step(run: Run, input: Input, dt: number): void {
       p.airTime += h
       // 上り坂では路面もフレーム間で上へ動くため、直前位置は直前の路面と
       // 比較する。現在路面だけとの比較では交差瞬間を取り逃がすことがある。
-      const wasAboveSurface =
-        newSurface != null && (oldSurface == null ? prevY <= newSurface : prevY <= oldSurface)
-      if (newSurface != null && p.vy >= 0 && wasAboveSurface && p.y >= newSurface) {
-        p.y = newSurface
+      const landing = p.vy >= 0
+        ? landingSurfaceAt(run, p.x, prevY, p.y, oldRoadSurface)
+        : null
+      if (landing) {
+        p.y = landing.y
         p.vy = 0
         p.grounded = true
+        p.platformId = landing.platformId
         p.airJumpUsed = false
         event(run, 'land')
         if (p.airTime >= 0.85) {
@@ -434,6 +584,7 @@ export function step(run: Run, input: Input, dt: number): void {
 
     // ジャンプ台は上面を下向きに横切ったときだけ、一度だけ作動する。
     for (const o of run.obstacles) {
+      if (o.vx) o.x += o.vx * h
       if (o.kind !== 'ramp' || o.used) continue
       const overX = p.x + PLAYER_W / 2 > o.x && p.x - PLAYER_W / 2 < o.x + o.w
       if (overX && p.y >= o.y && p.y <= o.y + o.h + 8 && p.vy >= 0) {
@@ -458,7 +609,13 @@ export function step(run: Run, input: Input, dt: number): void {
       if (Math.hypot(p.x - coin.x, p.y - PLAYER_H * 0.55 - coin.y) <= COIN_RADIUS) {
         coin.taken = true
         run.coinsTaken++
-        event(run, 'coin', 10)
+        run.combo++
+        run.maxCombo = Math.max(run.maxCombo, run.combo)
+        run.comboTimer = COMBO_TIMEOUT
+        const points = 10 * Math.min(4, 1 + Math.floor(run.combo / 5))
+        run.coinScore += points
+        event(run, 'coin', points)
+        if (run.combo > 1) event(run, 'combo', run.combo)
       }
     }
 
@@ -475,7 +632,7 @@ export function metersOf(run: Run): number {
 }
 
 export function scoreOf(run: Run): number {
-  return metersOf(run) + run.coinsTaken * 10 + run.airBonuses * 30
+  return metersOf(run) + run.coinScore + run.airBonuses * 30
 }
 
 export function loadBest(): number {
