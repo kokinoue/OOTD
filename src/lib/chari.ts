@@ -16,7 +16,6 @@ export const JUMP_V = 720
 export const AIR_JUMP_V = 900
 export const JUMP_CUT_V = 250
 export const MAX_FALL = 1150
-export const DIVE_V = 1480
 export const RAMP_V = 1020
 export const JUMP_AIRTIME = (2 * JUMP_V) / GRAV
 export const PX_PER_M = 30
@@ -40,7 +39,7 @@ export type EventKind =
   | 'fall'
 
 export type GameEvent = { kind: EventKind; x: number; y: number; value?: number }
-export type Input = { jumpPressed: boolean; jumpHeld: boolean; diveHeld: boolean }
+export type Input = { jumpPressed: boolean; jumpHeld: boolean }
 export type Segment = {
   id: number
   x: number
@@ -75,7 +74,6 @@ export type RiderTraits = {
   speedMul: number
   jumpMul: number
   airJumpMul: number
-  diveMul: number
   coinRadius: number
   windResist: number
   rainGrip: number
@@ -158,7 +156,6 @@ export const DEFAULT_RIDER_TRAITS: RiderTraits = {
   speedMul: 1,
   jumpMul: 1,
   airJumpMul: 1,
-  diveMul: 1,
   coinRadius: COIN_RADIUS,
   windResist: 0,
   rainGrip: 0,
@@ -218,7 +215,6 @@ export function deriveRiderTraits(date: string, items: RiderItem[]): RiderTraits
   }
   if (items.length >= 5 && hasOuter) {
     traits.windResist += 0.38
-    traits.diveMul += 0.08
     traits.effects.push('重ね着セット：強風耐性')
   }
   traits.windResist = clamp(traits.windResist, 0, 0.85)
@@ -537,10 +533,19 @@ function generateSegment(run: Run) {
   const underpass =
     difficulty > 0.12 && zone === 'station' && rng() < zoneProfile.specialRouteChance
 
+  // 急降下なしでも二段ジャンプ後に着地できるよう、直前の障害物から
+  // 次の穴までは十分な回復距離を空ける。
+  const lastJumpObstacleEnd = run.obstacles.reduce(
+    (latest, obstacle) =>
+      obstacle.kind === 'bird' ? latest : Math.max(latest, obstacle.x + obstacle.w),
+    -Infinity,
+  )
+  const recoveredFromObstacle = run.nextX - lastJumpObstacleEnd >= speed * 1.35
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
   // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
   const hasGap =
     !underpass &&
+    recoveredFromObstacle &&
     run.segments.length > 0 &&
     rng() < clamp(zoneProfile.gapChance + difficulty * 0.08, 0, 0.98)
   // 穴幅と同じ乱数から大穴かを決め、追加要素によって後続コースの乱数列を
@@ -874,10 +879,6 @@ export function step(run: Run, input: Input, dt: number): void {
       }
     }
     if (!p.grounded && !input.jumpHeld && p.vy < -JUMP_CUT_V) p.vy = -JUMP_CUT_V
-    if (!p.grounded && input.diveHeld && p.vy < DIVE_V * run.traits.diveMul) {
-      p.vy = DIVE_V * run.traits.diveMul
-    }
-
     p.x += motionSpeedFor(run) * h
     run.distance = Math.max(0, p.x - run.startX)
     run.speed = speedAt(run.distance)

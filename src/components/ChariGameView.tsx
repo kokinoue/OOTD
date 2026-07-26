@@ -27,7 +27,7 @@ import type { CutoutsFile } from '../lib/platform'
 import { fmtDate, outfits, type Data } from '../lib/useData'
 import GameShareButton from './GameShareButton'
 
-// チャリ通: 自動で進む自転車をジャンプと急降下だけで操るエンドレスラン。
+// チャリ通: 自動で進む自転車をジャンプで操るエンドレスラン。
 // ロジックは lib/chari.ts、ここではCanvas描画・入力・HUD・音を扱う。
 
 const VIEW_W = 960
@@ -805,7 +805,7 @@ export default function ChariGameView({ data, onBack }: Props) {
   const timeRef = useRef<HTMLSpanElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
   const bestRef = useRef<HTMLSpanElement>(null)
-  const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false, diveHeld: false })
+  const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false })
   const jumpQueueRef = useRef(0)
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
   const spriteRef = useRef<HTMLImageElement | null>(null)
@@ -918,10 +918,6 @@ export default function ChariGameView({ data, onBack }: Props) {
         audioRef.current?.unlock()
         jumpQueueRef.current = Math.min(2, jumpQueueRef.current + 1)
         inputRef.current.jumpHeld = true
-      } else if (key === 'arrowdown' || key === 'x') {
-        e.preventDefault()
-        audioRef.current?.unlock()
-        inputRef.current.diveHeld = true
       } else if (key === 'c' && !e.repeat) {
         changeOutfitRef.current()
       } else if (key === 'r') {
@@ -933,7 +929,6 @@ export default function ChariGameView({ data, onBack }: Props) {
     const onKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase()
       if (key === ' ' || key === 'z' || key === 'arrowup') inputRef.current.jumpHeld = false
-      if (key === 'arrowdown' || key === 'x') inputRef.current.diveHeld = false
     }
     const jumpDown = (e: PointerEvent) => {
       if (run.status !== 'playing') return
@@ -1057,7 +1052,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       canvas.removeEventListener('pointerdown', jumpDown)
       canvas.removeEventListener('pointerup', jumpUp)
       canvas.removeEventListener('pointercancel', jumpUp)
-      inputRef.current = { jumpPressed: false, jumpHeld: false, diveHeld: false }
+      inputRef.current = { jumpPressed: false, jumpHeld: false }
       jumpQueueRef.current = 0
     }
   }, [onBack, resetTick])
@@ -1078,11 +1073,6 @@ export default function ChariGameView({ data, onBack }: Props) {
       'noopener,noreferrer',
     )
   }
-  const dive = (v: boolean) => () => {
-    audioRef.current?.unlock()
-    inputRef.current.diveHeld = v
-  }
-
   return (
     <main className="chari">
       <div className="chari-inner">
@@ -1137,26 +1127,13 @@ export default function ChariGameView({ data, onBack }: Props) {
               </div>
             </div>
           )}
-          {touch && (
-            <div className="chari-pads">
-              <button
-                className="chari-dive mono"
-                onPointerDown={dive(true)}
-                onPointerUp={dive(false)}
-                onPointerCancel={dive(false)}
-                onPointerLeave={dive(false)}
-              >
-                DIVE
-              </button>
-            </div>
-          )}
         </div>
         <div className="chari-foot">
           <span className="chari-caption mono">{caption}</span>
           <span className="jp">
             {touch
-              ? '画面タップでジャンプ（長押し・空中でもう1回） · DIVEで急降下 · 鳥はくぐる'
-              : 'Space / Z / ↑ ジャンプ · ↓ / X 急降下 · C 着替え · 鳥はくぐる · R やりなおし · ESC もどる'}
+              ? '画面タップでジャンプ（長押し・空中でもう1回） · 鳥はくぐる'
+              : 'Space / Z / ↑ ジャンプ · C 着替え · 鳥はくぐる · R やりなおし · ESC もどる'}
           </span>
         </div>
       </div>

@@ -45,7 +45,7 @@ import {
   type Run,
 } from '../chari'
 
-const idle = { jumpPressed: false, jumpHeld: false, diveHeld: false }
+const idle = { jumpPressed: false, jumpHeld: false }
 const storage = new Map<string, string>()
 vi.stubGlobal('localStorage', {
   getItem: (key: string) => storage.get(key) ?? null,
@@ -186,6 +186,24 @@ describe('チャリ通のコース生成', () => {
       const b = clusters[i]
       // 区間境界の安全帯を合算した距離は最低間隔以上になる。
       expect(b.x - a.x).toBeGreaterThanOrEqual(Math.min(180, minObstacleSpacing(speedAt(a.x - run.startX))))
+    }
+  })
+
+  it('ジャンプが必要な障害物の直後には穴を生成しない', () => {
+    const run = createRun(2028)
+    ensureAhead(run, 100_000)
+    for (const segment of run.segments.filter((item) => item.gapBefore > 0)) {
+      const gapStart = segment.x - segment.gapBefore
+      const latestObstacleEnd = Math.max(
+        ...run.obstacles
+          .filter((obstacle) => obstacle.kind !== 'bird' && obstacle.x < gapStart)
+          .map((obstacle) => obstacle.x + obstacle.w),
+        -Infinity,
+      )
+      if (latestObstacleEnd > -Infinity) {
+        expect(gapStart - latestObstacleEnd)
+          .toBeGreaterThanOrEqual(speedAt(gapStart - run.startX) * 1.35 - 1)
+      }
     }
   })
 
@@ -333,8 +351,8 @@ describe('チャリ通の物理', () => {
     let heldTop = ROAD_Y
     let cutTop = ROAD_Y
     for (let i = 0; i < 60; i++) {
-      step(held, { jumpPressed: i === 0, jumpHeld: true, diveHeld: false }, 1 / 120)
-      step(cut, { jumpPressed: i === 0, jumpHeld: i < 2, diveHeld: false }, 1 / 120)
+      step(held, { jumpPressed: i === 0, jumpHeld: true }, 1 / 120)
+      step(cut, { jumpPressed: i === 0, jumpHeld: i < 2 }, 1 / 120)
       heldTop = Math.min(heldTop, held.player.y)
       cutTop = Math.min(cutTop, cut.player.y)
     }
@@ -343,15 +361,15 @@ describe('チャリ通の物理', () => {
 
   it('空中ジャンプは1回だけ使える', () => {
     const run = createRun(2)
-    step(run, { jumpPressed: true, jumpHeld: true, diveHeld: false }, 1 / 60)
+    step(run, { jumpPressed: true, jumpHeld: true }, 1 / 60)
     expect(run.player.vy).toBeGreaterThan(-JUMP_V)
     const beforeAirJump = run.player.vy
-    step(run, { jumpPressed: true, jumpHeld: true, diveHeld: false }, 1 / 60)
+    step(run, { jumpPressed: true, jumpHeld: true }, 1 / 60)
     expect(run.events.some((e) => e.kind === 'airjump')).toBe(true)
     expect(run.player.vy).toBeLessThan(beforeAirJump)
     expect(run.player.vy).toBeGreaterThanOrEqual(-JUMP_V * 1.35)
     const before = run.player.vy
-    step(run, { jumpPressed: true, jumpHeld: true, diveHeld: false }, 1 / 60)
+    step(run, { jumpPressed: true, jumpHeld: true }, 1 / 60)
     expect(run.events.some((e) => e.kind === 'airjump')).toBe(false)
     expect(run.player.vy).toBeGreaterThan(before)
   })
@@ -416,11 +434,11 @@ describe('チャリ通の物理', () => {
     const double = makeTruckRun(55)
     let airJumped = false
     for (let frame = 0; frame < 180; frame++) {
-      step(single, { jumpPressed: frame === 0, jumpHeld: true, diveHeld: false }, 1 / 120)
+      step(single, { jumpPressed: frame === 0, jumpHeld: true }, 1 / 120)
       const useAirJump = !airJumped && !double.player.grounded && double.player.vy > -40
       step(
         double,
-        { jumpPressed: frame === 0 || useAirJump, jumpHeld: true, diveHeld: false },
+        { jumpPressed: frame === 0 || useAirJump, jumpHeld: true },
         1 / 120,
       )
       if (useAirJump) airJumped = true
@@ -443,7 +461,7 @@ describe('チャリ通の物理', () => {
     run.nextX = 10_000
     let landed = false
     for (let frame = 0; frame < 180 && !landed; frame++) {
-      step(run, { jumpPressed: frame === 0, jumpHeld: true, diveHeld: false }, 1 / 120)
+      step(run, { jumpPressed: frame === 0, jumpHeld: true }, 1 / 120)
       landed = run.player.grounded && run.player.platformId === 900
     }
     expect(landed).toBe(true)
@@ -583,7 +601,7 @@ describe('チャリ通の物理', () => {
     slippery.obstacles = []
     protectedRun.obstacles = []
     protectedRun.traits = { ...DEFAULT_RIDER_TRAITS, rainGrip: 0.9, effects: ['雨支度'] }
-    const jump = { jumpPressed: true, jumpHeld: true, diveHeld: false }
+    const jump = { jumpPressed: true, jumpHeld: true }
     step(slippery, jump, 1 / 120)
     step(protectedRun, jump, 1 / 120)
     expect(slippery.player.vy).toBeGreaterThan(protectedRun.player.vy)

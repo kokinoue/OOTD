@@ -34,7 +34,7 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     view: 'chari',
     title: 'チャリ通',
     tag: 'ENDLESS RUNNER',
-    lead: '朝の通勤路を自転車でどこまでも走る。ジャンプと急降下で穴や工事現場をかわす、チャリ走風スコアアタック。',
+    lead: '朝の通勤路を自転車でどこまでも走る。ジャンプと二段ジャンプで穴や工事現場をかわす、チャリ走風スコアアタック。',
   },
   {
     view: 'quiz',

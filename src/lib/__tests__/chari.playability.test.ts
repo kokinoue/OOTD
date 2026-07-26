@@ -67,15 +67,6 @@ function overAirGap(run: Run): boolean {
   )
 }
 
-function approachingGap(run: Run): boolean {
-  const p = run.player
-  return run.segments.some((segment) => {
-    if (segment.gapBefore <= 0) return false
-    const distance = segment.x - segment.gapBefore - p.x
-    return distance >= 0 && distance <= motionSpeedFor(run) * 0.38
-  })
-}
-
 function shouldAirJumpGap(run: Run): boolean {
   const p = run.player
   const gap = run.segments.find(
@@ -120,37 +111,6 @@ function needsAirJumpForObstacle(run: Run): boolean {
   )
 }
 
-function shouldDiveToRoad(run: Run): boolean {
-  const p = run.player
-  const road = surfaceAt(run, p.x)
-  if (
-    p.grounded ||
-    !p.airJumpUsed ||
-    overAirGap(run) ||
-    approachingGap(run) ||
-    road == null ||
-    p.y > road
-  ) return false
-  return !run.obstacles.some(
-    (o) =>
-      o.kind !== 'bird' &&
-      o.kind !== 'ramp' &&
-      o.x + o.w > p.x - 24 &&
-      o.x < p.x + 320,
-  )
-}
-
-function shouldDiveUnderBird(run: Run): boolean {
-  const p = run.player
-  if (p.grounded || surfaceAt(run, p.x) == null) return false
-  return run.obstacles.some(
-    (o) =>
-      o.kind === 'bird' &&
-      o.x - (p.x + 15) >= 0 &&
-      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.48,
-  )
-}
-
 describe('チャリ通のプレイ可能性', () => {
   it(
     '30シードを自動プレイで90秒走り切れる',
@@ -177,18 +137,10 @@ describe('チャリ通のプレイ可能性', () => {
                 : run.player.vy > 80 && landingUnsafe(run)))
           ) {
             jumpPressed = true
-            jumpHeldFrames = 22
+            jumpHeldFrames = overAirGap(run) ? 22 : 14
           }
           const jumpHeld = jumpHeldFrames-- > 0
-          step(
-            run,
-            {
-              jumpPressed,
-              jumpHeld,
-              diveHeld: shouldDiveToRoad(run) || shouldDiveUnderBird(run),
-            },
-            1 / 60,
-          )
+          step(run, { jumpPressed, jumpHeld }, 1 / 60)
           if (frame % 6 === 0) {
             trace.push(
               `${frame}:${Math.round(run.player.x)},${Math.round(run.player.y)},${Math.round(run.player.vy)},road${Math.round(surfaceAt(run, run.player.x) ?? -1)},${run.player.grounded ? 'g' : 'a'},${jumpPressed ? 'J' : '-'},${run.player.airJumpUsed ? 'U' : '-'}`,
