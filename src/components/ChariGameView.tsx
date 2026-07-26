@@ -441,7 +441,27 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
       ctx.stroke()
     }
   } else if (weather === 'fog') {
-    ctx.fillStyle = 'rgba(225,231,226,.34)'
+    // 一枚の白い膜ではなく、流れる濃霧と自転車周辺の視界を描き分ける。
+    // 進行方向ほど霧が濃く、障害物を早めに見つけにくい天候にする。
+    ctx.fillStyle = 'rgba(225,231,226,.24)'
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+    ctx.save()
+    ctx.filter = 'blur(18px)'
+    for (let i = 0; i < 9; i++) {
+      const x = ((i * 173 - t * (24 + (i % 3) * 9)) % (VIEW_W + 360)) - 180
+      const y = 90 + (i * 71) % 340
+      ctx.fillStyle = `rgba(242,246,242,${0.2 + (i % 3) * 0.07})`
+      ctx.beginPath()
+      ctx.ellipse(x, y, 145 + (i % 2) * 55, 34 + (i % 3) * 13, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
+    const visibility = ctx.createRadialGradient(HERO_X + 25, 305, 75, HERO_X + 25, 305, 620)
+    visibility.addColorStop(0, 'rgba(218,226,221,0)')
+    visibility.addColorStop(0.3, 'rgba(218,226,221,.12)')
+    visibility.addColorStop(0.62, 'rgba(218,226,221,.48)')
+    visibility.addColorStop(1, 'rgba(218,226,221,.78)')
+    ctx.fillStyle = visibility
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
   if (zone === 'night') {
