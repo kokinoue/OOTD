@@ -1,7 +1,9 @@
 import {
   clampOrbitIndex,
+  orbitFraming,
   visibleOrbitRange,
   type OrbitEntry,
+  type OrbitFraming,
 } from './orbit'
 import type {
   OrbitSceneController,
@@ -14,7 +16,6 @@ type HitBox = { index: number; x: number; y: number; w: number; h: number }
 
 const IMAGE_WINDOW_RADIUS = 18
 const DRAW_WINDOW_RADIUS = 42
-const CAMERA_RADIUS = 12.6
 const SEASON_COLORS = ['#9ad0b1', '#f2b366', '#c7865a', '#8db9d6'] as const
 
 const seasonColor = (entry: OrbitEntry) => {
@@ -85,10 +86,11 @@ export function createOrbitCanvasScene({
     center: Point,
     width: number,
     height: number,
+    framing: OrbitFraming,
   ): ProjectedPoint | null => {
     const cameraAngle = Math.atan2(center.x, center.z)
-    const cameraX = Math.sin(cameraAngle) * CAMERA_RADIUS
-    const cameraZ = Math.cos(cameraAngle) * CAMERA_RADIUS
+    const cameraX = Math.sin(cameraAngle) * framing.cameraRadius
+    const cameraZ = Math.cos(cameraAngle) * framing.cameraRadius
     const relativeX = position.x - cameraX
     const relativeZ = position.z - cameraZ
     const rightX = Math.cos(cameraAngle)
@@ -99,9 +101,11 @@ export function createOrbitCanvasScene({
     if (cameraDepth <= 0.2) return null
     const focalLength = Math.min(width, height) * 0.82
     const scale = focalLength / cameraDepth
+    // 縦長では被写体を上寄りにして、下の詳細カードと重ならないようにする
+    const verticalCenter = 0.46 - 0.025 * framing.portrait
     return {
       x: width * 0.5 + (relativeX * rightX + relativeZ * rightZ) * scale,
-      y: height * 0.46 - (position.y - center.y) * scale,
+      y: height * verticalCenter - (position.y - center.y) * scale,
       z: cameraDepth,
       scale,
     }
@@ -147,12 +151,13 @@ export function createOrbitCanvasScene({
     context.clearRect(0, 0, width, height)
     drawStars(width, height, reduceMotion ? 0 : frameTime)
 
+    const framing = orbitFraming(width, height)
     const selectedIndex = Math.round(currentIndex)
     const center = positionAt(selectedIndex)
     const visible = visibleOrbitRange(currentIndex, entries.length, DRAW_WINDOW_RADIUS)
     const projected = visible
       .map((index) => {
-        const point = project(positionAt(index), center, width, height)
+        const point = project(positionAt(index), center, width, height, framing)
         return point ? { index, point } : null
       })
       .filter((value): value is { index: number; point: ProjectedPoint } => value != null)
@@ -181,7 +186,7 @@ export function createOrbitCanvasScene({
 
     const tracePoints = traceIndices
       .map((index) => {
-        const point = project(positionAt(index), center, width, height)
+        const point = project(positionAt(index), center, width, height, framing)
         return point ? { index, point } : null
       })
       .filter((value): value is { index: number; point: ProjectedPoint } => value != null)
@@ -214,22 +219,24 @@ export function createOrbitCanvasScene({
       if (!size || image.naturalWidth === 0) continue
       const distance = Math.abs(index - currentIndex)
       const selected = index === selectedIndex
-      const targetHeight = Math.min(height * (selected ? 0.29 : 0.19), selected ? 250 : 170)
+      const heightRatio = selected ? 0.29 - 0.05 * framing.portrait : 0.19
+      const targetHeight = Math.min(height * heightRatio, selected ? 250 : 170)
       const perspective = Math.max(0.64, Math.min(1.2, point.scale / 88))
       const imageHeight = targetHeight * perspective
       const imageWidth = imageHeight * (size.w / size.h)
       const x = point.x - imageWidth / 2
       const y = point.y - imageHeight / 2
-      context.globalAlpha = Math.max(0.18, 1 - distance / 24)
+      context.globalAlpha =
+        Math.max(0.18, 1 - distance / 24) * (selected ? 1 : framing.ambientOpacity)
       context.drawImage(image, x, y, imageWidth, imageHeight)
       if (distance < 8) hitBoxes.push({ index, x, y, w: imageWidth, h: imageHeight })
     }
     context.globalAlpha = 1
 
-    const selectedPoint = project(center, center, width, height)
+    const selectedPoint = project(center, center, width, height, framing)
     if (selectedPoint) {
       const pulse = reduceMotion ? 0 : Math.sin(frameTime * 0.0024) * 3
-      context.strokeStyle = 'rgba(255, 255, 255, 0.78)'
+      context.strokeStyle = `rgba(255, 255, 255, ${framing.haloOpacity.toFixed(2)})`
       context.lineWidth = 1.5
       context.beginPath()
       context.arc(selectedPoint.x, selectedPoint.y, 34 + pulse, 0, Math.PI * 2)

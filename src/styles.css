@@ -6551,6 +6551,10 @@ a {
   line-height: 1.9;
 }
 
+.orbit-lead-compact {
+  display: none;
+}
+
 .orbit-view-tools {
   position: absolute;
   z-index: 4;
@@ -6934,6 +6938,13 @@ a {
     overflow: hidden;
   }
 
+  /* 軌道の服が文字の背後を通り抜けるため、上下端は濃く落として本文を読ませる */
+  .orbit-vignette {
+    background:
+      linear-gradient(180deg, rgba(5, 7, 11, 0.9), rgba(5, 7, 11, 0.62) 16%, transparent 34%),
+      linear-gradient(0deg, rgba(5, 7, 11, 0.92), rgba(5, 7, 11, 0.5) 15%, transparent 36%);
+  }
+
   .orbit-close {
     display: grid;
     place-items: center;
@@ -6947,14 +6958,28 @@ a {
     right: 64px;
   }
 
+  .orbit-lead {
+    display: none;
+  }
+
+  .orbit-lead-compact {
+    display: block;
+    margin: 8px 0 0;
+    color: rgba(235, 237, 246, 0.6);
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  /* 年と表示切替を1行にまとめ、軌道が見える帯を縦に広げる */
   .orbit-view-tools {
-    top: calc(196px + env(safe-area-inset-top, 0px));
+    top: calc(104px + env(safe-area-inset-top, 0px));
     right: 14px;
   }
 
   .orbit-view-toggle button {
-    min-width: 72px;
-    padding: 7px 8px;
+    min-width: 58px;
+    gap: 5px;
+    padding: 6px 7px;
   }
 
   .orbit-color-spectrum {
@@ -6986,16 +7011,26 @@ a {
   }
 
   .orbit-years {
-    top: calc(152px + env(safe-area-inset-top, 0px));
+    top: calc(110px + env(safe-area-inset-top, 0px));
     right: auto;
-    left: 16px;
+    left: 14px;
+    /* 表示切替と同じ行に並ぶため、年が増えても重ならないよう横スクロールに逃がす */
+    max-width: calc(100% - 186px);
     flex-direction: row;
     gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
     transform: none;
   }
 
+  .orbit-years::-webkit-scrollbar {
+    display: none;
+  }
+
   .orbit-years button {
-    padding: 4px 7px;
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    font-size: 9px;
     text-align: center;
   }
 
@@ -7104,7 +7139,7 @@ a {
   }
 
   .orbit-fallback {
-    inset: calc(216px + env(safe-area-inset-top, 0px)) 24px
+    inset: calc(170px + env(safe-area-inset-top, 0px)) 24px
       calc(230px + env(safe-area-inset-bottom, 0px));
   }
 }

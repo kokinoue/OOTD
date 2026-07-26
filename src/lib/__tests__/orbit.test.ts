@@ -4,7 +4,10 @@ import {
   buildOrbitLayout,
   clampOrbitIndex,
   dominantOrbitColor,
+  orbitFraming,
   outfitIndicesForItem,
+  ORBIT_BASE_CAMERA_RADIUS,
+  ORBIT_BASE_FOV,
   visibleOrbitRange,
 } from '../orbit'
 import type { Outfit } from '../../types'
@@ -101,5 +104,44 @@ describe('orbit exploration helpers', () => {
 
     expect(outfitIndicesForItem(entries, itemIds, 'coat|a')).toEqual([0, 2])
     expect(outfitIndicesForItem(entries, itemIds, 'missing')).toEqual([])
+  })
+
+  it('keeps the desktop framing untouched on wide screens', () => {
+    const framing = orbitFraming(1440, 900)
+
+    expect(framing.portrait).toBe(0)
+    expect(framing.fov).toBe(ORBIT_BASE_FOV)
+    expect(framing.cameraRadius).toBe(ORBIT_BASE_CAMERA_RADIUS)
+    expect(framing.focusLift).toBe(0)
+    expect(framing.ambientOpacity).toBe(1)
+  })
+
+  it('pulls the camera back and calms the surroundings on phone screens', () => {
+    const framing = orbitFraming(390, 844)
+
+    expect(framing.portrait).toBe(1)
+    expect(framing.fov).toBeGreaterThan(ORBIT_BASE_FOV)
+    expect(framing.cameraRadius).toBeGreaterThan(ORBIT_BASE_CAMERA_RADIUS)
+    expect(framing.focusLift).toBeGreaterThan(0)
+    expect(framing.ambientOpacity).toBeLessThan(1)
+    expect(framing.haloOpacity).toBeLessThan(0.72)
+  })
+
+  it('interpolates between both framings on square-ish screens', () => {
+    const framing = orbitFraming(800, 1000)
+    const phone = orbitFraming(390, 844)
+
+    expect(framing.portrait).toBeGreaterThan(0)
+    expect(framing.portrait).toBeLessThan(1)
+    expect(framing.cameraRadius).toBeGreaterThan(ORBIT_BASE_CAMERA_RADIUS)
+    expect(framing.cameraRadius).toBeLessThan(phone.cameraRadius)
+  })
+
+  it('survives a zero-sized container without producing NaN', () => {
+    const framing = orbitFraming(0, 0)
+
+    expect(Number.isFinite(framing.fov)).toBe(true)
+    expect(Number.isFinite(framing.cameraRadius)).toBe(true)
+    expect(Number.isFinite(framing.focusLift)).toBe(true)
   })
 })

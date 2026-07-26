@@ -189,6 +189,8 @@ export default function OrbitView({
           スクロール、ドラッグ、上下キーで時間を移動。ひとつの定点から生まれた毎日の装いを、
           2022年から現在まで辿れます。
         </p>
+        {/* SPは軌道の表示面積を確保するため、同じ案内を1行に圧縮する */}
+        <p className="orbit-lead-compact jp">上下スワイプで2022年から現在まで移動。</p>
       </header>
 
       <section className="orbit-view-tools" aria-label="軌道の表示方法">
