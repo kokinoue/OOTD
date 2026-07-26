@@ -5829,8 +5829,8 @@ a {
 .chari-zone-badge[data-zone='riverside'] {
   background: rgba(54, 119, 144, 0.84);
 }
-.chari-zone-badge[data-zone='night'] {
-  background: rgba(38, 43, 82, 0.9);
+.chari-zone-badge[data-zone='station'] {
+  background: rgba(73, 102, 113, 0.9);
 }
 .chari-weather-badge[data-weather='rain'] {
   background: rgba(55, 91, 119, 0.86);

@@ -168,13 +168,13 @@ describe('チャリ通のコース生成', () => {
     expect(hasRoofChain).toBe(true)
   })
 
-  it('住宅街・商店街・工事区間・河川敷・夜間を順番に巡回する', () => {
+  it('住宅街・商店街・工事区間・河川敷・駅前を順番に巡回する', () => {
     expect([0, 9000, 18000, 27000, 36000, 45000].map(zoneAt)).toEqual([
       'residential',
       'shopping',
       'construction',
       'riverside',
-      'night',
+      'station',
       'residential',
     ])
   })

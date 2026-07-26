@@ -113,7 +113,7 @@ const zoneLabel = {
   shopping: '商店街',
   construction: '工事区間',
   riverside: '河川敷',
-  night: '夜間',
+  station: '駅前',
 } as const
 
 const weatherLabel = {
@@ -141,7 +141,7 @@ const zoneIcon = {
   shopping: '🏬',
   construction: '🚧',
   riverside: '🌊',
-  night: '🌙',
+  station: '🚉',
 } as const
 
 const weatherIcon = {
@@ -158,31 +158,27 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   const sky = ctx.createLinearGradient(0, 0, 0, 410)
   sky.addColorStop(
     0,
-    zone === 'night'
-      ? '#11182d'
-      : weather === 'rain'
-        ? '#8194a0'
-        : commute.phase === 'early'
-          ? '#e6b5a1'
-          : commute.phase === 'late'
-            ? '#82a7c4'
-            : '#b9dcf2',
+    weather === 'rain'
+      ? '#8194a0'
+      : commute.phase === 'early'
+        ? '#e6b5a1'
+        : commute.phase === 'late'
+          ? '#82a7c4'
+          : '#b9dcf2',
   )
   sky.addColorStop(
     0.58,
-    zone === 'night'
-      ? '#27314a'
-      : weather === 'fog'
-        ? '#c8cfcb'
-        : commute.phase === 'early'
-          ? '#f0d0ac'
-          : '#e8d9bd',
+    weather === 'fog'
+      ? '#c8cfcb'
+      : commute.phase === 'early'
+        ? '#f0d0ac'
+        : '#e8d9bd',
   )
-  sky.addColorStop(1, zone === 'night' ? '#3a4050' : '#f3e7d3')
+  sky.addColorStop(1, '#f3e7d3')
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, VIEW_W, VIEW_H)
 
-  ctx.fillStyle = zone === 'night' ? 'rgba(240,244,219,.82)' : 'rgba(255,239,183,.72)'
+  ctx.fillStyle = 'rgba(255,239,183,.72)'
   ctx.beginPath()
   ctx.arc(750 - (cameraX * 0.015) % 100, 86, 42, 0, Math.PI * 2)
   ctx.fill()
@@ -264,6 +260,18 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
       ctx.moveTo(x, 350)
       ctx.lineTo(x + 48, 350)
       ctx.stroke()
+    }
+  } else if (zone === 'station') {
+    for (let i = -1; i < 5; i++) {
+      const x = i * 280 - ((cameraX * 0.24) % 280)
+      ctx.fillStyle = '#b9b7ae'
+      ctx.fillRect(x, 250, 232, 115)
+      ctx.fillStyle = '#536d78'
+      ctx.fillRect(x + 15, 272, 202, 52)
+      ctx.fillStyle = '#eee8d7'
+      ctx.fillRect(x + 82, 332, 68, 33)
+      ctx.fillStyle = '#d45b4c'
+      ctx.fillRect(x + 92, 258, 48, 7)
     }
   }
 }
@@ -471,7 +479,6 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
 
 function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
   const weather = weatherAt(run.distance, run.seed)
-  const zone = zoneAt(run.distance)
   if (weather === 'rain') {
     ctx.strokeStyle = 'rgba(220,239,247,.62)'
     ctx.lineWidth = 2
@@ -544,14 +551,6 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     const fogPulse = Math.sin(t * 1.7) * 0.07
     visibility.addColorStop(1, `rgba(218,226,221,${0.78 + fogPulse - fogRelief * 0.36})`)
     ctx.fillStyle = visibility
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
-  }
-  if (zone === 'night') {
-    const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
-    light.addColorStop(0, 'rgba(255,244,183,0)')
-    light.addColorStop(0.62, 'rgba(7,10,22,.32)')
-    light.addColorStop(1, 'rgba(4,7,18,.72)')
-    ctx.fillStyle = light
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
 }

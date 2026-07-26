@@ -50,7 +50,7 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'riverside' | 'night'
+export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'riverside' | 'station'
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
 export type CommutePhase = 'early' | 'rush' | 'late'
 export type RiderTraits = {
@@ -232,7 +232,7 @@ export function difficultyAt(dist: number): number {
 }
 
 export function zoneAt(dist: number): ZoneKind {
-  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'riverside', 'night']
+  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'riverside', 'station']
   return zones[Math.floor(Math.max(0, dist) / ZONE_LENGTH) % zones.length]
 }
 
