@@ -224,6 +224,33 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.fillStyle = '#55535a'
       ctx.fillRect(x + 3, o.y, 5, o.h)
       ctx.fillRect(x + o.w - 8, o.y, 5, o.h)
+    } else if (o.kind === 'truck') {
+      ctx.fillStyle = '#315f78'
+      ctx.fillRect(x, o.y, 76, o.h - 20)
+      ctx.fillStyle = '#477f98'
+      ctx.beginPath()
+      ctx.moveTo(x + 76, o.y + 62)
+      ctx.lineTo(x + o.w - 8, o.y + 88)
+      ctx.lineTo(x + o.w, o.y + o.h - 20)
+      ctx.lineTo(x + 76, o.y + o.h - 20)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = '#b9d4dc'
+      ctx.fillRect(x + 83, o.y + 76, 25, 22)
+      ctx.fillStyle = '#f0b348'
+      ctx.fillRect(x + 12, o.y + 22, 48, 9)
+      ctx.fillStyle = '#25272c'
+      for (const wheelX of [24, 91]) {
+        ctx.beginPath()
+        ctx.arc(x + wheelX, o.y + o.h - 15, 15, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      ctx.fillStyle = '#b9bec1'
+      for (const wheelX of [24, 91]) {
+        ctx.beginPath()
+        ctx.arc(x + wheelX, o.y + o.h - 15, 6, 0, Math.PI * 2)
+        ctx.fill()
+      }
     } else if (o.kind === 'bird') {
       const flap = Math.sin(t * 12 + o.id) * 7
       ctx.strokeStyle = '#272930'

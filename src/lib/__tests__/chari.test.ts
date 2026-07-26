@@ -127,6 +127,12 @@ describe('チャリ通のコース生成', () => {
     ensureAhead(run, 100_000)
     expect(run.obstacles.some((o) => o.kind === 'bird')).toBe(true)
   })
+
+  it('長距離コースに二段ジャンプ用の配送トラックが生成される', () => {
+    const run = createRun(778)
+    ensureAhead(run, 100_000)
+    expect(run.obstacles.some((o) => o.kind === 'truck')).toBe(true)
+  })
 })
 
 describe('チャリ通の物理', () => {
@@ -200,6 +206,39 @@ describe('チャリ通の物理', () => {
     ]
     step(intoBird, { ...idle, jumpHeld: true }, 1 / 120)
     expect(intoBird.overReason).toBe('crash')
+  })
+
+  it('配送トラックは通常ジャンプでは越えられず二段ジャンプなら越えられる', () => {
+    const makeTruckRun = (seed: number) => {
+      const run = createRun(seed)
+      run.segments = [{ ...run.segments[0], x: -500, w: 2000 }]
+      run.obstacles = [
+        { id: 4, kind: 'truck', x: 420, y: ROAD_Y - 128, w: 118, h: 128, cluster: 4, used: false },
+      ]
+      run.coins = []
+      run.nextX = 10_000
+      return run
+    }
+    const single = makeTruckRun(54)
+    const double = makeTruckRun(55)
+    let airJumped = false
+    for (let frame = 0; frame < 180; frame++) {
+      step(single, { jumpPressed: frame === 0, jumpHeld: true, diveHeld: false }, 1 / 120)
+      const useAirJump = !airJumped && !double.player.grounded && double.player.vy > -40
+      step(
+        double,
+        { jumpPressed: frame === 0 || useAirJump, jumpHeld: true, diveHeld: false },
+        1 / 120,
+      )
+      if (useAirJump) airJumped = true
+    }
+    expect(single.overReason).toBe('crash')
+    expect(airJumped).toBe(true)
+    expect(
+      double.status,
+      `double: ${double.overReason} at ${Math.round(double.player.x)},${Math.round(double.player.y)}`,
+    ).toBe('playing')
+    expect(double.player.x).toBeGreaterThan(538)
   })
 
   it('WALL_TOL以下の段差は乗り上げる', () => {

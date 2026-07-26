@@ -20,7 +20,7 @@ function needsJump(run: Run): boolean {
       o.kind !== 'ramp' &&
       o.kind !== 'bird' &&
       o.x - (p.x + 15) >= 0 &&
-      o.x - (p.x + 15) <= look,
+      o.x - (p.x + 15) <= (o.kind === 'truck' ? run.speed * 0.55 : look),
   )
 }
 
@@ -52,6 +52,16 @@ function crossingAirGap(run: Run): boolean {
   )
 }
 
+function needsAirJumpForTruck(run: Run): boolean {
+  const p = run.player
+  return run.obstacles.some(
+    (o) =>
+      o.kind === 'truck' &&
+      o.x - (p.x + 15) >= 0 &&
+      o.x - (p.x + 15) <= run.speed * 0.3,
+  )
+}
+
 describe('チャリ通のプレイ可能性', () => {
   it(
     '30シードを自動プレイで90秒走り切れる',
@@ -69,8 +79,8 @@ describe('チャリ通のプレイ可能性', () => {
           } else if (
             !run.player.grounded &&
             !run.player.airJumpUsed &&
-            run.player.vy > 80 &&
-            (crossingAirGap(run) || landingUnsafe(run))
+            ((run.player.vy > -40 && needsAirJumpForTruck(run)) ||
+              (run.player.vy > 80 && (crossingAirGap(run) || landingUnsafe(run))))
           ) {
             jumpPressed = true
             jumpHeldFrames = 10

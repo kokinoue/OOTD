@@ -46,7 +46,7 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ObstacleKind = 'pylon' | 'fence' | 'bird' | 'ramp'
+export type ObstacleKind = 'pylon' | 'fence' | 'truck' | 'bird' | 'ramp'
 export type Obstacle = {
   id: number
   kind: ObstacleKind
@@ -153,9 +153,11 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
       ? { w: 24, h: 32 }
       : kind === 'fence'
         ? { w: 42, h: 48 }
-        : kind === 'bird'
-          ? { w: 42, h: 22 }
-          : { w: 58, h: 18 }
+        : kind === 'truck'
+          ? { w: 118, h: 128 }
+          : kind === 'bird'
+            ? { w: 42, h: 22 }
+            : { w: 58, h: 18 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
   const y = kind === 'bird' ? roadY - 160 : roadY - dims.h
@@ -232,7 +234,7 @@ function generateSegment(run: Run) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
     const kindRoll = rng()
-    if (kindRoll < 0.38) {
+    if (kindRoll < 0.35) {
       // 最初から2連、少し走ればほぼ3連。ひと跳びで越せるクラスタ幅に収める。
       const count = difficulty > 0.2 ? (rng() < 0.88 ? 3 : 2) : 2
       const spread = 40
@@ -243,9 +245,15 @@ function generateSegment(run: Run) {
       }
       const arcEnd = first + Math.max(75, (count - 1) * spread + 30)
       addCoinArc(run, first - 5, arcEnd, roadAt((first + arcEnd) / 2), 48)
-    } else if (kindRoll < 0.75 && difficulty > 0.04) {
+    } else if (kindRoll < 0.65 && difficulty > 0.04) {
       addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
       addCoinArc(run, center - 28, center + 72, roadAt(center + 22), 62)
+    } else if (kindRoll < 0.78 && difficulty > 0.3) {
+      // 通常ジャンプの最高点より高い配送トラック。手前から跳び、
+      // 空中ジャンプを重ねないと車体上端を越えられない。
+      const truckX = clamp(center, safeStart, safeEnd - 118)
+      addObstacle(run, 'truck', truckX, roadAt(truckX + 59), cluster)
+      addCoinArc(run, truckX - 45, truckX + 165, roadAt(truckX + 59), 155)
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
       addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
