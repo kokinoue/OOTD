@@ -36,6 +36,7 @@ import {
   obstacleActive,
   saveBest,
   scoreOf,
+  schoolCrossingStateAt,
   segmentSurfaceAt,
   signalStateAt,
   slopeSpeedMultiplierFor,
@@ -739,6 +740,35 @@ describe('チャリ通の物理', () => {
     const nearlyClear = signalStateAt(run, signal)
     expect(leaving.blockage).toBeGreaterThan(nearlyClear.blockage)
     expect(obstacleActive(run, signal)).toBe(false)
+  })
+
+  it('スクールゾーンはベルの予告後に児童が横断する', () => {
+    const run = createRun(0)
+    const students = {
+      id: 3,
+      kind: 'students' as const,
+      x: 500,
+      y: 310,
+      w: 58,
+      h: 74,
+      cluster: 3,
+      used: false,
+      phase: 0,
+    }
+    run.elapsed = 0.4
+    expect(schoolCrossingStateAt(run, students).warning).toBe(true)
+    expect(obstacleActive(run, students)).toBe(false)
+
+    run.elapsed = 0.95
+    const entering = schoolCrossingStateAt(run, students)
+    run.elapsed = 1.3
+    const crossing = schoolCrossingStateAt(run, students)
+    expect(entering.presence).toBeLessThan(crossing.presence)
+    expect(obstacleActive(run, students)).toBe(true)
+
+    run.elapsed = 3.3
+    expect(schoolCrossingStateAt(run, students).presence).toBeLessThan(0.72)
+    expect(obstacleActive(run, students)).toBe(false)
   })
 
   it('踏切は警告灯のあと徐々に閉まり、徐々に開く', () => {

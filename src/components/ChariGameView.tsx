@@ -15,6 +15,7 @@ import {
   nextZoneInfo,
   saveBest,
   scoreOf,
+  schoolCrossingStateAt,
   segmentSurfaceAt,
   signalStateAt,
   step,
@@ -697,8 +698,31 @@ function drawRoadAndItems(
       ctx.arc(x + o.w / 2, o.y + o.h / 2, 8, 0, Math.PI * 2)
       ctx.stroke()
     } else if (o.kind === 'students') {
-      for (let i = 0; i < 3; i++) {
-        const sx = x + 8 + i * 19
+      const crossing = schoolCrossingStateAt(run, o)
+      ctx.fillStyle = 'rgba(245,245,232,.58)'
+      for (let stripe = -14; stripe < o.w + 18; stripe += 18) {
+        ctx.fillRect(x + stripe, o.y + o.h - 3, 10, 34)
+      }
+      if (crossing.warning) {
+        ctx.save()
+        ctx.globalAlpha = 0.55 + crossing.bellPulse * 0.45
+        ctx.fillStyle = '#f2bd3f'
+        ctx.beginPath()
+        ctx.arc(x + o.w / 2, o.y - 24, 18 + crossing.bellPulse * 4, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = '#2f3137'
+        ctx.font = 'bold 15px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText('🔔', x + o.w / 2, o.y - 18)
+        ctx.restore()
+      }
+      const waitingOffset = (1 - crossing.presence) * -46
+      ctx.save()
+      ctx.globalAlpha *= 0.52 + crossing.presence * 0.48
+      ctx.translate(0, waitingOffset)
+      const studentCount = 5
+      for (let i = 0; i < studentCount; i++) {
+        const sx = x + 10 + (i * (o.w - 20)) / (studentCount - 1)
         ctx.fillStyle = i % 2 ? '#e0b24c' : '#4b7089'
         ctx.fillRect(sx - 7, o.y + 25, 14, 34)
         ctx.fillStyle = '#d9aa86'
@@ -706,6 +730,7 @@ function drawRoadAndItems(
         ctx.arc(sx, o.y + 15, 8, 0, Math.PI * 2)
         ctx.fill()
       }
+      ctx.restore()
     } else {
       ctx.fillStyle = o.used ? '#77747b' : '#dc9b36'
       ctx.beginPath()

@@ -550,7 +550,7 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
         : kind === 'ball'
           ? { w: 28, h: 28 }
           : kind === 'students'
-            ? { w: 58, h: 74 }
+            ? { w: 108, h: 74 }
           : { w: 92, h: 12 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
@@ -564,7 +564,12 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
     h: dims.h,
     cluster,
     used: false,
-    phase: kind === 'signal' || kind === 'crossing' ? run.rng() * 4 : undefined,
+    phase:
+      kind === 'students'
+        ? run.rng() * 6
+        : kind === 'signal' || kind === 'crossing'
+          ? run.rng() * 4
+          : undefined,
     vx:
       kind === 'bird'
         ? -260
@@ -572,11 +577,9 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
         ? -55 - run.rng() * 55
         : kind === 'ball'
           ? -105 - run.rng() * 45
-          : kind === 'students'
-            ? -28 - run.rng() * 20
-            : undefined,
+          : undefined,
     originX:
-      kind === 'bird' || kind === 'commuter' || kind === 'ball' || kind === 'students'
+      kind === 'bird' || kind === 'commuter' || kind === 'ball'
         ? x
         : undefined,
   })
@@ -589,7 +592,40 @@ export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   if (obstacle.kind === 'crossing') {
     return crossingStateAt(run, obstacle).closure >= 0.78
   }
+  if (obstacle.kind === 'students') {
+    return schoolCrossingStateAt(run, obstacle).presence >= 0.72
+  }
   return true
+}
+
+export function schoolCrossingStateAt(
+  run: Run,
+  obstacle: Pick<Obstacle, 'phase'>,
+): {
+  presence: number
+  warning: boolean
+  bellPulse: number
+} {
+  const time = run.elapsed + (obstacle.phase ?? 0)
+  const cycle = ((time % 6) + 6) % 6
+  const smooth = (value: number) => {
+    const progress = clamp(value, 0, 1)
+    return progress * progress * (3 - 2 * progress)
+  }
+  let presence = 0
+  if (cycle >= 0.8 && cycle < 1.35) {
+    presence = smooth((cycle - 0.8) / 0.55)
+  } else if (cycle < 2.85 && cycle >= 1.35) {
+    presence = 1
+  } else if (cycle >= 2.85 && cycle < 3.45) {
+    presence = 1 - smooth((cycle - 2.85) / 0.6)
+  }
+  const warning = cycle < 0.8
+  return {
+    presence,
+    warning,
+    bellPulse: warning ? 0.55 + Math.sin(time * 16) * 0.45 : 0,
+  }
 }
 
 export function signalStateAt(
@@ -743,11 +779,13 @@ function addZonePattern(
   }
   if (patternStep === 0) {
     addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
+    addCoinArc(run, center - 30, center + 78, roadAt(center), 72)
   } else if (patternStep === 1) {
-    addObstacle(run, 'students', center, roadAt(center + 29), cluster)
+    addObstacle(run, 'students', center, roadAt(center + 54), cluster)
   } else {
-    addObstacle(run, 'students', center, roadAt(center + 29), cluster)
-    addCoinArc(run, center - 25, center + 100, roadAt(center + 29), 82)
+    const groupX = clamp(center - 54, safeStart, safeEnd - 108)
+    addObstacle(run, 'students', groupX, roadAt(groupX + 54), cluster)
+    addCoinArc(run, groupX - 25, groupX + 158, roadAt(center), 108)
   }
 }
 
