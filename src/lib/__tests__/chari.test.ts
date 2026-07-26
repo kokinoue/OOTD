@@ -82,6 +82,13 @@ describe('チャリ通のコース生成', () => {
       expect(b.x - a.x).toBeGreaterThanOrEqual(Math.min(180, minObstacleSpacing(speedAt(a.x - run.startX))))
     }
   })
+
+  it('長距離コースに水たまりと低空の鳥が生成される', () => {
+    const run = createRun(777)
+    ensureAhead(run, 100_000)
+    expect(run.obstacles.some((o) => o.kind === 'puddle')).toBe(true)
+    expect(run.obstacles.some((o) => o.kind === 'bird')).toBe(true)
+  })
 })
 
 describe('チャリ通の物理', () => {
@@ -136,6 +143,32 @@ describe('チャリ通の物理', () => {
     fall.nextX = 10_000
     for (let i = 0; i < 180 && fall.status === 'playing'; i++) step(fall, idle, 1 / 60)
     expect(fall.overReason).toBe('fall')
+  })
+
+  it('水たまりはジャンプ必須、鳥は地上なら通過できるが空中では衝突する', () => {
+    const puddle = createRun(51)
+    puddle.obstacles = [
+      { id: 1, kind: 'puddle', x: 135, y: ROAD_Y - 8, w: 88, h: 8, cluster: 1, used: false },
+    ]
+    step(puddle, idle, 1 / 10)
+    expect(puddle.overReason).toBe('crash')
+
+    const underBird = createRun(52)
+    underBird.obstacles = [
+      { id: 2, kind: 'bird', x: 135, y: ROAD_Y - 112, w: 42, h: 22, cluster: 2, used: false },
+    ]
+    step(underBird, idle, 1 / 10)
+    expect(underBird.status).toBe('playing')
+
+    const intoBird = createRun(53)
+    intoBird.player.x = 140
+    intoBird.player.y = ROAD_Y - 72
+    intoBird.player.grounded = false
+    intoBird.obstacles = [
+      { id: 3, kind: 'bird', x: 135, y: ROAD_Y - 112, w: 42, h: 22, cluster: 3, used: false },
+    ]
+    step(intoBird, { ...idle, jumpHeld: true }, 1 / 120)
+    expect(intoBird.overReason).toBe('crash')
   })
 
   it('WALL_TOL以下の段差は乗り上げる', () => {

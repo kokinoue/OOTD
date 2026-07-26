@@ -211,6 +211,28 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
       ctx.fillStyle = '#55535a'
       ctx.fillRect(x + 3, o.y, 5, o.h)
       ctx.fillRect(x + o.w - 8, o.y, 5, o.h)
+    } else if (o.kind === 'puddle') {
+      ctx.fillStyle = 'rgba(82,155,190,.78)'
+      ctx.beginPath()
+      ctx.ellipse(x + o.w / 2, o.y + o.h / 2, o.w / 2, o.h, 0, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(190,235,249,.8)'
+      ctx.lineWidth = 2
+      ctx.stroke()
+    } else if (o.kind === 'bird') {
+      const flap = Math.sin(t * 12 + o.id) * 7
+      ctx.strokeStyle = '#272930'
+      ctx.lineWidth = 4
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(x, o.y + 12)
+      ctx.quadraticCurveTo(x + 10, o.y + flap, x + 20, o.y + 12)
+      ctx.quadraticCurveTo(x + 31, o.y + flap, x + 42, o.y + 12)
+      ctx.stroke()
+      ctx.fillStyle = '#d86f45'
+      ctx.beginPath()
+      ctx.arc(x + 21, o.y + 13, 5, 0, Math.PI * 2)
+      ctx.fill()
     } else {
       ctx.fillStyle = o.used ? '#77747b' : '#dc9b36'
       ctx.beginPath()
@@ -578,8 +600,8 @@ export default function ChariGameView({ data, onBack }: Props) {
           <span className="chari-caption mono">{caption}</span>
           <span className="jp">
             {touch
-              ? '画面タップでジャンプ（長押しで高く・空中でもう1回） · DIVEで急降下'
-              : 'Space / Z / ↑ ジャンプ · ↓ / X 急降下 · R やりなおし · ESC もどる'}
+              ? '画面タップでジャンプ（長押し・空中でもう1回） · DIVEで急降下 · 水たまりはジャンプ / 鳥はくぐる'
+              : 'Space / Z / ↑ ジャンプ · ↓ / X 急降下 · 水たまりはジャンプ / 鳥はくぐる · R やりなおし · ESC もどる'}
           </span>
         </div>
       </div>

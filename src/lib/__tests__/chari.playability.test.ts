@@ -16,7 +16,11 @@ function needsJump(run: Run): boolean {
   const roadAhead = surfaceAt(run, p.x + look)
   if (roadNow != null && roadAhead == null) return true
   return run.obstacles.some(
-    (o) => o.kind !== 'ramp' && o.x - (p.x + 15) >= 0 && o.x - (p.x + 15) <= look,
+    (o) =>
+      o.kind !== 'ramp' &&
+      o.kind !== 'bird' &&
+      o.x - (p.x + 15) >= 0 &&
+      o.x - (p.x + 15) <= look,
   )
 }
 

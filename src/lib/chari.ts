@@ -43,7 +43,7 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ObstacleKind = 'pylon' | 'fence' | 'ramp'
+export type ObstacleKind = 'pylon' | 'fence' | 'puddle' | 'bird' | 'ramp'
 export type Obstacle = {
   id: number
   kind: ObstacleKind
@@ -102,7 +102,7 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 export function speedAt(dist: number): number {
   // 初速から忙しく、約500mで最高速へ。穴幅や安全帯も速度基準で伸びるため
   // 到達不能にはせず、判断と入力の猶予だけを強く削る。
-  return Math.min(940, 420 + Math.max(0, dist) * 0.035)
+  return Math.min(1050, 460 + Math.max(0, dist) * 0.04)
 }
 
 export function difficultyAt(dist: number): number {
@@ -142,12 +142,17 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
       ? { w: 24, h: 32 }
       : kind === 'fence'
         ? { w: 42, h: 48 }
-        : { w: 58, h: 18 }
+        : kind === 'puddle'
+          ? { w: 88, h: 8 }
+          : kind === 'bird'
+            ? { w: 42, h: 22 }
+            : { w: 58, h: 18 }
+  const y = kind === 'bird' ? roadY - 112 : roadY - dims.h
   run.obstacles.push({
     id: run.serial++,
     kind,
     x,
-    y: roadY - dims.h,
+    y,
     w: dims.w,
     h: dims.h,
     cluster,
@@ -163,9 +168,9 @@ function generateSegment(run: Run) {
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
   // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
-  const hasGap = run.segments.length > 0 && rng() < 0.72 + difficulty * 0.18
+  const hasGap = run.segments.length > 0 && rng() < 0.8 + difficulty * 0.14
   const gap = hasGap
-    ? Math.max(64, maxGapFor(speed) * (0.86 + rng() * (0.12 + difficulty * 0.02)))
+    ? Math.max(64, maxGapFor(speed) * (0.9 + rng() * (0.09 + difficulty * 0.01)))
     : 0
   let y = run.nextY
   if (hasGap && rng() < 0.38) {
@@ -194,20 +199,27 @@ function generateSegment(run: Run) {
   const safeEnd = x + w - exitClear
   const room = safeEnd - safeStart
   const roll = rng()
-  if (room > 120 && roll < 0.99) {
+  if (room > 120 && roll < 1) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
     const kindRoll = rng()
-    if (kindRoll < 0.48) {
+    if (kindRoll < 0.38) {
       // 最初から2連、少し走ればほぼ3連。ひと跳びで越せるクラスタ幅に収める。
       const count = difficulty > 0.2 ? (rng() < 0.88 ? 3 : 2) : 2
       const spread = 40
       const first = clamp(center - ((count - 1) * spread) / 2, safeStart, safeEnd - (count - 1) * spread)
       for (let i = 0; i < count; i++) addObstacle(run, 'pylon', first + i * spread, y, cluster)
       addCoinArc(run, first - 5, first + Math.max(75, (count - 1) * spread + 30), y, 48)
-    } else if (kindRoll < 0.92 && difficulty > 0.04) {
+    } else if (kindRoll < 0.63 && difficulty > 0.04) {
       addObstacle(run, 'fence', center, y, cluster)
       addCoinArc(run, center - 28, center + 72, y, 62)
+    } else if (kindRoll < 0.82) {
+      addObstacle(run, 'puddle', center, y, cluster)
+      addCoinArc(run, center - 12, center + 100, y, 38)
+    } else if (kindRoll < 0.94 && difficulty > 0.16) {
+      // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
+      addObstacle(run, 'bird', center, y, cluster)
+      for (let px = center - 35; px <= center + 75; px += 42) addCoin(run, px, y + 68)
     } else {
       addObstacle(run, 'ramp', center, y, cluster)
       addCoinArc(run, center + 38, Math.min(safeEnd, center + 250), y, 115)
