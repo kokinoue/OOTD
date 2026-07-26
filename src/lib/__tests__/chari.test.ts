@@ -7,6 +7,7 @@ import {
   DEFAULT_RIDER_TRAITS,
   GRAV,
   JUMP_V,
+  PLAYER_H,
   RAMP_V,
   ROAD_Y,
   SLOPE_MAX_H,
@@ -382,6 +383,26 @@ describe('チャリ通の物理', () => {
     expect(run.coinsTaken).toBe(1)
     expect(run.events.some((e) => e.kind === 'coin')).toBe(true)
     step(run, idle, 1 / 120)
+    expect(run.coinsTaken).toBe(1)
+  })
+
+  it('バッグ効果のコインは光りながら自転車へ追尾してから取得される', () => {
+    const run = createRun(59)
+    run.obstacles = []
+    run.traits = { ...DEFAULT_RIDER_TRAITS, coinRadius: 120, effects: ['バッグ：コイン吸引'] }
+    run.coins = [{
+      id: 5,
+      x: run.player.x + 100,
+      y: run.player.y - PLAYER_H * 0.55,
+      taken: false,
+    }]
+    const startX = run.coins[0].x
+    step(run, idle, 1 / 120)
+    expect(run.coins[0].magnetized).toBe(true)
+    expect(run.coins[0].x).toBeLessThan(startX)
+    expect(run.coins[0].taken).toBe(false)
+    for (let i = 0; i < 60 && !run.coins[0].taken; i++) step(run, idle, 1 / 120)
+    expect(run.coins[0].taken).toBe(true)
     expect(run.coinsTaken).toBe(1)
   })
 })

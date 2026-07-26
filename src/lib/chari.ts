@@ -94,7 +94,7 @@ export type Obstacle = {
   phase?: number
   vx?: number
 }
-export type Coin = { id: number; x: number; y: number; taken: boolean }
+export type Coin = { id: number; x: number; y: number; taken: boolean; magnetized?: boolean }
 export type Player = {
   x: number
   y: number
@@ -163,7 +163,7 @@ export function deriveRiderTraits(date: string, items: RiderItem[]): RiderTraits
     traits.effects.push('足まわり：速度+4%')
   }
   if (hasBag) {
-    traits.coinRadius += 13
+    traits.coinRadius = 120
     traits.effects.push('バッグ：コイン吸引')
   }
   if (hasHat) {
@@ -730,7 +730,25 @@ export function step(run: Run, input: Input, dt: number): void {
 
     for (const coin of run.coins) {
       if (coin.taken) continue
-      if (Math.hypot(p.x - coin.x, p.y - PLAYER_H * 0.55 - coin.y) <= run.traits.coinRadius) {
+      const targetY = p.y - PLAYER_H * 0.55
+      let dx = p.x - coin.x
+      let dy = targetY - coin.y
+      let distance = Math.hypot(dx, dy)
+      if (
+        run.traits.coinRadius > COIN_RADIUS &&
+        (coin.magnetized || distance <= run.traits.coinRadius)
+      ) {
+        coin.magnetized = true
+        const pull = Math.min(distance, 980 * h)
+        if (distance > 0) {
+          coin.x += (dx / distance) * pull
+          coin.y += (dy / distance) * pull
+        }
+        dx = p.x - coin.x
+        dy = targetY - coin.y
+        distance = Math.hypot(dx, dy)
+      }
+      if (distance <= COIN_RADIUS) {
         coin.taken = true
         run.coinsTaken++
         run.combo++

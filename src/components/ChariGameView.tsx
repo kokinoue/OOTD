@@ -327,6 +327,21 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     const x = coin.x - cameraX
     if (x < -30 || x > VIEW_W + 30) continue
     const squash = 0.35 + Math.abs(Math.cos(t * 5 + coin.id)) * 0.65
+    if (coin.magnetized) {
+      const glow = ctx.createRadialGradient(x, coin.y, 2, x, coin.y, 25)
+      glow.addColorStop(0, 'rgba(255,224,112,.7)')
+      glow.addColorStop(1, 'rgba(255,224,112,0)')
+      ctx.fillStyle = glow
+      ctx.beginPath()
+      ctx.arc(x, coin.y, 25, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(255,222,108,.5)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(x, coin.y)
+      ctx.quadraticCurveTo((x + HERO_X) / 2, coin.y - 14, HERO_X, run.player.y - 28)
+      ctx.stroke()
+    }
     ctx.fillStyle = '#e8a33d'
     ctx.beginPath()
     ctx.ellipse(x, coin.y, 10 * squash, 13, 0, 0, Math.PI * 2)
