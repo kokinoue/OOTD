@@ -527,15 +527,20 @@ function drawRoadAndItems(
     const x = o.x - cameraX
     if (x < -80 || x > VIEW_W + 80) continue
     if (o.kind === 'pylon') {
+      const wobble = Math.sin(t * 6 + o.id) * 0.035
+      ctx.save()
+      ctx.translate(x + o.w / 2, o.y + o.h)
+      ctx.rotate(wobble)
       ctx.fillStyle = '#ed713e'
       ctx.beginPath()
-      ctx.moveTo(x + o.w / 2, o.y)
-      ctx.lineTo(x + o.w, o.y + o.h)
-      ctx.lineTo(x, o.y + o.h)
+      ctx.moveTo(0, -o.h)
+      ctx.lineTo(o.w / 2, 0)
+      ctx.lineTo(-o.w / 2, 0)
       ctx.closePath()
       ctx.fill()
       ctx.fillStyle = '#f6eee0'
-      ctx.fillRect(x + 5, o.y + 18, o.w - 10, 5)
+      ctx.fillRect(-o.w / 2 + 5, -14, o.w - 10, 5)
+      ctx.restore()
     } else if (o.kind === 'fence') {
       ctx.fillStyle = '#f1b542'
       ctx.fillRect(x, o.y + 5, o.w, 10)
@@ -543,7 +548,17 @@ function drawRoadAndItems(
       ctx.fillStyle = '#55535a'
       ctx.fillRect(x + 3, o.y, 5, o.h)
       ctx.fillRect(x + o.w - 8, o.y, 5, o.h)
+      const beacon = Math.floor(t * 6 + o.id) % 2
+      for (let index = 0; index < 2; index++) {
+        ctx.fillStyle = index === beacon ? '#ff654d' : '#7b463d'
+        ctx.beginPath()
+        ctx.arc(x + 7 + index * (o.w - 14), o.y - 3, 4, 0, Math.PI * 2)
+        ctx.fill()
+      }
     } else if (o.kind === 'truck') {
+      const engineBob = Math.sin(t * 14 + o.id) * 1.5
+      ctx.save()
+      ctx.translate(0, engineBob)
       ctx.fillStyle = '#315f78'
       ctx.fillRect(x, o.y, 76, o.h - 20)
       ctx.fillStyle = '#477f98'
@@ -568,6 +583,24 @@ function drawRoadAndItems(
       for (const wheelX of [24, 91]) {
         ctx.beginPath()
         ctx.arc(x + wheelX, o.y + o.h - 15, 6, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.strokeStyle = '#555b60'
+        ctx.lineWidth = 2
+        const wheelAngle = t * 9 + wheelX
+        ctx.beginPath()
+        ctx.moveTo(x + wheelX, o.y + o.h - 15)
+        ctx.lineTo(
+          x + wheelX + Math.cos(wheelAngle) * 6,
+          o.y + o.h - 15 + Math.sin(wheelAngle) * 6,
+        )
+        ctx.stroke()
+      }
+      ctx.restore()
+      ctx.fillStyle = 'rgba(205,215,216,.46)'
+      for (let puff = 0; puff < 3; puff++) {
+        const phase = (t * 1.8 + puff * 0.31 + o.id * 0.07) % 1
+        ctx.beginPath()
+        ctx.arc(x - phase * 30, o.y + 72 - phase * 12, 3 + phase * 5, 0, Math.PI * 2)
         ctx.fill()
       }
     } else if (o.kind === 'signal') {
@@ -614,18 +647,80 @@ function drawRoadAndItems(
         ctx.restore()
       }
     } else if (o.kind === 'commuter') {
-      ctx.strokeStyle = '#38434a'
-      ctx.lineWidth = 4
-      for (const wx of [8, 28]) {
+      const pedal = t * 13 + o.id
+      const wheelY = o.y + o.h - 9
+      const rearX = x + 6
+      const frontX = x + 31
+      ctx.strokeStyle = 'rgba(238,241,232,.55)'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(x + 39, o.y + 22)
+      ctx.lineTo(x + 52, o.y + 22)
+      ctx.moveTo(x + 41, o.y + 31)
+      ctx.lineTo(x + 48, o.y + 31)
+      ctx.stroke()
+      ctx.strokeStyle = '#27343b'
+      ctx.lineWidth = 3
+      for (const wx of [rearX, frontX]) {
         ctx.beginPath()
-        ctx.arc(x + wx, o.y + o.h - 9, 9, 0, Math.PI * 2)
+        ctx.arc(wx, wheelY, 10, 0, Math.PI * 2)
         ctx.stroke()
+        ctx.lineWidth = 1
+        for (let spoke = 0; spoke < 4; spoke++) {
+          const angle = pedal + (spoke * Math.PI) / 2
+          ctx.beginPath()
+          ctx.moveTo(wx, wheelY)
+          ctx.lineTo(wx + Math.cos(angle) * 8, wheelY + Math.sin(angle) * 8)
+          ctx.stroke()
+        }
+        ctx.lineWidth = 3
       }
-      ctx.fillStyle = '#596f86'
-      ctx.fillRect(x + 12, o.y + 18, 14, 28)
+      ctx.strokeStyle = '#527d8c'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(rearX, wheelY)
+      ctx.lineTo(x + 18, o.y + 38)
+      ctx.lineTo(frontX, wheelY)
+      ctx.lineTo(x + 13, wheelY)
+      ctx.lineTo(rearX, wheelY)
+      ctx.moveTo(x + 18, o.y + 38)
+      ctx.lineTo(x + 25, o.y + 33)
+      ctx.stroke()
+      const hipX = x + 17
+      const hipY = o.y + 29
+      const footX = hipX + Math.cos(pedal) * 7
+      const footY = o.y + 43 + Math.sin(pedal) * 5
+      ctx.strokeStyle = '#303b44'
+      ctx.lineWidth = 4
+      ctx.beginPath()
+      ctx.moveTo(hipX, hipY)
+      ctx.lineTo(footX, footY)
+      ctx.moveTo(hipX, hipY)
+      ctx.lineTo(hipX - Math.cos(pedal) * 7, o.y + 43 - Math.sin(pedal) * 5)
+      ctx.stroke()
+      ctx.fillStyle = '#496c83'
+      ctx.beginPath()
+      ctx.moveTo(x + 11, o.y + 13)
+      ctx.lineTo(x + 25, o.y + 15)
+      ctx.lineTo(x + 20, o.y + 32)
+      ctx.lineTo(x + 10, o.y + 29)
+      ctx.closePath()
+      ctx.fill()
+      ctx.fillStyle = '#c49a52'
+      ctx.fillRect(x + 22, o.y + 19, 9, 13)
+      ctx.strokeStyle = '#303b44'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(x + 22, o.y + 18)
+      ctx.lineTo(x + 29, o.y + 30)
+      ctx.stroke()
       ctx.fillStyle = '#d6a681'
       ctx.beginPath()
-      ctx.arc(x + 19, o.y + 10, 8, 0, Math.PI * 2)
+      ctx.arc(x + 16, o.y + 8, 7, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#32363b'
+      ctx.beginPath()
+      ctx.arc(x + 15, o.y + 5, 7, Math.PI, Math.PI * 2)
       ctx.fill()
     } else if (o.kind === 'crossing') {
       const crossing = crossingStateAt(run, o)
@@ -688,14 +783,18 @@ function drawRoadAndItems(
       ctx.arc(x + 6, o.y + 10, 1.5, 0, Math.PI * 2)
       ctx.fill()
     } else if (o.kind === 'ball') {
+      const bounce = Math.abs(Math.sin(t * 7 + o.id)) * 7
+      const ballX = x + o.w / 2
+      const ballY = o.y + o.h / 2 - bounce
+      const spin = t * 8 + o.id
       ctx.fillStyle = '#f2e8d2'
       ctx.beginPath()
-      ctx.arc(x + o.w / 2, o.y + o.h / 2, o.w / 2, 0, Math.PI * 2)
+      ctx.arc(ballX, ballY, o.w / 2, 0, Math.PI * 2)
       ctx.fill()
       ctx.strokeStyle = '#d45c4b'
       ctx.lineWidth = 5
       ctx.beginPath()
-      ctx.arc(x + o.w / 2, o.y + o.h / 2, 8, 0, Math.PI * 2)
+      ctx.arc(ballX, ballY, 8, spin, spin + Math.PI * 1.45)
       ctx.stroke()
     } else if (o.kind === 'students') {
       const crossing = schoolCrossingStateAt(run, o)
@@ -723,8 +822,21 @@ function drawRoadAndItems(
       const studentCount = 5
       for (let i = 0; i < studentCount; i++) {
         const sx = x + 10 + (i * (o.w - 20)) / (studentCount - 1)
+        const stride = Math.sin(t * 11 + o.id + i * 0.8) * 5 * crossing.presence
         ctx.fillStyle = i % 2 ? '#e0b24c' : '#4b7089'
         ctx.fillRect(sx - 7, o.y + 25, 14, 34)
+        ctx.strokeStyle = '#39434a'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.moveTo(sx - 2, o.y + 58)
+        ctx.lineTo(sx - 4 + stride, o.y + 70)
+        ctx.moveTo(sx + 2, o.y + 58)
+        ctx.lineTo(sx + 4 - stride, o.y + 70)
+        ctx.moveTo(sx - 6, o.y + 31)
+        ctx.lineTo(sx - 10 - stride * 0.5, o.y + 44)
+        ctx.moveTo(sx + 6, o.y + 31)
+        ctx.lineTo(sx + 10 + stride * 0.5, o.y + 44)
+        ctx.stroke()
         ctx.fillStyle = '#d9aa86'
         ctx.beginPath()
         ctx.arc(sx, o.y + 15, 8, 0, Math.PI * 2)
@@ -732,6 +844,7 @@ function drawRoadAndItems(
       }
       ctx.restore()
     } else {
+      const arrowPhase = (t * 42 + o.id * 7) % 18
       ctx.fillStyle = o.used ? '#77747b' : '#dc9b36'
       ctx.beginPath()
       ctx.moveTo(x, o.y + o.h)
@@ -742,6 +855,17 @@ function drawRoadAndItems(
       ctx.strokeStyle = '#f4d38b'
       ctx.stroke()
       if (!o.used) {
+        ctx.strokeStyle = 'rgba(255,244,190,.9)'
+        ctx.lineWidth = 3
+        for (let arrow = 8 + arrowPhase; arrow < o.w - 8; arrow += 18) {
+          const progress = arrow / o.w
+          const arrowY = o.y + o.h - progress * o.h
+          ctx.beginPath()
+          ctx.moveTo(x + arrow - 5, arrowY + 3)
+          ctx.lineTo(x + arrow, arrowY - 2)
+          ctx.lineTo(x + arrow + 5, arrowY + 3)
+          ctx.stroke()
+        }
         ctx.fillStyle = '#fff0b8'
         ctx.font = '800 11px ui-monospace, monospace'
         ctx.textAlign = 'center'
