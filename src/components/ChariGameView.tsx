@@ -112,7 +112,6 @@ const zoneLabel = {
   residential: '住宅街',
   shopping: '商店街',
   construction: '工事区間',
-  riverside: '河川敷',
   station: '駅前',
 } as const
 
@@ -134,13 +133,13 @@ const commutePhaseLabel = {
   early: '早朝',
   rush: 'ラッシュ',
   late: '遅刻注意',
+  night: '夜間',
 } as const
 
 const zoneIcon = {
   residential: '🏘',
   shopping: '🏬',
   construction: '🚧',
-  riverside: '🌊',
   station: '🚉',
 } as const
 
@@ -152,13 +151,16 @@ const weatherIcon = {
 } as const
 
 function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
-  const zone = zoneAt(run.distance)
+  const zone = zoneAt(run.distance, run.seed)
   const weather = weatherAt(run.distance, run.seed)
   const commute = commuteClockAt(run.distance)
+  const isNight = commute.phase === 'night'
   const sky = ctx.createLinearGradient(0, 0, 0, 410)
   sky.addColorStop(
     0,
-    weather === 'rain'
+    isNight
+      ? '#11182d'
+      : weather === 'rain'
       ? '#8194a0'
       : commute.phase === 'early'
         ? '#e6b5a1'
@@ -168,17 +170,19 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   )
   sky.addColorStop(
     0.58,
-    weather === 'fog'
+    isNight
+      ? '#27314a'
+      : weather === 'fog'
       ? '#c8cfcb'
       : commute.phase === 'early'
         ? '#f0d0ac'
         : '#e8d9bd',
   )
-  sky.addColorStop(1, '#f3e7d3')
+  sky.addColorStop(1, isNight ? '#3a4050' : '#f3e7d3')
   ctx.fillStyle = sky
   ctx.fillRect(0, 0, VIEW_W, VIEW_H)
 
-  ctx.fillStyle = 'rgba(255,239,183,.72)'
+  ctx.fillStyle = isNight ? 'rgba(240,244,219,.82)' : 'rgba(255,239,183,.72)'
   ctx.beginPath()
   ctx.arc(750 - (cameraX * 0.015) % 100, 86, 42, 0, Math.PI * 2)
   ctx.fill()
@@ -248,17 +252,6 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
       ctx.moveTo(x + 80, 365)
       ctx.lineTo(x + 80, 205)
       ctx.lineTo(x + 235, 205)
-      ctx.stroke()
-    }
-  } else if (zone === 'riverside') {
-    ctx.fillStyle = '#739ca8'
-    ctx.fillRect(0, 334, VIEW_W, 46)
-    ctx.strokeStyle = 'rgba(224,244,241,.55)'
-    ctx.lineWidth = 3
-    for (let x = -40 - ((cameraX * 0.4) % 90); x < VIEW_W; x += 90) {
-      ctx.beginPath()
-      ctx.moveTo(x, 350)
-      ctx.lineTo(x + 48, 350)
       ctx.stroke()
     }
   } else if (zone === 'station') {
@@ -551,6 +544,14 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     const fogPulse = Math.sin(t * 1.7) * 0.07
     visibility.addColorStop(1, `rgba(218,226,221,${0.78 + fogPulse - fogRelief * 0.36})`)
     ctx.fillStyle = visibility
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+  }
+  if (commuteClockAt(run.distance).phase === 'night') {
+    const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
+    light.addColorStop(0, 'rgba(255,244,183,0)')
+    light.addColorStop(0.62, 'rgba(7,10,22,.32)')
+    light.addColorStop(1, 'rgba(4,7,18,.72)')
+    ctx.fillStyle = light
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
 }
@@ -854,7 +855,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (coinRef.current) coinRef.current.textContent = String(run.coinsTaken)
       if (scoreRef.current) scoreRef.current.textContent = String(scoreOf(run))
       if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
-      const zone = zoneAt(run.distance)
+      const zone = zoneAt(run.distance, run.seed)
       const weather = weatherAt(run.distance, run.seed)
       const commute = commuteClockAt(run.distance)
       if (zoneRef.current) {
@@ -876,7 +877,7 @@ export default function ChariGameView({ data, onBack }: Props) {
         timeRef.current.dataset.phase = commute.phase
       }
       if (noticeRef.current) {
-        const next = nextZoneInfo(run.distance)
+        const next = nextZoneInfo(run.distance, run.seed)
         const show = next.distance <= 1500
         noticeRef.current.textContent = show
           ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`

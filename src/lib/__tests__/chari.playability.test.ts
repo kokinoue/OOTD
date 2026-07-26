@@ -28,8 +28,10 @@ function needsJump(run: Run): boolean {
           ? motionSpeed * 0.55
           : o.kind === 'crossing'
             ? motionSpeed * 0.72
-            : o.kind === 'commuter' || o.kind === 'signal'
-            ? motionSpeed * 0.36
+            : o.kind === 'signal'
+              ? motionSpeed * 0.58
+              : o.kind === 'commuter'
+                ? motionSpeed * 0.36
             : look),
   )
 }
@@ -85,11 +87,11 @@ function needsAirJumpForTruck(run: Run): boolean {
   )
 }
 
-function needsAirJumpForCrossing(run: Run): boolean {
+function needsAirJumpForBarrier(run: Run): boolean {
   const p = run.player
   return run.obstacles.some(
     (o) =>
-      o.kind === 'crossing' &&
+      (o.kind === 'crossing' || o.kind === 'signal') &&
       o.x - (p.x + 15) >= 0 &&
       o.x - (p.x + 15) <= motionSpeedFor(run) * 0.24,
   )
@@ -104,6 +106,17 @@ function shouldDiveToRoad(run: Run): boolean {
       o.kind !== 'ramp' &&
       o.x + o.w > p.x - 24 &&
       o.x < p.x + 320,
+  )
+}
+
+function shouldDiveUnderBird(run: Run): boolean {
+  const p = run.player
+  if (p.grounded || surfaceAt(run, p.x) == null) return false
+  return run.obstacles.some(
+    (o) =>
+      o.kind === 'bird' &&
+      o.x - (p.x + 15) >= 0 &&
+      o.x - (p.x + 15) <= motionSpeedFor(run) * 0.48,
   )
 }
 
@@ -125,7 +138,7 @@ describe('チャリ通のプレイ可能性', () => {
             !run.player.grounded &&
             !run.player.airJumpUsed &&
             ((run.player.vy > -40 &&
-              (needsAirJumpForTruck(run) || needsAirJumpForCrossing(run))) ||
+              (needsAirJumpForTruck(run) || needsAirJumpForBarrier(run))) ||
               (overAirGap(run)
                 ? shouldAirJumpGap(run)
                 : run.player.vy > 80 && landingUnsafe(run)))
@@ -134,7 +147,15 @@ describe('チャリ通のプレイ可能性', () => {
             jumpHeldFrames = 22
           }
           const jumpHeld = jumpHeldFrames-- > 0
-          step(run, { jumpPressed, jumpHeld, diveHeld: shouldDiveToRoad(run) }, 1 / 60)
+          step(
+            run,
+            {
+              jumpPressed,
+              jumpHeld,
+              diveHeld: shouldDiveToRoad(run) || shouldDiveUnderBird(run),
+            },
+            1 / 60,
+          )
           if (frame % 6 === 0) {
             trace.push(
               `${frame}:${Math.round(run.player.x)},${Math.round(run.player.y)},${Math.round(run.player.vy)},road${Math.round(surfaceAt(run, run.player.x) ?? -1)},${run.player.grounded ? 'g' : 'a'},${jumpPressed ? 'J' : '-'},${run.player.airJumpUsed ? 'U' : '-'}`,

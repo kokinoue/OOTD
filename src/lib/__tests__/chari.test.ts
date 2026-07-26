@@ -168,15 +168,15 @@ describe('チャリ通のコース生成', () => {
     expect(hasRoofChain).toBe(true)
   })
 
-  it('住宅街・商店街・工事区間・河川敷・駅前を順番に巡回する', () => {
-    expect([0, 9000, 18000, 27000, 36000, 45000].map(zoneAt)).toEqual([
-      'residential',
-      'shopping',
-      'construction',
-      'riverside',
-      'station',
-      'residential',
-    ])
+  it('エリアはプレイごとのシードでランダムになる', () => {
+    const first = Array.from({ length: 12 }, (_, index) => zoneAt(index * 9000, 123))
+    const sameSeed = Array.from({ length: 12 }, (_, index) => zoneAt(index * 9000, 123))
+    const anotherSeed = Array.from({ length: 12 }, (_, index) => zoneAt(index * 9000, 456))
+    expect(first).toEqual(sameSeed)
+    expect(first).not.toEqual(anotherSeed)
+    expect(new Set(first)).toEqual(
+      new Set(['residential', 'shopping', 'construction', 'station']),
+    )
   })
 
   it('晴れ・雨・強風・霧が距離に応じて切り替わる', () => {
@@ -185,15 +185,24 @@ describe('チャリ通のコース生成', () => {
     )
   })
 
-  it('通勤時刻が距離で進み、早朝・ラッシュ・遅刻帯へ切り替わる', () => {
+  it('通勤時刻が距離で進み、早朝・ラッシュ・遅刻帯・夜間へ切り替わる', () => {
     expect(commuteClockAt(0)).toMatchObject({ label: '07:20', phase: 'early' })
     expect(commuteClockAt(12_000)).toMatchObject({ label: '08:00', phase: 'rush' })
     expect(commuteClockAt(25_500)).toMatchObject({ label: '08:45', phase: 'late' })
+    expect(commuteClockAt(192_000)).toMatchObject({ label: '18:00', phase: 'night' })
+    expect(commuteClockAt(432_000)).toMatchObject({ label: '07:20', phase: 'early' })
+  })
+
+  it('夜間モードとエリアは独立して組み合わせられる', () => {
+    const nightDistance = 192_000
+    const area = zoneAt(nightDistance, 77)
+    expect(['residential', 'shopping', 'construction', 'station']).toContain(area)
+    expect(commuteClockAt(nightDistance).phase).toBe('night')
   })
 
   it('次のエリアと境界までの距離を返す', () => {
-    expect(nextZoneInfo(8_100)).toEqual({ zone: 'shopping', distance: 900 })
-    expect(nextZoneInfo(9_000)).toEqual({ zone: 'construction', distance: 9000 })
+    expect(nextZoneInfo(8_100, 99)).toEqual({ zone: zoneAt(9_000, 99), distance: 900 })
+    expect(nextZoneInfo(9_000, 99)).toEqual({ zone: zoneAt(18_000, 99), distance: 9000 })
   })
 
   it('服のカテゴリ・季節・色から能力差とセット効果を作る', () => {

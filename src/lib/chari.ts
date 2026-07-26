@@ -50,9 +50,9 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'riverside' | 'station'
+export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station'
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
-export type CommutePhase = 'early' | 'rush' | 'late'
+export type CommutePhase = 'early' | 'rush' | 'late' | 'night'
 export type RiderTraits = {
   speedMul: number
   jumpMul: number
@@ -231,9 +231,16 @@ export function difficultyAt(dist: number): number {
   return clamp(dist / 26000, 0, 1)
 }
 
-export function zoneAt(dist: number): ZoneKind {
-  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'riverside', 'station']
-  return zones[Math.floor(Math.max(0, dist) / ZONE_LENGTH) % zones.length]
+function zoneIndexAt(block: number, seed: number): number {
+  let value = Math.imul((block + 1) ^ (seed >>> 0), 0x45d9f3b)
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b)
+  return (value ^ (value >>> 16)) >>> 0
+}
+
+export function zoneAt(dist: number, seed = 0): ZoneKind {
+  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'station']
+  const block = Math.floor(Math.max(0, dist) / ZONE_LENGTH)
+  return zones[zoneIndexAt(block, seed) % zones.length]
 }
 
 export function weatherAt(dist: number, seed = 0): WeatherKind {
@@ -259,15 +266,23 @@ export function commuteClockAt(dist: number): {
   phase: CommutePhase
 } {
   const total = 7 * 60 + 20 + Math.floor(Math.max(0, dist) / 300)
-  const hour = Math.floor(total / 60) % 24
-  const minute = total % 60
-  const phase: CommutePhase = total < 8 * 60 ? 'early' : total < 8 * 60 + 45 ? 'rush' : 'late'
+  const minutesOfDay = total % (24 * 60)
+  const hour = Math.floor(minutesOfDay / 60)
+  const minute = minutesOfDay % 60
+  const phase: CommutePhase =
+    minutesOfDay < 5 * 60 || minutesOfDay >= 18 * 60
+      ? 'night'
+      : minutesOfDay < 8 * 60
+        ? 'early'
+        : minutesOfDay < 8 * 60 + 45
+          ? 'rush'
+          : 'late'
   return { hour, minute, label: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`, phase }
 }
 
-export function nextZoneInfo(dist: number): { zone: ZoneKind; distance: number } {
+export function nextZoneInfo(dist: number, seed = 0): { zone: ZoneKind; distance: number } {
   const boundary = (Math.floor(Math.max(0, dist) / ZONE_LENGTH) + 1) * ZONE_LENGTH
-  return { zone: zoneAt(boundary), distance: boundary - Math.max(0, dist) }
+  return { zone: zoneAt(boundary, seed), distance: boundary - Math.max(0, dist) }
 }
 
 export function maxGapFor(speed: number): number {
@@ -390,7 +405,7 @@ function generateSegment(run: Run) {
   const dist = Math.max(0, run.nextX - run.startX)
   const speed = speedAt(dist)
   const difficulty = difficultyAt(dist)
-  const zone = zoneAt(dist)
+  const zone = zoneAt(dist, run.seed)
   const rng = run.rng
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
@@ -416,7 +431,7 @@ function generateSegment(run: Run) {
   // 長い道路区間は緩やかな上り／下りにする。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
   const slopeRoll = rng()
-  const slopeChance = zone === 'riverside' ? 0.86 : 0.64
+  const slopeChance = 0.64
   const slopeDelta =
     slopeRoll < slopeChance
       ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
@@ -456,7 +471,7 @@ function generateSegment(run: Run) {
         addObstacle(run, 'pylon', px, roadAt(px + 12), cluster)
       }
       addObstacle(run, 'fence', clamp(center + 95, safeStart, safeEnd - 42), roadAt(center + 116), cluster)
-    } else if (zone === 'riverside' && kindRoll < 0.16 && difficulty > 0.25) {
+    } else if (zone === 'station' && kindRoll < 0.16 && difficulty > 0.25) {
       addObstacle(run, 'crossing', center, roadAt(center + 10), cluster)
     } else if ((zone === 'residential' || zone === 'shopping') && kindRoll < 0.13 && difficulty > 0.12) {
       addObstacle(run, 'signal', clamp(center, safeStart, safeEnd - 104), roadAt(center + 52), cluster)

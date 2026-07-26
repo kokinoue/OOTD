@@ -5818,6 +5818,9 @@ a {
 .chari-time-badge[data-phase='late'] {
   background: rgba(67, 82, 112, 0.9);
 }
+.chari-time-badge[data-phase='night'] {
+  background: rgba(25, 31, 58, 0.92);
+}
 .chari-zone-badge[data-zone='shopping'] {
   background: rgba(170, 83, 69, 0.82);
 }
@@ -5825,9 +5828,6 @@ a {
   color: #28231c;
   background: rgba(238, 177, 61, 0.9);
   text-shadow: none;
-}
-.chari-zone-badge[data-zone='riverside'] {
-  background: rgba(54, 119, 144, 0.84);
 }
 .chari-zone-badge[data-zone='station'] {
   background: rgba(73, 102, 113, 0.9);
