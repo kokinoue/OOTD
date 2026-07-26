@@ -36,8 +36,8 @@ import GameShareButton from './GameShareButton'
 
 const VIEW_W = 960
 const VIEW_H = 540
-const MOBILE_VIEW_H = 768
-const MOBILE_SCENE_Y = 82
+const MOBILE_VIEW_H = 920
+const MOBILE_SCENE_Y = 200
 const HERO_X = 220
 const SOUND_KEY = 'chari.sound'
 const cutouts = cutoutsJson as CutoutsFile

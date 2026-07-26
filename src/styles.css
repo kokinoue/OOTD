@@ -6045,7 +6045,7 @@ a {
     display: none;
   }
   .chari-screen {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 2 / 3;
     border-radius: 7px;
     background: #3a3a41;
   }
@@ -6056,7 +6056,7 @@ a {
     width: 156%;
     max-width: none;
     height: auto;
-    aspect-ratio: 960 / 768;
+    aspect-ratio: 960 / 920;
     transform: none;
   }
   .chari-environment {
