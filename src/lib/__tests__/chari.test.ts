@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  AIR_JUMP_V,
   BEST_KEY,
   COIN_RADIUS,
   COMBO_TIMEOUT,
@@ -235,9 +234,11 @@ describe('チャリ通の物理', () => {
     const run = createRun(2)
     step(run, { jumpPressed: true, jumpHeld: true, diveHeld: false }, 1 / 60)
     expect(run.player.vy).toBeGreaterThan(-JUMP_V)
+    const beforeAirJump = run.player.vy
     step(run, { jumpPressed: true, jumpHeld: true, diveHeld: false }, 1 / 60)
     expect(run.events.some((e) => e.kind === 'airjump')).toBe(true)
-    expect(run.player.vy).toBeGreaterThan(-AIR_JUMP_V)
+    expect(run.player.vy).toBeLessThan(beforeAirJump)
+    expect(run.player.vy).toBeGreaterThanOrEqual(-JUMP_V * 1.35)
     const before = run.player.vy
     step(run, { jumpPressed: true, jumpHeld: true, diveHeld: false }, 1 / 60)
     expect(run.events.some((e) => e.kind === 'airjump')).toBe(false)

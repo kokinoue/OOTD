@@ -627,6 +627,7 @@ export default function ChariGameView({ data, onBack }: Props) {
   const noticeRef = useRef<HTMLDivElement>(null)
   const bestRef = useRef<HTMLSpanElement>(null)
   const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false, diveHeld: false })
+  const jumpQueueRef = useRef(0)
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
   const spriteRef = useRef<HTMLImageElement | null>(null)
   const ratioRef = useRef(0.5)
@@ -736,7 +737,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (key === ' ' || key === 'z' || key === 'arrowup') {
         e.preventDefault()
         audioRef.current?.unlock()
-        inputRef.current.jumpPressed = true
+        jumpQueueRef.current = Math.min(2, jumpQueueRef.current + 1)
         inputRef.current.jumpHeld = true
       } else if (key === 'arrowdown' || key === 'x') {
         e.preventDefault()
@@ -759,7 +760,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (run.status !== 'playing') return
       canvas.setPointerCapture(e.pointerId)
       audioRef.current?.unlock()
-      inputRef.current.jumpPressed = true
+      jumpQueueRef.current = Math.min(2, jumpQueueRef.current + 1)
       inputRef.current.jumpHeld = true
     }
     const jumpUp = () => {
@@ -778,6 +779,8 @@ export default function ChariGameView({ data, onBack }: Props) {
       const slow = crashAt && now - crashAt < 480 ? 0.24 : 1
       if (run.status === 'playing') {
         run.traits = traitsRef.current
+        inputRef.current.jumpPressed = jumpQueueRef.current > 0
+        if (jumpQueueRef.current > 0) jumpQueueRef.current--
         step(run, inputRef.current, rawDt * slow)
         inputRef.current.jumpPressed = false
         for (const e of run.events) {
@@ -864,6 +867,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       canvas.removeEventListener('pointerup', jumpUp)
       canvas.removeEventListener('pointercancel', jumpUp)
       inputRef.current = { jumpPressed: false, jumpHeld: false, diveHeld: false }
+      jumpQueueRef.current = 0
     }
   }, [onBack, resetTick])
 

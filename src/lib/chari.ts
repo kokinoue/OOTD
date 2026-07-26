@@ -634,7 +634,14 @@ export function step(run: Run, input: Input, dt: number): void {
         p.airTime = 0
         event(run, 'jump')
       } else if (!p.airJumpUsed) {
-        p.vy = -AIR_JUMP_V * run.traits.airJumpMul
+        // 上昇中に早押ししても速度を弱めず、必ず追加の上向き加速を与える。
+        // 下降中は最低限の空中ジャンプ速度まで戻し、早押し時だけ過剰に
+        // 加速しないよう通常ジャンプの1.35倍で上限を設ける。
+        const airJumpV = AIR_JUMP_V * run.traits.airJumpMul
+        p.vy = Math.max(
+          -JUMP_V * run.traits.jumpMul * 1.35,
+          Math.min(p.vy - airJumpV * 0.56, -airJumpV),
+        )
         p.airJumpUsed = true
         event(run, 'airjump')
       }
