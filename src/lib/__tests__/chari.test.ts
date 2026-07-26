@@ -40,6 +40,8 @@ import {
   step,
   surfaceAt,
   weatherAt,
+  weatherStrength,
+  weatherTransitionAt,
   zoneAt,
   zoneProfileAt,
   type Run,
@@ -274,6 +276,22 @@ describe('チャリ通のコース生成', () => {
     expect(new Set([0, 6000, 12000, 18000].map((d) => weatherAt(d, 0)))).toEqual(
       new Set(['clear', 'rain', 'wind', 'fog']),
     )
+  })
+
+  it('天候は区間境界から徐々に次の状態へ変化する', () => {
+    const start = weatherTransitionAt(6000, 0)
+    const middle = weatherTransitionAt(6900, 0)
+    const end = weatherTransitionAt(7800, 0)
+    expect(start).toEqual({ from: 'clear', to: 'rain', progress: 0 })
+    expect(middle).toEqual({ from: 'clear', to: 'rain', progress: 0.5 })
+    expect(end).toEqual({ from: 'clear', to: 'rain', progress: 1 })
+    expect(weatherStrength(middle, 'clear')).toBe(0.5)
+    expect(weatherStrength(middle, 'rain')).toBe(0.5)
+
+    const run = createRun(0)
+    expect(motionSpeedAt(run, 6000)).toBeCloseTo(800)
+    expect(motionSpeedAt(run, 6900)).toBeCloseTo(844)
+    expect(motionSpeedAt(run, 7800)).toBeCloseTo(888)
   })
 
   it('通勤時刻が一日の時間帯に応じて切り替わる', () => {
@@ -531,7 +549,7 @@ describe('チャリ通の物理', () => {
     expect(motionSpeedFor(tailwind)).toBeCloseTo(945)
 
     const headwind = createRun(1)
-    headwind.distance = 6000
+    headwind.distance = 7800
     expect(motionSpeedFor(headwind)).toBeCloseTo(655)
     headwind.traits = { ...DEFAULT_RIDER_TRAITS, windResist: 0.8, effects: ['強風耐性'] }
     expect(motionSpeedFor(headwind)).toBeCloseTo(771)

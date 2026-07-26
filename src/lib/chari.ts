@@ -24,6 +24,7 @@ export const PRUNE_BEHIND = 700
 export const COMBO_TIMEOUT = 1.8
 export const ZONE_LENGTH = 9000
 export const WEATHER_LENGTH = 6000
+export const WEATHER_TRANSITION_LENGTH = 1800
 export const UNDERPASS_DEPTH = 96
 export const UNDERPASS_STREET_LIFT = 100
 
@@ -62,6 +63,7 @@ export type ZoneProfile = {
   specialRouteChance: number
 }
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
+export type WeatherTransition = { from: WeatherKind; to: WeatherKind; progress: number }
 export type CommutePhase =
   | 'early'
   | 'morningRush'
@@ -275,6 +277,30 @@ export function weatherAt(dist: number, seed = 0): WeatherKind {
   return weathers[(block + (seed >>> 0)) % weathers.length]
 }
 
+export function weatherTransitionAt(dist: number, seed = 0): WeatherTransition {
+  const safeDist = Math.max(0, dist)
+  const block = Math.floor(safeDist / WEATHER_LENGTH)
+  const to = weatherAt(safeDist, seed)
+  if (block === 0) return { from: to, to, progress: 1 }
+  const from = weatherAt((block - 1) * WEATHER_LENGTH, seed)
+  const rawProgress = clamp(
+    (safeDist - block * WEATHER_LENGTH) / WEATHER_TRANSITION_LENGTH,
+    0,
+    1,
+  )
+  // 始端と終端で変化量を小さくし、天候が滑らかにつながるようにする。
+  const progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
+  return { from, to, progress }
+}
+
+export function weatherStrength(
+  transition: WeatherTransition,
+  weather: WeatherKind,
+): number {
+  return (transition.from === weather ? 1 - transition.progress : 0) +
+    (transition.to === weather ? transition.progress : 0)
+}
+
 function motionSpeedWithWeather(run: Run, weather: WeatherKind): number {
   const windPush =
     weather === 'wind'
@@ -284,8 +310,14 @@ function motionSpeedWithWeather(run: Run, weather: WeatherKind): number {
   return Math.max(320, run.speed * run.traits.speedMul * wetRoadBoost + windPush)
 }
 
+function motionSpeedWithTransition(run: Run, transition: WeatherTransition): number {
+  const fromSpeed = motionSpeedWithWeather(run, transition.from)
+  const toSpeed = motionSpeedWithWeather(run, transition.to)
+  return fromSpeed + (toSpeed - fromSpeed) * transition.progress
+}
+
 export function motionSpeedAt(run: Run, dist: number): number {
-  return motionSpeedWithWeather(run, weatherAt(dist, run.seed))
+  return motionSpeedWithTransition(run, weatherTransitionAt(dist, run.seed))
 }
 
 export function minimumMotionSpeedAt(run: Run, dist: number): number {
@@ -296,7 +328,8 @@ export function minimumMotionSpeedAt(run: Run, dist: number): number {
 export function motionSpeedFor(run: Run, x = run.player.x): number {
   return Math.max(
     320,
-    motionSpeedWithWeather(run, effectiveWeatherFor(run)) * slopeSpeedMultiplierFor(run, x),
+    motionSpeedWithTransition(run, effectiveWeatherTransitionFor(run)) *
+      slopeSpeedMultiplierFor(run, x),
   )
 }
 
@@ -312,7 +345,13 @@ export function isUnderpassAt(run: Run, x = run.player.x): boolean {
 }
 
 export function effectiveWeatherFor(run: Run): WeatherKind {
-  return isUnderpassAt(run) ? 'clear' : weatherAt(run.distance, run.seed)
+  const transition = effectiveWeatherTransitionFor(run)
+  return transition.progress < 0.5 ? transition.from : transition.to
+}
+
+export function effectiveWeatherTransitionFor(run: Run): WeatherTransition {
+  if (isUnderpassAt(run)) return { from: 'clear', to: 'clear', progress: 1 }
+  return weatherTransitionAt(run.distance, run.seed)
 }
 
 export function commuteStartMinute(seed = 0): number {
@@ -674,7 +713,9 @@ function generateSegment(run: Run) {
       addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
-      addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
+      if (center - lastJumpObstacleEnd >= speed * 1.35) {
+        addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
+      }
       for (let px = center - 35; px <= center + 75; px += 42) {
         addCoin(run, px, roadAt(px) - 44)
       }
@@ -695,6 +736,9 @@ function generateSegment(run: Run) {
   const routeClear = Math.max(120, speed * 0.22)
   const routeStart = x + routeClear
   const routeEnd = x + w - routeClear
+  const hasBirdOnSegment = run.obstacles.some(
+    (obstacle) => obstacle.kind === 'bird' && obstacle.x >= x && obstacle.x < x + w,
+  )
   if (underpass) {
     const streetStart = x + Math.max(105, speed * 0.14)
     const streetEnd = x + w - Math.max(105, speed * 0.14)
@@ -708,6 +752,7 @@ function generateSegment(run: Run) {
     }
   } else if (
     routeEnd - routeStart > 620 &&
+    !hasBirdOnSegment &&
     difficulty > 0.18 &&
     zone !== 'shopping' &&
     routeRoll < (zone === 'school' ? zoneProfile.specialRouteChance : 0.18)
@@ -723,6 +768,7 @@ function generateSegment(run: Run) {
     }
   } else if (
     routeEnd - routeStart > 620 &&
+    !hasBirdOnSegment &&
     difficulty > 0.18 &&
     routeRoll < (zone === 'shopping' ? zoneProfile.specialRouteChance : 0.38)
   ) {
@@ -852,11 +898,13 @@ export function step(run: Run, input: Input, dt: number): void {
     const oldRoadSurface = surfaceAt(run, oldX)
     const oldPlatform = platformAt(run, p.platformId, oldX)
     const oldSurface = oldPlatform?.y ?? oldRoadSurface
-    const weather = effectiveWeatherFor(run)
+    const weatherTransition = effectiveWeatherTransitionFor(run)
+    const rainStrength = weatherStrength(weatherTransition, 'rain')
+    const windStrength = weatherStrength(weatherTransition, 'wind')
 
     if (first && input.jumpPressed) {
       if (p.grounded) {
-        const wetTakeoff = weather === 'rain' ? 1 - 0.1 * (1 - run.traits.rainGrip) : 1
+        const wetTakeoff = 1 - 0.1 * (1 - run.traits.rainGrip) * rainStrength
         p.vy = -JUMP_V * run.traits.jumpMul * wetTakeoff
         p.grounded = false
         p.platformId = null
@@ -868,7 +916,7 @@ export function step(run: Run, input: Input, dt: number): void {
         // 加速しないよう通常ジャンプの1.35倍で上限を設ける。
         // 強風時は車体が風を受けるぶん、2段目で大きく浮き直せる。
         // 向かい風で横移動が遅くなる大穴も、この揚力を使えば越えられる。
-        const windLift = weather === 'wind' ? 1.1 - run.traits.windResist * 0.1 : 1
+        const windLift = 1 + 0.1 * (1 - run.traits.windResist) * windStrength
         const airJumpV = AIR_JUMP_V * run.traits.airJumpMul * windLift
         p.vy = Math.max(
           -JUMP_V * run.traits.jumpMul * 1.35,
@@ -910,9 +958,9 @@ export function step(run: Run, input: Input, dt: number): void {
     if (!p.grounded) {
       const prevY = p.y
       p.vy = Math.min(MAX_FALL, p.vy + GRAV * h)
-      if (weather === 'wind') {
+      if (windStrength > 0) {
         const gust = Math.sin((run.elapsed + (run.seed % 11)) * 4.5)
-        p.vy += gust * 180 * (1 - run.traits.windResist) * h
+        p.vy += gust * 180 * (1 - run.traits.windResist) * windStrength * h
       }
       p.y += p.vy * h
       p.airTime += h

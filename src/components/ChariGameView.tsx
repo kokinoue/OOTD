@@ -5,7 +5,7 @@ import {
   commuteClockAt,
   createRun,
   deriveRiderTraits,
-  effectiveWeatherFor,
+  effectiveWeatherTransitionFor,
   isUnderpassAt,
   isNightTimeAt,
   loadBest,
@@ -17,6 +17,8 @@ import {
   segmentSurfaceAt,
   step,
   weatherAt,
+  weatherStrength,
+  weatherTransitionAt,
   zoneAt,
   type GameEvent,
   type Input,
@@ -167,9 +169,19 @@ const weatherIcon = {
   fog: '▤',
 } as const
 
+function mixHex(from: string, to: string, progress: number): string {
+  const channel = (color: string, offset: number) => Number.parseInt(color.slice(offset, offset + 2), 16)
+  const mixed = [1, 3, 5].map((offset) =>
+    Math.round(channel(from, offset) + (channel(to, offset) - channel(from, offset)) * progress),
+  )
+  return `rgb(${mixed.join(',')})`
+}
+
 function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
   const zone = zoneAt(run.distance, run.seed)
-  const weather = weatherAt(run.distance, run.seed)
+  const weatherTransition = weatherTransitionAt(run.distance, run.seed)
+  const rainStrength = weatherStrength(weatherTransition, 'rain')
+  const fogStrength = weatherStrength(weatherTransition, 'fog')
   const commute = commuteClockAt(run.distance, run.seed)
   const isNight = isNightTimeAt(run.distance, run.seed)
   const daytimeTop =
@@ -195,17 +207,13 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
     0,
     isNight
       ? '#11182d'
-      : weather === 'rain'
-        ? '#8194a0'
-        : daytimeTop,
+      : mixHex(daytimeTop, '#8194a0', rainStrength),
   )
   sky.addColorStop(
     0.58,
     isNight
       ? '#27314a'
-      : weather === 'fog'
-        ? '#c8cfcb'
-        : daytimeMiddle,
+      : mixHex(daytimeMiddle, '#c8cfcb', fogStrength),
   )
   sky.addColorStop(1, isNight ? '#3a4050' : '#f3e7d3')
   ctx.fillStyle = sky
@@ -615,9 +623,14 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
 }
 
 function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
-  const weather = effectiveWeatherFor(run)
+  const weatherTransition = effectiveWeatherTransitionFor(run)
+  const rainStrength = weatherStrength(weatherTransition, 'rain')
+  const windStrength = weatherStrength(weatherTransition, 'wind')
+  const fogStrength = weatherStrength(weatherTransition, 'fog')
   const zone = zoneAt(run.distance, run.seed)
-  if (weather === 'rain') {
+  if (rainStrength > 0.01) {
+    ctx.save()
+    ctx.globalAlpha *= rainStrength
     ctx.strokeStyle = 'rgba(220,239,247,.62)'
     ctx.lineWidth = 2
     for (let i = 0; i < 75; i++) {
@@ -645,7 +658,11 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
         ctx.fill()
       }
     }
-  } else if (weather === 'wind') {
+    ctx.restore()
+  }
+  if (windStrength > 0.01) {
+    ctx.save()
+    ctx.globalAlpha *= windStrength
     ctx.strokeStyle = 'rgba(242,247,232,.5)'
     ctx.lineWidth = 3
     const direction = (run.seed & 1) === 0 ? -1 : 1
@@ -658,7 +675,11 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
       ctx.quadraticCurveTo(x - direction * 55, y - 13, x - direction * 118, y)
       ctx.stroke()
     }
-  } else if (weather === 'fog') {
+    ctx.restore()
+  }
+  if (fogStrength > 0.01) {
+    ctx.save()
+    ctx.globalAlpha *= fogStrength
     // 一枚の白い膜ではなく、流れる濃霧と自転車周辺の視界を描き分ける。
     // 進行方向ほど霧が濃く、障害物を早めに見つけにくい天候にする。
     ctx.fillStyle = 'rgba(225,231,226,.24)'
@@ -690,6 +711,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     visibility.addColorStop(1, `rgba(218,226,221,${0.78 + fogPulse - fogRelief * 0.36})`)
     ctx.fillStyle = visibility
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+    ctx.restore()
   }
   if (isNightTimeAt(run.distance, run.seed)) {
     const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
@@ -727,9 +749,10 @@ function drawBike(
     : undefined
   const roadTilt = road ? Math.atan2((road.endY ?? road.y) - road.y, road.w) : 0
   const windLean =
-    effectiveWeatherFor(run) === 'wind'
-      ? ((run.seed & 1) === 0 ? 1 : -1) * 0.055 * (1 - run.traits.windResist)
-      : 0
+    ((run.seed & 1) === 0 ? 1 : -1) *
+    0.055 *
+    (1 - run.traits.windResist) *
+    weatherStrength(effectiveWeatherTransitionFor(run), 'wind')
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(crashTilt + roadTilt + windLean)
@@ -1007,6 +1030,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
       const zone = zoneAt(run.distance, run.seed)
       const weather = weatherAt(run.distance, run.seed)
+      const weatherTransition = weatherTransitionAt(run.distance, run.seed)
       const commute = commuteClockAt(run.distance, run.seed)
       if (zoneRef.current) {
         zoneRef.current.textContent =
@@ -1025,7 +1049,10 @@ export default function ChariGameView({ data, onBack }: Props) {
             : weatherEffectLabel[weather]
         weatherRef.current.textContent = sheltered
           ? `🚇 ${effect}`
-          : `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
+          : weatherTransition.progress < 1 && weatherTransition.from !== weatherTransition.to
+            ? `${weatherIcon[weatherTransition.from]}→${weatherIcon[weatherTransition.to]} ` +
+              `${weatherLabel[weatherTransition.from]}→${weatherLabel[weatherTransition.to]}・変化中`
+            : `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
         weatherRef.current.dataset.weather = sheltered ? 'clear' : weather
       }
       if (timeRef.current) {
