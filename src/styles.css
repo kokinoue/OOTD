@@ -5717,6 +5717,444 @@ a {
   width: auto;
 }
 
+/* ===================== チャリ通（エンドレスラン） ===================== */
+.chari {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0 48px;
+}
+.chari-inner {
+  width: min(1040px, 100%);
+  padding: 0 16px;
+}
+.chari-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 10px 0;
+}
+.chari-back {
+  padding: 4px 0;
+  color: var(--text-sub);
+  font-size: 12.5px;
+}
+.chari-back:hover {
+  color: var(--text);
+}
+.chari-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.chari-stats {
+  margin-left: auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chari-change,
+.chari-sound {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-sub);
+  font-size: 11px;
+}
+.chari-change {
+  min-height: 34px;
+  border-color: rgba(189, 73, 51, 0.78);
+  color: #fff;
+  background: #c55740;
+  box-shadow: 0 3px 10px rgba(132, 50, 34, 0.2);
+  font-weight: 700;
+}
+.chari-change:hover,
+.chari-sound:hover {
+  border-color: var(--text-sub);
+  color: var(--text);
+}
+.chari-change:hover {
+  border-color: #a53f2d;
+  color: #fff;
+  background: #ad4632;
+}
+.chari-change-mobile {
+  display: none;
+}
+.chari-screen {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #d8e6e8;
+  touch-action: none;
+}
+.chari-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 960 / 540;
+  touch-action: none;
+}
+.chari-environment {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  display: flex;
+  gap: 7px;
+  pointer-events: none;
+}
+.chari-zone-badge,
+.chari-weather-badge,
+.chari-time-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(28, 31, 38, 0.76);
+  box-shadow: 0 3px 12px rgba(20, 22, 28, 0.22);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.chari-time-badge[data-phase='early'] {
+  color: #392d29;
+  background: rgba(245, 201, 161, 0.9);
+  text-shadow: none;
+}
+.chari-time-badge[data-phase='morningRush'] {
+  background: rgba(202, 73, 61, 0.9);
+}
+.chari-time-badge[data-phase='daytime'] {
+  color: #26343b;
+  background: rgba(188, 222, 232, 0.92);
+  text-shadow: none;
+}
+.chari-time-badge[data-phase='lunch'] {
+  color: #392d20;
+  background: rgba(244, 197, 87, 0.94);
+  text-shadow: none;
+}
+.chari-time-badge[data-phase='afternoon'] {
+  background: rgba(67, 82, 112, 0.9);
+}
+.chari-time-badge[data-phase='eveningRush'] {
+  background: rgba(176, 70, 61, 0.92);
+}
+.chari-time-badge[data-phase='night'] {
+  background: rgba(25, 31, 58, 0.92);
+}
+.chari-zone-badge[data-zone='shopping'] {
+  background: rgba(170, 83, 69, 0.82);
+}
+.chari-zone-badge[data-zone='construction'] {
+  color: #28231c;
+  background: rgba(238, 177, 61, 0.9);
+  text-shadow: none;
+}
+.chari-zone-badge[data-zone='station'] {
+  background: rgba(73, 102, 113, 0.9);
+}
+.chari-zone-badge[data-zone='park'] {
+  color: #f5f8ec;
+  background: rgba(67, 113, 70, 0.92);
+  text-shadow: none;
+}
+.chari-weather-badge[data-weather='rain'] {
+  background: rgba(55, 91, 119, 0.86);
+}
+.chari-weather-badge[data-weather='wind'] {
+  color: #283235;
+  background: rgba(226, 239, 232, 0.9);
+  text-shadow: none;
+}
+.chari-weather-badge[data-weather='fog'] {
+  color: #343a3d;
+  background: rgba(220, 226, 222, 0.88);
+  text-shadow: none;
+}
+.chari-course-notice {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  padding: 7px 14px;
+  border-radius: 7px;
+  color: #fff;
+  background: rgba(31, 35, 41, 0.84);
+  box-shadow: 0 4px 18px rgba(12, 14, 18, 0.25);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -8px);
+  transition: opacity 180ms ease, transform 180ms ease;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.chari-course-notice {
+  top: 58px;
+}
+.chari-course-notice.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.chari-outfit-power {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: grid;
+  width: 320px;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(24, 27, 33, 0.88);
+  box-shadow: 0 3px 12px rgba(20, 22, 28, 0.22);
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.chari-outfit-power > b {
+  padding: 6px 9px;
+  color: #292217;
+  background: #f1c05f;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.chari-outfit-effects {
+  display: flex;
+  padding: 5px;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.chari-outfit-effects span {
+  padding: 4px 6px;
+  border-radius: 6px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.chari-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(23, 23, 26, 0.5);
+}
+.chari-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  padding: 26px 34px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.chari-result small {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.chari-result b {
+  font-size: 34px;
+}
+.chari-result > span:not(.chari-result-actions) {
+  color: var(--text-sub);
+  font-size: 12px;
+}
+.chari-result-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 7px;
+}
+.chari-btn {
+  padding: 8px 15px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+}
+.chari-btn:hover {
+  border-color: var(--text-sub);
+}
+.chari-btn.primary {
+  border-color: var(--text);
+  color: var(--bg);
+  background: var(--text);
+}
+.chari-foot {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--text-sub);
+  font-size: 11.5px;
+}
+.chari-caption {
+  min-width: 128px;
+  color: var(--text);
+}
+
+@media (max-width: 760px) {
+  .chari {
+    padding-top: 8px;
+  }
+  .chari-inner {
+    padding: 0 8px;
+  }
+  .chari-head {
+    flex-wrap: wrap;
+    gap: 7px 10px;
+  }
+  .chari-title {
+    font-size: 19px;
+  }
+  .chari-stats {
+    order: 5;
+    width: 100%;
+    margin-left: 0;
+    overflow: hidden;
+    font-size: 10px;
+    text-overflow: ellipsis;
+  }
+  .chari-head .game-share {
+    margin-left: auto;
+  }
+  .chari-head .game-share-btn,
+  .chari-change,
+  .chari-sound {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  .chari-change {
+    display: none;
+  }
+  .chari-screen {
+    aspect-ratio: 2 / 3;
+    border-radius: 7px;
+    background: #3a3a41;
+  }
+  .chari-canvas {
+    position: absolute;
+    top: 0;
+    left: -20%;
+    width: 156%;
+    max-width: none;
+    height: auto;
+    aspect-ratio: 960 / 920;
+    transform: none;
+  }
+  .chari-environment {
+    top: 9px;
+    left: 9px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .chari-zone-badge,
+  .chari-weather-badge,
+  .chari-time-badge {
+    min-height: 26px;
+    padding: 4px 9px;
+    font-size: 10px;
+  }
+  .chari-course-notice {
+    max-width: 70%;
+    padding: 6px 10px;
+    font-size: 9px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .chari-course-notice {
+    top: 104px;
+  }
+  .chari-outfit-power {
+    top: 9px;
+    right: 9px;
+    width: 145px;
+    max-width: 42%;
+  }
+  .chari-outfit-power > b {
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+  .chari-outfit-effects span {
+    padding: 4px 5px;
+    font-size: 8px;
+    line-height: 1.25;
+  }
+  .chari-change-mobile {
+    position: absolute;
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    display: flex;
+    width: 68px;
+    height: 68px;
+    padding: 6px;
+    flex-direction: column;
+    gap: 1px;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.82);
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(190, 72, 50, 0.94);
+    box-shadow: 0 5px 20px rgba(48, 24, 18, 0.35);
+    font-size: 11px;
+    line-height: 1.05;
+    text-shadow: 0 1px 2px rgba(60, 25, 18, 0.35);
+    touch-action: manipulation;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+  .chari-change-mobile span {
+    font-size: 22px;
+  }
+  .chari-change-mobile:active {
+    background: rgba(157, 54, 37, 0.98);
+    transform: scale(0.94);
+  }
+  .chari-foot {
+    display: block;
+    min-height: 34px;
+    font-size: 9px;
+    line-height: 1.6;
+  }
+  .chari-caption {
+    display: block;
+  }
+  .chari-result {
+    gap: 6px;
+    padding: 18px;
+  }
+  .chari-result b {
+    font-size: 27px;
+  }
+  .chari-result-actions {
+    gap: 5px;
+  }
+  .chari-btn {
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+}
+
 /* ===================== 性格診断（あなたのkokiはこれ！） ===================== */
 .g-quiz-card {
   max-width: 560px;

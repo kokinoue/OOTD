@@ -16,6 +16,7 @@ const MemoryGameView = lazy(() => import('./components/MemoryGameView'))
 const DuelGameView = lazy(() => import('./components/DuelGameView'))
 const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 const TowerGameView = lazy(() => import('./components/TowerGameView'))
+const ChariGameView = lazy(() => import('./components/ChariGameView'))
 const QuizGameView = lazy(() => import('./components/QuizGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
@@ -35,6 +36,7 @@ export type View =
   | 'duel'
   | 'platform'
   | 'tower'
+  | 'chari'
   | 'quiz'
 
 export type Filters = {
@@ -119,6 +121,7 @@ export default function App() {
     view === 'duel' ||
     view === 'platform' ||
     view === 'tower' ||
+    view === 'chari' ||
     view === 'quiz'
 
   return (
@@ -178,6 +181,7 @@ export default function App() {
               view === 'duel' ||
               view === 'platform' ||
               view === 'tower' ||
+              view === 'chari' ||
               view === 'quiz'
                 ? 'tab active'
                 : 'tab'
@@ -246,6 +250,7 @@ export default function App() {
         {view === 'duel' && <DuelGameView data={data} onBack={() => setView('game')} />}
         {view === 'platform' && <PlatformGameView data={data} onBack={() => setView('game')} />}
         {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
+        {view === 'chari' && <ChariGameView data={data} onBack={() => setView('game')} />}
         {view === 'quiz' && <QuizGameView data={data} onBack={() => setView('game')} />}
       </Suspense>
 

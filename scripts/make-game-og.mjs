@@ -1,4 +1,4 @@
-// ゲーム別OGP画像 public/og-{memory,duel,platform,tower}.png (1200x630) を生成する。
+// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz}.png (1200x630) を生成する。
 // 素材はローカルの public/cutouts/*.webp（透過切り抜き）のみ。ネットワーク不要。
 // 各ゲームの実際の配色（カード裏の濃紺・季節色・Canvasのクリーム地など）を再現する。
 import { readFile } from 'node:fs/promises'
@@ -188,6 +188,52 @@ async function tower() {
   await save('tower', '#f1eee3', layers, title)
 }
 
+// ---- チャリ通: 朝の通勤路を自転車で跳ぶ主人公 ------------------------------
+async function chari() {
+  const roadY = 455
+  const scene = svg(`
+    <defs>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#b9dcf2"/><stop offset="0.72" stop-color="#f3e7d3"/>
+      </linearGradient>
+    </defs>
+    <rect width="${W}" height="${roadY}" fill="url(#sky)"/>
+    <circle cx="940" cy="105" r="52" fill="#ffefb7" opacity=".72"/>
+    ${Array.from({ length: 10 }, (_, i) => {
+      const x = i * 132 - 20
+      const h = 55 + (i * 37) % 105
+      return `<rect x="${x}" y="${roadY - 58 - h}" width="82" height="${h}" fill="#a8b2b3"/>
+        <rect x="${x + 13}" y="${roadY - 45 - h}" width="10" height="${Math.max(18, h - 28)}" fill="#fff3c8" opacity=".35"/>`
+    }).join('')}
+    <rect x="0" y="${roadY}" width="500" height="${H - roadY}" fill="#3a3a41"/>
+    <rect x="650" y="${roadY}" width="550" height="${H - roadY}" fill="#3a3a41"/>
+    <rect x="0" y="${roadY}" width="500" height="11" fill="#4d4d57"/>
+    <rect x="650" y="${roadY}" width="550" height="11" fill="#4d4d57"/>
+    ${[0, 1, 2, 3].map((i) => `<circle cx="${515 + i * 42}" cy="${383 - Math.sin((i / 3) * Math.PI) * 62}" r="13" fill="#e8a33d" stroke="#f8d784" stroke-width="3"/>`).join('')}
+    <path d="M 865 ${roadY} L 880 ${roadY - 40} L 895 ${roadY} Z" fill="#ed713e"/>
+    <rect x="871" y="${roadY - 20}" width="18" height="6" fill="#f6eee0"/>
+  `)
+  const hero = await sprite(PICKS[4], 220, -10)
+  const bike = svg(`
+    <g transform="translate(350 386) rotate(-8)">
+      <circle cx="-48" cy="20" r="39" fill="none" stroke="#202126" stroke-width="8"/>
+      <circle cx="54" cy="20" r="39" fill="none" stroke="#202126" stroke-width="8"/>
+      <path d="M-48 20 L-8 -25 L28 20 L-48 20 M-8 -25 L32 -31 L54 20 M-8 -25 L4 20 L28 20" fill="none" stroke="#436d78" stroke-width="8" stroke-linecap="round"/>
+      <path d="M31 -31 L47 -48 L65 -48 M-20 -28 L0 -28" fill="none" stroke="#202126" stroke-width="6" stroke-linecap="round"/>
+    </g>
+  `)
+  const title = svg(`
+    <text x="60" y="${H - 78}" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="600" fill="#f1eee3" letter-spacing="8">チャリ通</text>
+    <text x="62" y="${H - 36}" font-family="Menlo, monospace" font-size="23" fill="#f1eee3" opacity="0.8" letter-spacing="3">ENDLESS RUNNER · 出勤服アーカイブ GAME</text>
+  `)
+  await save(
+    'chari',
+    '#b9dcf2',
+    [{ input: scene, left: 0, top: 0 }, { input: bike, left: 0, top: 0 }, at(hero, 345, 260)],
+    title,
+  )
+}
+
 // ---- 性格診断: クリーム地に「？」を浮かべ、切り抜き数体を並べる ------------
 async function quiz() {
   const qMark = svg(`
@@ -214,4 +260,5 @@ await memory()
 await duel()
 await platform()
 await tower()
+await chari()
 await quiz()
