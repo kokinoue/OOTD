@@ -7,6 +7,7 @@ import {
   deriveRiderTraits,
   effectiveWeatherFor,
   isUnderpassAt,
+  isNightTimeAt,
   loadBest,
   metersOf,
   nextZoneInfo,
@@ -135,8 +136,11 @@ const weatherEffectLabel = {
 
 const commutePhaseLabel = {
   early: '早朝',
-  rush: 'ラッシュ',
-  late: '遅刻注意',
+  morningRush: '出勤ラッシュ',
+  daytime: '午前',
+  lunch: 'ランチ・COIN×2',
+  afternoon: '午後',
+  eveningRush: '帰宅ラッシュ',
   night: '夜間',
 } as const
 
@@ -159,29 +163,41 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   const zone = zoneAt(run.distance, run.seed)
   const weather = weatherAt(run.distance, run.seed)
   const commute = commuteClockAt(run.distance)
-  const isNight = commute.phase === 'night'
+  const isNight = isNightTimeAt(run.distance)
+  const daytimeTop =
+    commute.phase === 'early'
+      ? '#e6b5a1'
+      : commute.phase === 'lunch'
+        ? '#65b7df'
+        : commute.phase === 'afternoon'
+          ? '#83afd0'
+          : commute.phase === 'eveningRush'
+            ? '#d98970'
+            : '#b9dcf2'
+  const daytimeMiddle =
+    commute.phase === 'early'
+      ? '#f0d0ac'
+      : commute.phase === 'lunch'
+        ? '#d5edf2'
+        : commute.phase === 'eveningRush'
+          ? '#efc49b'
+          : '#e8d9bd'
   const sky = ctx.createLinearGradient(0, 0, 0, 410)
   sky.addColorStop(
     0,
     isNight
       ? '#11182d'
       : weather === 'rain'
-      ? '#8194a0'
-      : commute.phase === 'early'
-        ? '#e6b5a1'
-        : commute.phase === 'late'
-          ? '#82a7c4'
-          : '#b9dcf2',
+        ? '#8194a0'
+        : daytimeTop,
   )
   sky.addColorStop(
     0.58,
     isNight
       ? '#27314a'
       : weather === 'fog'
-      ? '#c8cfcb'
-      : commute.phase === 'early'
-        ? '#f0d0ac'
-        : '#e8d9bd',
+        ? '#c8cfcb'
+        : daytimeMiddle,
   )
   sky.addColorStop(1, isNight ? '#3a4050' : '#f3e7d3')
   ctx.fillStyle = sky
@@ -286,6 +302,34 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
     ctx.fillStyle = 'rgba(255,255,255,.72)'
     for (let x = -80 - ((cameraX * 0.65) % 150); x < VIEW_W; x += 150) {
       ctx.fillRect(x, 346, 76, 9)
+    }
+  }
+
+  if (commute.phase === 'lunch') {
+    for (let i = -1; i < 5; i++) {
+      const x = i * 245 - ((cameraX * 0.3) % 245)
+      ctx.fillStyle = '#f0e6cf'
+      ctx.fillRect(x + 35, 320, 126, 43)
+      ctx.fillStyle = i % 2 ? '#d85f4e' : '#e0a53e'
+      ctx.fillRect(x + 28, 310, 140, 13)
+      ctx.fillStyle = '#39434a'
+      ctx.font = 'bold 11px sans-serif'
+      ctx.fillText('LUNCH', x + 74, 347)
+      ctx.strokeStyle = 'rgba(255,255,255,.65)'
+      ctx.lineWidth = 3
+      for (let steam = 0; steam < 3; steam++) {
+        ctx.beginPath()
+        ctx.arc(x + 66 + steam * 23, 299, 7, Math.PI * 0.15, Math.PI * 1.2)
+        ctx.stroke()
+      }
+    }
+  } else if (commute.phase === 'eveningRush') {
+    ctx.fillStyle = 'rgba(235,81,55,.7)'
+    for (let i = 0; i < 14; i++) {
+      const x = (i * 91 - cameraX * 0.42) % (VIEW_W + 80)
+      ctx.beginPath()
+      ctx.arc(x, 345 + (i % 3) * 7, 3.5, 0, Math.PI * 2)
+      ctx.fill()
     }
   }
 
@@ -630,7 +674,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     ctx.fillStyle = visibility
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
-  if (commuteClockAt(run.distance).phase === 'night') {
+  if (isNightTimeAt(run.distance)) {
     const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
     light.addColorStop(0, 'rgba(255,244,183,0)')
     light.addColorStop(0.62, 'rgba(7,10,22,.32)')

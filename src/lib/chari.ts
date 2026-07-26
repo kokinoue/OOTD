@@ -53,7 +53,14 @@ export type Segment = {
 }
 export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station' | 'school'
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
-export type CommutePhase = 'early' | 'rush' | 'late' | 'night'
+export type CommutePhase =
+  | 'early'
+  | 'morningRush'
+  | 'daytime'
+  | 'lunch'
+  | 'afternoon'
+  | 'eveningRush'
+  | 'night'
 export type RiderTraits = {
   speedMul: number
   jumpMul: number
@@ -288,14 +295,25 @@ export function commuteClockAt(dist: number): {
   const hour = Math.floor(minutesOfDay / 60)
   const minute = minutesOfDay % 60
   const phase: CommutePhase =
-    minutesOfDay < 5 * 60 || minutesOfDay >= 18 * 60
+    minutesOfDay < 5 * 60 || minutesOfDay >= 20 * 60
       ? 'night'
       : minutesOfDay < 8 * 60
         ? 'early'
-        : minutesOfDay < 8 * 60 + 45
-          ? 'rush'
-          : 'late'
+        : minutesOfDay < 10 * 60
+          ? 'morningRush'
+          : minutesOfDay < 11 * 60 + 30
+            ? 'daytime'
+            : minutesOfDay < 13 * 60 + 30
+              ? 'lunch'
+              : minutesOfDay < 17 * 60
+                ? 'afternoon'
+                : 'eveningRush'
   return { hour, minute, label: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`, phase }
+}
+
+export function isNightTimeAt(dist: number): boolean {
+  const { hour } = commuteClockAt(dist)
+  return hour < 5 || hour >= 18
 }
 
 export function nextZoneInfo(dist: number, seed = 0): { zone: ZoneKind; distance: number } {
@@ -428,7 +446,15 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
 
 export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   if (obstacle.kind === 'signal') {
-    const redTime = commuteClockAt(run.distance).phase === 'rush' ? 3.05 : 2.45
+    const phase = commuteClockAt(run.distance).phase
+    const redTime =
+      phase === 'eveningRush'
+        ? 3.25
+        : phase === 'morningRush'
+          ? 3.05
+          : phase === 'lunch'
+            ? 2.15
+            : 2.45
     return (run.elapsed + (obstacle.phase ?? 0)) % 4 < redTime
   }
   if (obstacle.kind === 'crossing') return (run.elapsed + (obstacle.phase ?? 0)) % 5 < 3.15
@@ -440,6 +466,7 @@ function generateSegment(run: Run) {
   const speed = speedAt(dist)
   const difficulty = difficultyAt(dist)
   const zone = zoneAt(dist, run.seed)
+  const commutePhase = commuteClockAt(dist).phase
   const rng = run.rng
   const underpass = difficulty > 0.12 && zone === 'station' && rng() < 0.3
 
@@ -513,6 +540,13 @@ function generateSegment(run: Run) {
       addObstacle(run, 'students', center, roadAt(center + 29), cluster)
     } else if (zone === 'school' && kindRoll < 0.34) {
       addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
+    } else if (
+      (commutePhase === 'lunch' || commutePhase === 'eveningRush') &&
+      kindRoll < (commutePhase === 'eveningRush' ? 0.52 : 0.44) &&
+      difficulty > 0.1
+    ) {
+      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
+      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
     } else if ((zone === 'residential' || zone === 'shopping') && kindRoll < 0.13 && difficulty > 0.12) {
       addObstacle(run, 'signal', clamp(center, safeStart, safeEnd - 104), roadAt(center + 52), cluster)
     } else if (kindRoll < 0.35) {
@@ -808,9 +842,26 @@ export function step(run: Run, input: Input, dt: number): void {
     // ジャンプ台は上面を下向きに横切ったときだけ、一度だけ作動する。
     for (const o of run.obstacles) {
       if (o.vx) {
-        const rushMul = commuteClockAt(run.distance).phase === 'rush' ? 1.3 : 1
+        const phase = commuteClockAt(run.distance).phase
+        const rushMul =
+          phase === 'eveningRush'
+            ? 1.5
+            : phase === 'morningRush'
+              ? 1.3
+              : phase === 'lunch'
+                ? 1.15
+                : 1
+        const maxDrift =
+          run.speed *
+          (phase === 'eveningRush'
+            ? 0.28
+            : phase === 'morningRush'
+              ? 0.22
+              : phase === 'lunch'
+                ? 0.2
+                : 0.18)
         const nextX = o.x + o.vx * rushMul * h
-        o.x = Math.max((o.originX ?? o.x) - run.speed * 0.18, nextX)
+        o.x = Math.max((o.originX ?? o.x) - maxDrift, nextX)
       }
       if (o.kind !== 'ramp' || o.used) continue
       const overX = p.x + PLAYER_W / 2 > o.x && p.x - PLAYER_W / 2 < o.x + o.w
@@ -857,7 +908,8 @@ export function step(run: Run, input: Input, dt: number): void {
         run.combo++
         run.maxCombo = Math.max(run.maxCombo, run.combo)
         run.comboTimer = COMBO_TIMEOUT + run.traits.comboBonus
-        const points = 10 * Math.min(4, 1 + Math.floor(run.combo / 5))
+        const lunchBonus = commuteClockAt(run.distance).phase === 'lunch' ? 2 : 1
+        const points = 10 * Math.min(4, 1 + Math.floor(run.combo / 5)) * lunchBonus
         run.coinScore += points
         event(run, 'coin', points)
         if (run.combo > 1) event(run, 'combo', run.combo)

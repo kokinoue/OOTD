@@ -5812,11 +5812,24 @@ a {
   background: rgba(245, 201, 161, 0.9);
   text-shadow: none;
 }
-.chari-time-badge[data-phase='rush'] {
+.chari-time-badge[data-phase='morningRush'] {
   background: rgba(202, 73, 61, 0.9);
 }
-.chari-time-badge[data-phase='late'] {
+.chari-time-badge[data-phase='daytime'] {
+  color: #26343b;
+  background: rgba(188, 222, 232, 0.92);
+  text-shadow: none;
+}
+.chari-time-badge[data-phase='lunch'] {
+  color: #392d20;
+  background: rgba(244, 197, 87, 0.94);
+  text-shadow: none;
+}
+.chari-time-badge[data-phase='afternoon'] {
   background: rgba(67, 82, 112, 0.9);
+}
+.chari-time-badge[data-phase='eveningRush'] {
+  background: rgba(176, 70, 61, 0.92);
 }
 .chari-time-badge[data-phase='night'] {
   background: rgba(25, 31, 58, 0.92);
