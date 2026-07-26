@@ -54,6 +54,11 @@ const snapshot = (run: Run) => ({
 })
 
 describe('チャリ通のコース生成', () => {
+  it('基本走行速度は距離にかかわらず800px/sになる', () => {
+    expect(speedAt(0)).toBe(800)
+    expect(speedAt(100_000)).toBe(800)
+  })
+
   it('同じシードは同じコース、別シードは別のコースになる', () => {
     const a = createRun(42)
     const b = createRun(42)

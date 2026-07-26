@@ -225,9 +225,9 @@ export function mulberry32(seed: number): () => number {
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
 export function speedAt(dist: number): number {
-  // 初速から忙しく、約500mで最高速へ。穴幅や安全帯も速度基準で伸びるため
-  // 到達不能にはせず、判断と入力の猶予だけを強く削る。
-  return Math.min(1050, 460 + Math.max(0, dist) * 0.04)
+  // 距離による加速は行わず、コース生成と基本走行速度を一定に保つ。
+  void dist
+  return 800
 }
 
 export function difficultyAt(dist: number): number {
