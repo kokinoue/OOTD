@@ -36,6 +36,7 @@ import GameShareButton from './GameShareButton'
 
 const VIEW_W = 960
 const VIEW_H = 540
+const MOBILE_VIEW_H = 920
 const HERO_X = 220
 const SOUND_KEY = 'chari.sound'
 const cutouts = cutoutsJson as CutoutsFile
@@ -184,7 +185,12 @@ function mixHex(from: string, to: string, progress: number): string {
   return `rgb(${mixed.join(',')})`
 }
 
-function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
+function drawBackground(
+  ctx: CanvasRenderingContext2D,
+  run: Run,
+  cameraX: number,
+  viewHeight: number,
+) {
   const zone = zoneAt(run.distance, run.seed)
   const weatherTransition = weatherTransitionAt(run.distance, run.seed)
   const rainStrength = weatherStrength(weatherTransition, 'rain')
@@ -224,7 +230,7 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   )
   sky.addColorStop(1, isNight ? '#3a4050' : '#f3e7d3')
   ctx.fillStyle = sky
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+  ctx.fillRect(0, 0, VIEW_W, viewHeight)
 
   ctx.fillStyle = isNight ? 'rgba(240,244,219,.82)' : 'rgba(255,239,183,.72)'
   ctx.beginPath()
@@ -403,7 +409,13 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   ctx.fillRect(0, 120, VIEW_W, 310)
 }
 
-function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: number, t: number) {
+function drawRoadAndItems(
+  ctx: CanvasRenderingContext2D,
+  run: Run,
+  cameraX: number,
+  t: number,
+  viewHeight: number,
+) {
   for (const s of run.segments) {
     const x = s.x - cameraX
     if (x > VIEW_W + 60 || x + s.w < -60) continue
@@ -417,8 +429,8 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     ctx.beginPath()
     ctx.moveTo(points[0].x, points[0].y)
     for (const point of points.slice(1)) ctx.lineTo(point.x, point.y)
-    ctx.lineTo(x + s.w, VIEW_H)
-    ctx.lineTo(x, VIEW_H)
+    ctx.lineTo(x + s.w, viewHeight)
+    ctx.lineTo(x, viewHeight)
     ctx.closePath()
     ctx.fill()
     ctx.fillStyle = '#4d4d57'
@@ -721,7 +733,12 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
   }
 }
 
-function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
+function drawAtmosphere(
+  ctx: CanvasRenderingContext2D,
+  run: Run,
+  t: number,
+  viewHeight: number,
+) {
   const weatherTransition = effectiveWeatherTransitionFor(run)
   const rainStrength = weatherStrength(weatherTransition, 'rain')
   const windStrength = weatherStrength(weatherTransition, 'wind')
@@ -734,7 +751,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     ctx.lineWidth = 2
     for (let i = 0; i < 75; i++) {
       const x = (i * 73 + t * 310) % (VIEW_W + 80) - 40
-      const y = (i * 41 + t * 520) % VIEW_H
+      const y = (i * 41 + t * 520) % viewHeight
       ctx.beginPath()
       ctx.moveTo(x, y)
       ctx.lineTo(x - 9, y + 22)
@@ -782,7 +799,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     // 一枚の白い膜ではなく、流れる濃霧と自転車周辺の視界を描き分ける。
     // 進行方向ほど霧が濃く、障害物を早めに見つけにくい天候にする。
     ctx.fillStyle = 'rgba(225,231,226,.24)'
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+    ctx.fillRect(0, 0, VIEW_W, viewHeight)
     ctx.save()
     ctx.filter = 'blur(18px)'
     for (let i = 0; i < 9; i++) {
@@ -809,7 +826,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     const fogPulse = Math.sin(t * 1.7) * 0.07
     visibility.addColorStop(1, `rgba(218,226,221,${0.78 + fogPulse - fogRelief * 0.36})`)
     ctx.fillStyle = visibility
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+    ctx.fillRect(0, 0, VIEW_W, viewHeight)
     ctx.restore()
   }
   if (isNightTimeAt(run.elapsed, run.seed)) {
@@ -818,7 +835,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     light.addColorStop(0.62, 'rgba(7,10,22,.32)')
     light.addColorStop(1, 'rgba(4,7,18,.72)')
     ctx.fillStyle = light
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+    ctx.fillRect(0, 0, VIEW_W, viewHeight)
   }
   if (zone === 'construction') {
     ctx.fillStyle = 'rgba(199,166,111,.22)'
@@ -986,8 +1003,11 @@ export default function ChariGameView({ data, onBack }: Props) {
     if (!canvas || !screen) return
     const ctx = canvas.getContext('2d')!
     const dpr = Math.min(2, window.devicePixelRatio || 1)
+    const viewHeight = window.matchMedia('(max-width: 760px)').matches
+      ? MOBILE_VIEW_H
+      : VIEW_H
     canvas.width = VIEW_W * dpr
-    canvas.height = VIEW_H * dpr
+    canvas.height = viewHeight * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     const run = createRun()
@@ -1090,11 +1110,11 @@ export default function ChariGameView({ data, onBack }: Props) {
       }
 
       const cameraX = run.player.x - HERO_X
-      drawBackground(ctx, run, cameraX)
-      drawRoadAndItems(ctx, run, cameraX, now / 1000)
+      drawBackground(ctx, run, cameraX, viewHeight)
+      drawRoadAndItems(ctx, run, cameraX, now / 1000, viewHeight)
       const crashTilt = run.overReason === 'crash' ? Math.min(1.18, ((now - crashAt) / 420) * 1.18) : 0
       drawBike(ctx, run, spriteRef.current, ratioRef.current, crashTilt)
-      drawAtmosphere(ctx, run, now / 1000)
+      drawAtmosphere(ctx, run, now / 1000, viewHeight)
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i]
@@ -1124,7 +1144,7 @@ export default function ChariGameView({ data, onBack }: Props) {
 
       if (run.overReason === 'crash' && now - crashAt < 190) {
         ctx.fillStyle = `rgba(255,80,55,${0.3 * (1 - (now - crashAt) / 190)})`
-        ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+        ctx.fillRect(0, 0, VIEW_W, viewHeight)
       }
       if (meterRef.current) meterRef.current.textContent = String(metersOf(run))
       if (coinRef.current) coinRef.current.textContent = String(run.coinsTaken)
