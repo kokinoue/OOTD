@@ -16,7 +16,7 @@ export const JUMP_V = 720
 export const AIR_JUMP_V = 900
 export const JUMP_CUT_V = 250
 export const MAX_FALL = 1150
-export const RAMP_V = 1200
+export const RAMP_V = 1450
 export const JUMP_AIRTIME = (2 * JUMP_V) / GRAV
 export const PX_PER_M = 30
 export const GENERATE_AHEAD = 1800
@@ -933,9 +933,9 @@ function generateSegment(run: Run) {
     // 商店街の屋根はジャンプ台からだけ入れる専用ルート。
     // 打ち上げ軌道の下降位置へ最初の屋根を置き、その後を連続させる。
     const roofs = [
-      { offset: 700, w: 400, lift: 200 },
-      { offset: 1200, w: 300, lift: 175 },
-      { offset: 1800, w: 320, lift: 155 },
+      { offset: 720, w: 400, lift: 430 },
+      { offset: 1300, w: 300, lift: 410 },
+      { offset: 1900, w: 320, lift: 390 },
     ]
     const firstRoofX = shoppingRamp.x + roofs[0].offset
     for (const [index, roof] of roofs.entries()) {
@@ -958,7 +958,7 @@ function generateSegment(run: Run) {
       shoppingRamp.x + 42,
       firstRoofX + 80,
       roadAt((shoppingRamp.x + firstRoofX) / 2),
-      178,
+      420,
     )
   } else if (
     routeEnd - routeStart > 620 &&

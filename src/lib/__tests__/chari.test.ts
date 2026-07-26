@@ -545,7 +545,7 @@ describe('チャリ通の物理', () => {
             (obstacle) =>
               obstacle.kind === 'ramp' &&
               obstacle.x < roof.x &&
-              roof.x - obstacle.x <= 700,
+              roof.x - obstacle.x <= 900,
           )
         : undefined
       if (roof && ramp) selected = { run, ramp, roofId: roof.id }
@@ -574,6 +574,38 @@ describe('チャリ通の物理', () => {
       run.player.platformId,
       `ramp=${ramp.used}/${Math.round(ramp.x)}, roof=${Math.round(selectedRoof.x)}-${Math.round(selectedRoof.x + selectedRoof.w)}@${Math.round(selectedRoof.y)}, player=${Math.round(run.player.x)},${Math.round(run.player.y)}, route=${run.player.rampRoute}, status=${run.status}/${run.overReason}`,
     ).toBe(roofId)
+  })
+
+  it('最強の2段ジャンプでも商店街の屋根の高さには届かない', () => {
+    // seed=2 は開始天候が強風。軽装の最大補正と風の揚力を重ねた上限を測る。
+    const run = createRun(2)
+    run.segments = [{ ...run.segments[0], x: -500, w: 4000, y: ROAD_Y, endY: ROAD_Y }]
+    run.platforms = []
+    run.obstacles = []
+    run.coins = []
+    run.nextX = 10_000
+    run.traits = {
+      ...DEFAULT_RIDER_TRAITS,
+      jumpMul: 1.105,
+      airJumpMul: 1.04,
+      windResist: 0,
+      effects: ['軽装'],
+    }
+    let top = run.player.y
+    let airJumped = false
+    for (let frame = 0; frame < 240; frame++) {
+      const useAirJump = !airJumped && frame > 0 && run.player.vy >= 0
+      step(
+        run,
+        { jumpPressed: frame === 0 || useAirJump, jumpHeld: true },
+        1 / 120,
+      )
+      if (useAirJump) airJumped = true
+      top = Math.min(top, run.player.y)
+      if (frame > 0 && run.player.grounded) break
+    }
+    expect(airJumped).toBe(true)
+    expect(ROAD_Y - top).toBeLessThan(430)
   })
 
   it('柵への正面衝突はcrash、穴への落下はfallになる', () => {

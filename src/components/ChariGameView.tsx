@@ -1023,7 +1023,7 @@ export default function ChariGameView({ data, onBack }: Props) {
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     const isMobileLayout = window.matchMedia('(max-width: 760px)').matches
     const viewHeight = isMobileLayout ? MOBILE_VIEW_H : VIEW_H
-    const sceneOffsetY = isMobileLayout ? MOBILE_SCENE_Y : 0
+    const baseSceneOffsetY = isMobileLayout ? MOBILE_SCENE_Y : 0
     canvas.width = VIEW_W * dpr
     canvas.height = viewHeight * dpr
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
@@ -1036,6 +1036,7 @@ export default function ChariGameView({ data, onBack }: Props) {
     let disposed = false
     let finished = false
     let crashAt = 0
+    let sceneCameraY = baseSceneOffsetY
 
     const addParticles = (e: GameEvent) => {
       if (e.kind === 'land') {
@@ -1128,6 +1129,15 @@ export default function ChariGameView({ data, onBack }: Props) {
       }
 
       const cameraX = run.player.x - HERO_X
+      const minimumPlayerY = isMobileLayout ? 230 : 170
+      const targetSceneY = Math.max(
+        baseSceneOffsetY,
+        minimumPlayerY - run.player.y,
+      )
+      sceneCameraY +=
+        (targetSceneY - sceneCameraY) *
+        (1 - Math.exp(-rawDt * 8))
+      const sceneOffsetY = sceneCameraY
       drawBackground(ctx, run, cameraX, viewHeight, sceneOffsetY)
       ctx.save()
       ctx.translate(0, sceneOffsetY)
