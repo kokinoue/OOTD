@@ -6049,12 +6049,12 @@ a {
   .chari-canvas {
     position: absolute;
     top: 0;
-    left: -22%;
+    left: -16%;
     width: auto;
     max-width: none;
     height: 100%;
     aspect-ratio: 960 / 540;
-    transform: scaleX(0.75);
+    transform: scaleX(0.65);
     transform-origin: left center;
   }
   .chari-environment {
