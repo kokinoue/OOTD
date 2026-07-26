@@ -5845,8 +5845,7 @@ a {
   background: rgba(220, 226, 222, 0.88);
   text-shadow: none;
 }
-.chari-course-notice,
-.chari-danger-notice {
+.chari-course-notice {
   position: absolute;
   left: 50%;
   z-index: 3;
@@ -5868,13 +5867,7 @@ a {
 .chari-course-notice {
   top: 58px;
 }
-.chari-danger-notice {
-  top: 98px;
-  color: #2a2118;
-  background: rgba(255, 196, 76, 0.93);
-}
-.chari-course-notice.is-visible,
-.chari-danger-notice.is-visible {
+.chari-course-notice.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -6059,8 +6052,7 @@ a {
     padding: 4px 9px;
     font-size: 10px;
   }
-  .chari-course-notice,
-  .chari-danger-notice {
+  .chari-course-notice {
     max-width: 70%;
     padding: 6px 10px;
     font-size: 9px;
@@ -6069,9 +6061,6 @@ a {
   }
   .chari-course-notice {
     top: 104px;
-  }
-  .chari-danger-notice {
-    top: 136px;
   }
   .chari-outfit-power {
     top: 9px;

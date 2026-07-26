@@ -151,17 +151,6 @@ const weatherIcon = {
   fog: '▤',
 } as const
 
-const dangerLabel = {
-  pylon: 'コーン',
-  fence: '工事柵',
-  truck: '大型トラック',
-  bird: '低空の鳥',
-  ramp: 'ジャンプ台',
-  signal: '赤信号',
-  commuter: '対向自転車',
-  crossing: '踏切',
-} as const
-
 function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
   const zone = zoneAt(run.distance)
   const weather = weatherAt(run.distance, run.seed)
@@ -636,7 +625,6 @@ export default function ChariGameView({ data, onBack }: Props) {
   const weatherRef = useRef<HTMLSpanElement>(null)
   const timeRef = useRef<HTMLSpanElement>(null)
   const noticeRef = useRef<HTMLDivElement>(null)
-  const dangerRef = useRef<HTMLDivElement>(null)
   const bestRef = useRef<HTMLSpanElement>(null)
   const inputRef = useRef<Input>({ jumpPressed: false, jumpHeld: false, diveHeld: false })
   const audioRef = useRef<ReturnType<typeof createAudio> | null>(null)
@@ -863,22 +851,6 @@ export default function ChariGameView({ data, onBack }: Props) {
           : ''
         noticeRef.current.classList.toggle('is-visible', show)
       }
-      if (dangerRef.current) {
-        const warningRange = run.speed * (weather === 'fog' ? 0.75 : 1.25)
-        const danger = run.obstacles
-          .filter(
-            (o) =>
-              o.kind !== 'ramp' &&
-              obstacleActive(run, o) &&
-              o.x - run.player.x > 0 &&
-              o.x - run.player.x <= warningRange,
-          )
-          .sort((a, b) => a.x - b.x)[0]
-        dangerRef.current.textContent = danger
-          ? `⚠ ${dangerLabel[danger.kind]} ${Math.max(1, Math.ceil((danger.x - run.player.x) / 30))}m`
-          : ''
-        dangerRef.current.classList.toggle('is-visible', Boolean(danger))
-      }
       if (bestRef.current) bestRef.current.textContent = String(Math.max(loadBest(), scoreOf(run)))
       raf = requestAnimationFrame(frame)
     }
@@ -951,7 +923,6 @@ export default function ChariGameView({ data, onBack }: Props) {
             </span>
           </div>
           <div ref={noticeRef} className="chari-course-notice jp" aria-live="polite" />
-          <div ref={dangerRef} className="chari-danger-notice jp" aria-live="polite" />
           <div className="chari-outfit-power jp" title={traits.effects.join(' / ')}>
             <b>服効果</b>
             <span>{traits.effects.slice(0, 2).join(' · ')}</span>
