@@ -918,6 +918,7 @@ function drawBike(
 export default function ChariGameView({ data, onBack }: Props) {
   void data
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const screenRef = useRef<HTMLDivElement>(null)
   const meterRef = useRef<HTMLSpanElement>(null)
   const coinRef = useRef<HTMLSpanElement>(null)
   const scoreRef = useRef<HTMLSpanElement>(null)
@@ -981,7 +982,8 @@ export default function ChariGameView({ data, onBack }: Props) {
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    const screen = screenRef.current
+    if (!canvas || !screen) return
     const ctx = canvas.getContext('2d')!
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     canvas.width = VIEW_W * dpr
@@ -1054,7 +1056,8 @@ export default function ChariGameView({ data, onBack }: Props) {
     }
     const jumpDown = (e: PointerEvent) => {
       if (run.status !== 'playing') return
-      canvas.setPointerCapture(e.pointerId)
+      if ((e.target as Element | null)?.closest('button')) return
+      screen.setPointerCapture(e.pointerId)
       audioRef.current?.unlock()
       jumpQueueRef.current = Math.min(2, jumpQueueRef.current + 1)
       inputRef.current.jumpHeld = true
@@ -1064,9 +1067,9 @@ export default function ChariGameView({ data, onBack }: Props) {
     }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    canvas.addEventListener('pointerdown', jumpDown)
-    canvas.addEventListener('pointerup', jumpUp)
-    canvas.addEventListener('pointercancel', jumpUp)
+    screen.addEventListener('pointerdown', jumpDown)
+    screen.addEventListener('pointerup', jumpUp)
+    screen.addEventListener('pointercancel', jumpUp)
 
     const frame = (now: number) => {
       if (disposed) return
@@ -1175,9 +1178,9 @@ export default function ChariGameView({ data, onBack }: Props) {
       cancelAnimationFrame(raf)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
-      canvas.removeEventListener('pointerdown', jumpDown)
-      canvas.removeEventListener('pointerup', jumpUp)
-      canvas.removeEventListener('pointercancel', jumpUp)
+      screen.removeEventListener('pointerdown', jumpDown)
+      screen.removeEventListener('pointerup', jumpUp)
+      screen.removeEventListener('pointercancel', jumpUp)
       inputRef.current = { jumpPressed: false, jumpHeld: false }
       jumpQueueRef.current = 0
     }
@@ -1220,7 +1223,7 @@ export default function ChariGameView({ data, onBack }: Props) {
           </button>
           <GameShareButton game="chari" title="チャリ通" />
         </div>
-        <div className="chari-screen">
+        <div ref={screenRef} className="chari-screen">
           <canvas ref={canvasRef} className="chari-canvas" aria-label="チャリ通のゲーム画面" />
           <div className="chari-environment" aria-label="現在の地域と天候">
             <span ref={zoneRef} className="chari-zone-badge jp" data-zone="residential">
@@ -1250,6 +1253,11 @@ export default function ChariGameView({ data, onBack }: Props) {
             <span aria-hidden="true">👕</span>
             <b>着替え</b>
           </button>
+          {!result && (
+            <div className="chari-touch-hint mono" aria-hidden="true">
+              ↑ TAP JUMP
+            </div>
+          )}
           {result && (
             <div className="chari-overlay">
               <div className="chari-result jp">
