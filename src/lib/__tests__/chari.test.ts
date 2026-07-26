@@ -155,17 +155,17 @@ describe('チャリ通の物理', () => {
 
     const underBird = createRun(52)
     underBird.obstacles = [
-      { id: 2, kind: 'bird', x: 135, y: ROAD_Y - 112, w: 42, h: 22, cluster: 2, used: false },
+      { id: 2, kind: 'bird', x: 135, y: ROAD_Y - 160, w: 42, h: 22, cluster: 2, used: false },
     ]
     step(underBird, idle, 1 / 10)
     expect(underBird.status).toBe('playing')
 
     const intoBird = createRun(53)
     intoBird.player.x = 140
-    intoBird.player.y = ROAD_Y - 72
+    intoBird.player.y = ROAD_Y - 116
     intoBird.player.grounded = false
     intoBird.obstacles = [
-      { id: 3, kind: 'bird', x: 135, y: ROAD_Y - 112, w: 42, h: 22, cluster: 3, used: false },
+      { id: 3, kind: 'bird', x: 135, y: ROAD_Y - 160, w: 42, h: 22, cluster: 3, used: false },
     ]
     step(intoBird, { ...idle, jumpHeld: true }, 1 / 120)
     expect(intoBird.overReason).toBe('crash')

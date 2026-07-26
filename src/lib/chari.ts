@@ -147,7 +147,9 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
           : kind === 'bird'
             ? { w: 42, h: 22 }
             : { w: 58, h: 18 }
-  const y = kind === 'bird' ? roadY - 112 : roadY - dims.h
+  // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
+  // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
+  const y = kind === 'bird' ? roadY - 160 : roadY - dims.h
   run.obstacles.push({
     id: run.serial++,
     kind,
@@ -219,7 +221,7 @@ function generateSegment(run: Run) {
     } else if (kindRoll < 0.94 && difficulty > 0.16) {
       // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
       addObstacle(run, 'bird', center, y, cluster)
-      for (let px = center - 35; px <= center + 75; px += 42) addCoin(run, px, y + 68)
+      for (let px = center - 35; px <= center + 75; px += 42) addCoin(run, px, y + 116)
     } else {
       addObstacle(run, 'ramp', center, y, cluster)
       addCoinArc(run, center + 38, Math.min(safeEnd, center + 250), y, 115)
