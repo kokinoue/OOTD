@@ -1143,6 +1143,14 @@ export default function ChariGameView({ data, onBack }: Props) {
             <b>服効果</b>
             <span>{traits.effects.slice(0, 2).join(' · ')}</span>
           </div>
+          <button
+            className="chari-change-mobile jp"
+            onClick={changeOutfit}
+            aria-label="着替える"
+          >
+            <span aria-hidden="true">👕</span>
+            <b>着替え</b>
+          </button>
           {result && (
             <div className="chari-overlay">
               <div className="chari-result jp">

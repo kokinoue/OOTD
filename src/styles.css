@@ -5760,10 +5760,26 @@ a {
   color: var(--text-sub);
   font-size: 11px;
 }
+.chari-change {
+  min-height: 34px;
+  border-color: rgba(189, 73, 51, 0.78);
+  color: #fff;
+  background: #c55740;
+  box-shadow: 0 3px 10px rgba(132, 50, 34, 0.2);
+  font-weight: 700;
+}
 .chari-change:hover,
 .chari-sound:hover {
   border-color: var(--text-sub);
   color: var(--text);
+}
+.chari-change:hover {
+  border-color: #a53f2d;
+  color: #fff;
+  background: #ad4632;
+}
+.chari-change-mobile {
+  display: none;
 }
 .chari-screen {
   position: relative;
@@ -6013,6 +6029,9 @@ a {
     padding: 4px 8px;
     font-size: 10px;
   }
+  .chari-change {
+    display: none;
+  }
   .chari-screen {
     aspect-ratio: 2 / 3;
     border-radius: 7px;
@@ -6063,6 +6082,38 @@ a {
   .chari-outfit-power span {
     display: block;
     padding: 5px 7px;
+  }
+  .chari-change-mobile {
+    position: absolute;
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    display: flex;
+    width: 68px;
+    height: 68px;
+    padding: 6px;
+    flex-direction: column;
+    gap: 1px;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.82);
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(190, 72, 50, 0.94);
+    box-shadow: 0 5px 20px rgba(48, 24, 18, 0.35);
+    font-size: 11px;
+    line-height: 1.05;
+    text-shadow: 0 1px 2px rgba(60, 25, 18, 0.35);
+    touch-action: manipulation;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+  .chari-change-mobile span {
+    font-size: 22px;
+  }
+  .chari-change-mobile:active {
+    background: rgba(157, 54, 37, 0.98);
+    transform: scale(0.94);
   }
   .chari-foot {
     display: block;
