@@ -100,7 +100,9 @@ export function mulberry32(seed: number): () => number {
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
 export function speedAt(dist: number): number {
-  return Math.min(760, 340 + Math.max(0, dist) * 0.022)
+  // 初速から忙しく、約500mで最高速へ。穴幅や安全帯も速度基準で伸びるため
+  // 到達不能にはせず、判断と入力の猶予だけを強く削る。
+  return Math.min(940, 420 + Math.max(0, dist) * 0.035)
 }
 
 export function difficultyAt(dist: number): number {
@@ -161,9 +163,9 @@ function generateSegment(run: Run) {
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
   // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
-  const hasGap = run.segments.length > 0 && rng() < 0.58 + difficulty * 0.2
+  const hasGap = run.segments.length > 0 && rng() < 0.72 + difficulty * 0.18
   const gap = hasGap
-    ? Math.max(64, maxGapFor(speed) * (0.72 + rng() * (0.2 + difficulty * 0.06)))
+    ? Math.max(64, maxGapFor(speed) * (0.86 + rng() * (0.12 + difficulty * 0.02)))
     : 0
   let y = run.nextY
   if (hasGap && rng() < 0.38) {
@@ -172,7 +174,7 @@ function generateSegment(run: Run) {
   }
 
   const x = run.nextX + gap
-  const w = Math.max(360, speed * (1.5 + rng() * 0.5))
+  const w = Math.max(360, speed * (1.65 + rng() * 0.35))
   const entryClear = Math.max(90, speed * 0.72)
   // 規定の0.32秒を下限に、障害物ジャンプが着地してから次の穴へ
   // 踏み切れる余白まで確保する（二段ジャンプを使っても穴へ直結しない）。
@@ -192,18 +194,18 @@ function generateSegment(run: Run) {
   const safeEnd = x + w - exitClear
   const room = safeEnd - safeStart
   const roll = rng()
-  if (room > 120 && roll < 0.94) {
+  if (room > 120 && roll < 0.99) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
     const kindRoll = rng()
-    if (kindRoll < 0.52) {
-      // 序盤から2連、後半はほぼ3連。ひと跳びで越せるクラスタ幅に収める。
-      const count = difficulty > 0.36 ? (rng() < 0.72 ? 3 : 2) : rng() < 0.68 ? 2 : 1
+    if (kindRoll < 0.48) {
+      // 最初から2連、少し走ればほぼ3連。ひと跳びで越せるクラスタ幅に収める。
+      const count = difficulty > 0.2 ? (rng() < 0.88 ? 3 : 2) : 2
       const spread = 40
       const first = clamp(center - ((count - 1) * spread) / 2, safeStart, safeEnd - (count - 1) * spread)
       for (let i = 0; i < count; i++) addObstacle(run, 'pylon', first + i * spread, y, cluster)
       addCoinArc(run, first - 5, first + Math.max(75, (count - 1) * spread + 30), y, 48)
-    } else if (kindRoll < 0.82 && difficulty > 0.12) {
+    } else if (kindRoll < 0.92 && difficulty > 0.04) {
       addObstacle(run, 'fence', center, y, cluster)
       addCoinArc(run, center - 28, center + 72, y, 62)
     } else {
