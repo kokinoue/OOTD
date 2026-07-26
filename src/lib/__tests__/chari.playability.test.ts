@@ -45,6 +45,13 @@ function landingUnsafe(run: Run): boolean {
   return surfaceAt(run, x) == null
 }
 
+function crossingAirGap(run: Run): boolean {
+  const x = run.player.x
+  return run.segments.some(
+    (s) => s.airGap && x >= s.x - s.gapBefore && x < s.x,
+  )
+}
+
 describe('チャリ通のプレイ可能性', () => {
   it(
     '30シードを自動プレイで90秒走り切れる',
@@ -63,7 +70,7 @@ describe('チャリ通のプレイ可能性', () => {
             !run.player.grounded &&
             !run.player.airJumpUsed &&
             run.player.vy > 80 &&
-            landingUnsafe(run)
+            (crossingAirGap(run) || landingUnsafe(run))
           ) {
             jumpPressed = true
             jumpHeldFrames = 10
@@ -86,9 +93,12 @@ describe('チャリ通のプレイ可能性', () => {
             (s) =>
               `${Math.round(s.x)}-${Math.round(s.x + s.w)}@${Math.round(s.y)}>${Math.round(s.endY ?? s.y)}/gap${Math.round(s.gapBefore)}`,
           )
+        const nearbyObstacles = run.obstacles
+          .filter((o) => o.x + o.w > run.player.x - 300 && o.x < run.player.x + 300)
+          .map((o) => `${o.kind}@${Math.round(o.x)},${Math.round(o.y)}`)
         expect(
           run.status,
-          `seed ${seed}: ${run.overReason}, ${logs.at(-1)} [${trace.join(' ')}] roads=${nearby.join(',')}`,
+          `seed ${seed}: ${run.overReason}, ${logs.at(-1)} [${trace.join(' ')}] roads=${nearby.join(',')} obstacles=${nearbyObstacles.join(',')}`,
         ).toBe('playing')
       }
       console.info(`[chari bot] ${logs.join(' ')}`)

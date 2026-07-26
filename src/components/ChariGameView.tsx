@@ -191,6 +191,28 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     ctx.stroke()
     ctx.setLineDash([])
   }
+  // 単発ジャンプでは届かない大穴は、空中ジャンプの警告を穴の中央へ出す。
+  for (const s of run.segments) {
+    if (!s.airGap || s.gapBefore <= 0) continue
+    const centerX = s.x - s.gapBefore / 2 - cameraX
+    if (centerX < -120 || centerX > VIEW_W + 120) continue
+    ctx.save()
+    ctx.translate(centerX, Math.min(s.y, s.endY ?? s.y) - 102)
+    ctx.fillStyle = 'rgba(217,80,53,.88)'
+    ctx.font = 'bold 18px ui-monospace, monospace'
+    ctx.textAlign = 'center'
+    ctx.fillText('2段 JUMP!', 0, 0)
+    ctx.fillStyle = '#f0a24a'
+    for (const dx of [-22, 0, 22]) {
+      ctx.beginPath()
+      ctx.moveTo(dx, 12)
+      ctx.lineTo(dx + 8, 24)
+      ctx.lineTo(dx - 8, 24)
+      ctx.closePath()
+      ctx.fill()
+    }
+    ctx.restore()
+  }
   for (const coin of run.coins) {
     if (coin.taken) continue
     const x = coin.x - cameraX

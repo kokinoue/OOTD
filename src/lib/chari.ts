@@ -42,6 +42,7 @@ export type Segment = {
   y: number
   endY?: number
   gapBefore: number
+  airGap?: boolean
   entryClear: number
   exitClear: number
 }
@@ -115,6 +116,11 @@ export function maxGapFor(speed: number): number {
   return Math.max(64, Math.min(300, speed * JUMP_AIRTIME * 0.52))
 }
 
+/** 単発ジャンプでは届かず、空中ジャンプなら越えられる大穴の上限 */
+export function maxAirGapFor(speed: number): number {
+  return Math.min(900, speed * JUMP_AIRTIME * 1.16)
+}
+
 export function minObstacleSpacing(speed: number): number {
   return Math.max(220, speed * 0.62)
 }
@@ -174,8 +180,14 @@ function generateSegment(run: Run) {
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
   // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
   const hasGap = run.segments.length > 0 && rng() < 0.8 + difficulty * 0.14
+  // 穴幅と同じ乱数から大穴かを決め、追加要素によって後続コースの乱数列を
+  // ずらさない。既存の障害物配置のプレイ可能性を保ったまま大穴を混ぜられる。
+  const gapRoll = hasGap ? rng() : 0
+  const airGap = hasGap && difficulty > 0.12 && gapRoll < 0.2 + difficulty * 0.2
   const gap = hasGap
-    ? Math.max(64, maxGapFor(speed) * (0.9 + rng() * (0.09 + difficulty * 0.01)))
+    ? airGap
+      ? speed * JUMP_AIRTIME * (1.06 + gapRoll * 0.07)
+      : Math.max(64, maxGapFor(speed) * (0.9 + gapRoll * (0.09 + difficulty * 0.01)))
     : 0
   let y = run.nextY
   if (hasGap && rng() < 0.38) {
@@ -193,7 +205,8 @@ function generateSegment(run: Run) {
       ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
       : 0
   const endY = clamp(y + slopeDelta, ROAD_MIN_Y, ROAD_MAX_Y)
-  const entryClear = Math.max(90, speed * 0.72)
+  // 二段ジャンプの大穴は着地が通常より奥になるため、着地側の安全帯を広げる。
+  const entryClear = Math.max(90, speed * (airGap ? 1.15 : 0.72))
   // 規定の0.32秒を下限に、障害物ジャンプが着地してから次の穴へ
   // 踏み切れる余白まで確保する（二段ジャンプを使っても穴へ直結しない）。
   const exitClear = Math.max(90, speed * 0.72)
@@ -204,6 +217,7 @@ function generateSegment(run: Run) {
     y,
     endY,
     gapBefore: gap,
+    airGap,
     entryClear,
     exitClear,
   }
@@ -252,7 +266,7 @@ function generateSegment(run: Run) {
   if (gap > 0) {
     const prev = run.segments[run.segments.length - 2]
     const left = prev.x + prev.w + 12
-    addCoinArc(run, left, x - 12, Math.min(prev.endY ?? prev.y, y), 46)
+    addCoinArc(run, left, x - 12, Math.min(prev.endY ?? prev.y, y), airGap ? 92 : 46)
   }
   run.nextX = x + w
   run.nextY = endY
@@ -272,6 +286,7 @@ export function createRun(seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>>
     y: ROAD_Y,
     endY: ROAD_Y,
     gapBefore: 0,
+    airGap: false,
     entryClear: 0,
     exitClear: 120,
   }

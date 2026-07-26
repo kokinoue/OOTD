@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   AIR_JUMP_V,
   BEST_KEY,
+  GRAV,
   JUMP_V,
   RAMP_V,
   ROAD_Y,
@@ -11,6 +12,7 @@ import {
   createRun,
   ensureAhead,
   loadBest,
+  maxAirGapFor,
   maxGapFor,
   metersOf,
   minObstacleSpacing,
@@ -30,7 +32,14 @@ vi.stubGlobal('localStorage', {
   clear: () => storage.clear(),
 })
 const snapshot = (run: Run) => ({
-  segments: run.segments.map(({ x, w, y, endY, gapBefore }) => [x, w, y, endY, gapBefore]),
+  segments: run.segments.map(({ x, w, y, endY, gapBefore, airGap }) => [
+    x,
+    w,
+    y,
+    endY,
+    gapBefore,
+    airGap,
+  ]),
   obstacles: run.obstacles.map(({ kind, x, y, cluster }) => [kind, x, y, cluster]),
   coins: run.coins.map(({ x, y }) => [x, y]),
 })
@@ -51,7 +60,21 @@ describe('チャリ通のコース生成', () => {
     const run = createRun(10)
     ensureAhead(run, 100_000)
     for (const s of run.segments) {
-      if (s.gapBefore > 0) expect(s.gapBefore).toBeLessThanOrEqual(maxGapFor(speedAt(s.x - run.startX)))
+      if (s.gapBefore <= 0) continue
+      const speed = speedAt(s.x - run.startX)
+      expect(s.gapBefore).toBeLessThanOrEqual(s.airGap ? maxAirGapFor(speed) : maxGapFor(speed))
+    }
+  })
+
+  it('二段ジャンプ専用の大穴は単発ジャンプの理論到達距離を超える', () => {
+    const run = createRun(2027)
+    ensureAhead(run, 100_000)
+    const airGaps = run.segments.filter((s) => s.airGap)
+    expect(airGaps.length).toBeGreaterThan(0)
+    for (const s of airGaps) {
+      const speed = speedAt(s.x - run.startX)
+      expect(s.gapBefore).toBeGreaterThan((speed * 2 * JUMP_V) / GRAV)
+      expect(s.gapBefore).toBeLessThanOrEqual(maxAirGapFor(speed))
     }
   })
 
