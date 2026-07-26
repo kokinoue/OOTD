@@ -1,10 +1,13 @@
 import * as THREE from 'three'
 import {
   clampOrbitIndex,
+  ORBIT_BASE_FOV,
   ORBIT_RADIUS,
   ORBIT_Y_STEP,
+  orbitFraming,
   type OrbitColorPoint,
   type OrbitEntry,
+  type OrbitFraming,
   visibleOrbitRange,
 } from './orbit'
 import type { Sky } from './weather'
@@ -30,9 +33,9 @@ export type OrbitSceneController = {
   dispose: () => void
 }
 
-const CAMERA_RADIUS = 12.6
 const TEXTURE_WINDOW_RADIUS = 20
 const SELECTED_SPRITE_HEIGHT = 2.5
+const HALO_DEPTH_OFFSET = 0.5
 const DEFAULT_SPRITE_HEIGHT = 1.9
 const SEASON_COLORS = [0x9ad0b1, 0xf2b366, 0xc7865a, 0x8db9d6] as const
 const WEATHER_OPACITY: Record<Sky, number> = {
@@ -86,7 +89,9 @@ export function createOrbitScene({
 
   const scene = new THREE.Scene()
   scene.fog = new THREE.FogExp2(0x090b12, 0.025)
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 120)
+  const camera = new THREE.PerspectiveCamera(ORBIT_BASE_FOV, 1, 0.1, 120)
+  // 初期値は resize() が即座に上書きする
+  let framing: OrbitFraming = orbitFraming(1, 1)
 
   const timePositions = new Float32Array(entries.length * 3)
   const colorPositions = new Float32Array(entries.length * 3)
@@ -190,6 +195,7 @@ export function createOrbitScene({
     depthWrite: false,
   })
   const halo = new THREE.Mesh(haloGeometry, haloMaterial)
+  const haloOffset = new THREE.Vector3()
   scene.add(halo)
 
   const traceGeometry = new THREE.BufferGeometry()
@@ -463,8 +469,11 @@ export function createOrbitScene({
     const width = Math.max(1, container.clientWidth)
     const height = Math.max(1, container.clientHeight)
     renderer.setSize(width, height, false)
+    framing = orbitFraming(width, height)
     camera.aspect = width / height
+    camera.fov = framing.fov
     camera.updateProjectionMatrix()
+    haloMaterial.opacity = framing.haloOpacity
   }
 
   const resizeObserver = new ResizeObserver(resize)
@@ -538,14 +547,22 @@ export function createOrbitScene({
     const cameraAngle = Math.atan2(selectedX, selectedZ)
     const cameraY = currentIndex * ORBIT_Y_STEP
 
+    // 視線ごと下げることで、傾けずに被写体を画面の上寄りへ寄せる
+    const focusY = cameraY - framing.focusLift
     camera.position.set(
-      Math.sin(cameraAngle) * CAMERA_RADIUS,
-      cameraY + 0.22,
-      Math.cos(cameraAngle) * CAMERA_RADIUS,
+      Math.sin(cameraAngle) * framing.cameraRadius,
+      focusY + 0.22,
+      Math.cos(cameraAngle) * framing.cameraRadius,
     )
-    camera.lookAt(0, cameraY, 0)
+    camera.lookAt(0, focusY, 0)
 
-    halo.position.set(selectedX, selectedY, selectedZ)
+    // リングは被写体の一段奥へ置く。手前に重ねると細い線が体を横切って読みづらい
+    haloOffset
+      .set(selectedX, selectedY, selectedZ)
+      .sub(camera.position)
+      .normalize()
+      .multiplyScalar(HALO_DEPTH_OFFSET)
+    halo.position.set(selectedX + haloOffset.x, selectedY + haloOffset.y, selectedZ + haloOffset.z)
     halo.quaternion.copy(camera.quaternion)
     halo.scale.setScalar(1 + Math.sin(elapsedTime * 2.4) * (reduceMotion ? 0 : 0.035))
 
@@ -565,7 +582,8 @@ export function createOrbitScene({
       const distanceOpacity = Math.max(0.22, 1 - distance / (TEXTURE_WINDOW_RADIUS + 4))
       const traceOpacity =
         !traceActive || traceIndexSet.has(index) || selected ? 1 : 0.16
-      sprite.material.opacity = distanceOpacity * traceOpacity
+      const ambientOpacity = selected ? 1 : framing.ambientOpacity
+      sprite.material.opacity = distanceOpacity * traceOpacity * ambientOpacity
     }
 
     if (tracePositionAttribute) {
