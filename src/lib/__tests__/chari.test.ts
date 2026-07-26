@@ -28,6 +28,7 @@ import {
   obstacleActive,
   saveBest,
   scoreOf,
+  segmentSurfaceAt,
   speedAt,
   step,
   surfaceAt,
@@ -157,6 +158,7 @@ describe('チャリ通のコース生成', () => {
     let hasRoofChain = false
     let hasFootbridge = false
     let hasUnderpass = false
+    let hasStreetRoute = false
     for (let seed = 1; seed <= 12; seed++) {
       const run = createRun(seed)
       ensureAhead(run, 180_000)
@@ -164,6 +166,7 @@ describe('チャリ通のコース生成', () => {
       hasBranch ||= run.platforms.some((p) => p.kind === 'branch')
       hasFootbridge ||= run.platforms.some((p) => p.kind === 'footbridge')
       hasUnderpass ||= run.segments.some((segment) => segment.route === 'underpass')
+      hasStreetRoute ||= run.platforms.some((platform) => platform.kind === 'street')
       const roofs = run.platforms.filter((p) => p.kind === 'roof').sort((a, b) => a.x - b.x)
       hasRoofChain ||= roofs.some((p, i) => i > 0 && p.x - (roofs[i - 1].x + roofs[i - 1].w) < 80)
     }
@@ -176,6 +179,7 @@ describe('チャリ通のコース生成', () => {
     expect(hasRoofChain).toBe(true)
     expect(hasFootbridge).toBe(true)
     expect(hasUnderpass).toBe(true)
+    expect(hasStreetRoute).toBe(true)
   })
 
   it('エリアはプレイごとのシードでランダムになる', () => {
@@ -415,10 +419,17 @@ describe('チャリ通の物理', () => {
   it('地下道では現在の天候効果を受けない', () => {
     const run = createRun(1)
     run.segments[0].route = 'underpass'
+    run.player.y = segmentSurfaceAt(run.segments[0], run.player.x)
     expect(isUnderpassAt(run)).toBe(true)
     expect(weatherAt(run.distance, run.seed)).toBe('rain')
     expect(effectiveWeatherFor(run)).toBe('clear')
     expect(motionSpeedFor(run)).toBe(800)
+
+    run.platforms = [{ id: 900, kind: 'street', x: -500, y: ROAD_Y, w: 1200 }]
+    run.player.platformId = 900
+    run.player.y = ROAD_Y
+    expect(isUnderpassAt(run)).toBe(false)
+    expect(effectiveWeatherFor(run)).toBe('rain')
   })
 
   it('雨は踏み切りを弱め、雨支度はジャンプ力の低下を抑える', () => {

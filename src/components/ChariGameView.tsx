@@ -13,6 +13,7 @@ import {
   obstacleActive,
   saveBest,
   scoreOf,
+  segmentSurfaceAt,
   step,
   weatherAt,
   zoneAt,
@@ -294,15 +295,15 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
     if (x > VIEW_W || x + segment.w < 0) continue
     const y = Math.min(segment.y, segment.endY ?? segment.y)
     ctx.fillStyle = '#343a40'
-    ctx.fillRect(x, y - 176, segment.w, 160)
+    ctx.fillRect(x, y + 12, segment.w, 126)
     ctx.fillStyle = '#20252b'
-    ctx.fillRect(x, y - 176, segment.w, 18)
+    ctx.fillRect(x, y + 12, segment.w, 18)
     ctx.fillStyle = 'rgba(255,235,166,.8)'
     for (let lx = x + 65; lx < x + segment.w - 20; lx += 170) {
-      ctx.fillRect(lx, y - 146, 74, 8)
+      ctx.fillRect(lx, y + 38, 74, 7)
     }
     ctx.fillStyle = '#697078'
-    ctx.fillRect(x, y - 20, segment.w, 8)
+    ctx.fillRect(x, y + 10, segment.w, 8)
   }
 }
 
@@ -310,35 +311,53 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
   for (const s of run.segments) {
     const x = s.x - cameraX
     if (x > VIEW_W + 60 || x + s.w < -60) continue
-    const endY = s.endY ?? s.y
+    const samples = s.route === 'underpass' ? 24 : 1
+    const points = Array.from({ length: samples + 1 }, (_, index) => {
+      const worldX = s.x + (s.w * index) / samples
+      return { x: worldX - cameraX, y: segmentSurfaceAt(s, worldX) }
+    })
     ctx.fillStyle = '#3a3a41'
     ctx.beginPath()
-    ctx.moveTo(x, s.y)
-    ctx.lineTo(x + s.w, endY)
+    ctx.moveTo(points[0].x, points[0].y)
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y)
     ctx.lineTo(x + s.w, VIEW_H)
     ctx.lineTo(x, VIEW_H)
     ctx.closePath()
     ctx.fill()
     ctx.fillStyle = '#4d4d57'
     ctx.beginPath()
-    ctx.moveTo(x, s.y)
-    ctx.lineTo(x + s.w, endY)
-    ctx.lineTo(x + s.w, endY + 9)
-    ctx.lineTo(x, s.y + 9)
+    ctx.moveTo(points[0].x, points[0].y)
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y)
+    for (const point of [...points].reverse()) ctx.lineTo(point.x, point.y + 9)
     ctx.closePath()
     ctx.fill()
     ctx.strokeStyle = 'rgba(255,255,255,.26)'
     ctx.lineWidth = 3
     ctx.setLineDash([34, 28])
     ctx.beginPath()
-    ctx.moveTo(x, s.y + 75)
-    ctx.lineTo(x + s.w, endY + 75)
+    ctx.moveTo(points[0].x, points[0].y + 75)
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y + 75)
     ctx.stroke()
     ctx.setLineDash([])
   }
   for (const platform of run.platforms) {
     const x = platform.x - cameraX
     if (x > VIEW_W + 60 || x + platform.w < -60) continue
+    if (platform.kind === 'street') {
+      ctx.fillStyle = '#3a3a41'
+      ctx.fillRect(x, platform.y, platform.w, 18)
+      ctx.fillStyle = '#4d4d57'
+      ctx.fillRect(x, platform.y, platform.w, 7)
+      ctx.strokeStyle = 'rgba(255,255,255,.34)'
+      ctx.lineWidth = 3
+      ctx.setLineDash([28, 22])
+      ctx.beginPath()
+      ctx.moveTo(x + 12, platform.y + 10)
+      ctx.lineTo(x + platform.w - 12, platform.y + 10)
+      ctx.stroke()
+      ctx.setLineDash([])
+      continue
+    }
     if (platform.kind === 'footbridge') {
       ctx.fillStyle = '#69757b'
       ctx.fillRect(x, platform.y, platform.w, 12)

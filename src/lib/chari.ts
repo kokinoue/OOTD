@@ -66,7 +66,7 @@ export type RiderTraits = {
   comboBonus: number
   effects: string[]
 }
-export type PlatformKind = 'branch' | 'roof' | 'footbridge'
+export type PlatformKind = 'branch' | 'roof' | 'footbridge' | 'street'
 export type Platform = {
   id: number
   kind: PlatformKind
@@ -263,7 +263,14 @@ export function motionSpeedFor(run: Run): number {
 }
 
 export function isUnderpassAt(run: Run, x = run.player.x): boolean {
-  return run.segments.some((segment) => segment.route === 'underpass' && x >= segment.x && x <= segment.x + segment.w)
+  if (run.player.platformId != null) return false
+  const segment = run.segments.find(
+    (item) => item.route === 'underpass' && x >= item.x && x <= item.x + item.w,
+  )
+  if (!segment) return false
+  const t = clamp((x - segment.x) / segment.w, 0, 1)
+  const groundLevel = segment.y + ((segment.endY ?? segment.y) - segment.y) * t
+  return run.player.y > groundLevel + 18
 }
 
 export function effectiveWeatherFor(run: Run): WeatherKind {
@@ -309,11 +316,16 @@ export function minObstacleSpacing(speed: number): number {
   return Math.max(220, speed * 0.62)
 }
 
+export function segmentSurfaceAt(segment: Segment, x: number): number {
+  const t = clamp((x - segment.x) / segment.w, 0, 1)
+  const baseline = segment.y + ((segment.endY ?? segment.y) - segment.y) * t
+  return segment.route === 'underpass' ? baseline + Math.sin(t * Math.PI) * 96 : baseline
+}
+
 export function surfaceAt(run: Run, x: number): number | null {
   for (const s of run.segments) {
     if (x >= s.x && x <= s.x + s.w) {
-      const t = clamp((x - s.x) / s.w, 0, 1)
-      return s.y + ((s.endY ?? s.y) - s.y) * t
+      return segmentSurfaceAt(s, x)
     }
   }
   return null
@@ -429,10 +441,11 @@ function generateSegment(run: Run) {
   const difficulty = difficultyAt(dist)
   const zone = zoneAt(dist, run.seed)
   const rng = run.rng
+  const underpass = difficulty > 0.12 && zone === 'station' && rng() < 0.3
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
   // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
-  const hasGap = run.segments.length > 0 && rng() < 0.8 + difficulty * 0.14
+  const hasGap = !underpass && run.segments.length > 0 && rng() < 0.8 + difficulty * 0.14
   // 穴幅と同じ乱数から大穴かを決め、追加要素によって後続コースの乱数列を
   // ずらさない。既存の障害物配置のプレイ可能性を保ったまま大穴を混ぜられる。
   const gapRoll = hasGap ? rng() : 0
@@ -455,7 +468,7 @@ function generateSegment(run: Run) {
   const slopeRoll = rng()
   const slopeChance = 0.64
   const slopeDelta =
-    slopeRoll < slopeChance
+    !underpass && slopeRoll < slopeChance
       ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
       : 0
   const endY = clamp(y + slopeDelta, ROAD_MIN_Y, ROAD_MAX_Y)
@@ -475,14 +488,13 @@ function generateSegment(run: Run) {
     entryClear,
     exitClear,
   }
-  const underpass = difficulty > 0.12 && zone === 'station' && rng() < 0.3
   if (underpass) segment.route = 'underpass'
   run.segments.push(segment)
 
   const safeStart = x + entryClear
   const safeEnd = x + w - exitClear
   const room = safeEnd - safeStart
-  const roadAt = (px: number) => y + (endY - y) * clamp((px - x) / w, 0, 1)
+  const roadAt = (px: number) => segmentSurfaceAt(segment, px)
   const roll = rng()
   if (!underpass && room > 120 && roll < 1) {
     const cluster = run.serial++
@@ -549,8 +561,17 @@ function generateSegment(run: Run) {
   const routeClear = Math.max(120, speed * 0.22)
   const routeStart = x + routeClear
   const routeEnd = x + w - routeClear
-  if (
-    !underpass &&
+  if (underpass) {
+    const streetStart = x + Math.max(105, speed * 0.14)
+    const streetEnd = x + w - Math.max(105, speed * 0.14)
+    addPlatform(run, 'street', streetStart, streetEnd - streetStart, y)
+    for (let coinX = streetStart + 36; coinX < streetEnd - 20; coinX += 44) {
+      addCoin(run, coinX, y - 36)
+    }
+    for (let coinX = x + 170; coinX < x + w - 150; coinX += 54) {
+      addCoin(run, coinX, segmentSurfaceAt(segment, coinX) - 45)
+    }
+  } else if (
     routeEnd - routeStart > 620 &&
     difficulty > 0.18 &&
     zone !== 'shopping' &&
@@ -566,7 +587,6 @@ function generateSegment(run: Run) {
       for (let coinX = px + 25; coinX < px + platformW - 10; coinX += 40) addCoin(run, coinX, py - 32)
     }
   } else if (
-    !underpass &&
     routeEnd - routeStart > 620 &&
     difficulty > 0.18 &&
     routeRoll < (zone === 'shopping' ? 0.72 : 0.38)
