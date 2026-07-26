@@ -576,7 +576,11 @@ export default function ChariGameView({ data, onBack }: Props) {
         </div>
         <div className="chari-foot">
           <span className="chari-caption mono">{caption}</span>
-          <span className="jp">Space / Z / ↑ ジャンプ · ↓ / X 急降下 · R やりなおし · ESC もどる</span>
+          <span className="jp">
+            {touch
+              ? '画面タップでジャンプ（長押しで高く・空中でもう1回） · DIVEで急降下'
+              : 'Space / Z / ↑ ジャンプ · ↓ / X 急降下 · R やりなおし · ESC もどる'}
+          </span>
         </div>
       </div>
     </main>
