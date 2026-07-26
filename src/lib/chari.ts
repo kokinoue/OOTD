@@ -54,6 +54,12 @@ export type Segment = {
   exitClear: number
 }
 export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station' | 'school'
+export type ZoneProfile = {
+  gapChance: number
+  slopeChance: number
+  coinMultiplier: number
+  specialRouteChance: number
+}
 export type WeatherKind = 'clear' | 'rain' | 'wind' | 'fog'
 export type CommutePhase =
   | 'early'
@@ -255,20 +261,42 @@ export function zoneAt(dist: number, seed = 0): ZoneKind {
   return zones[zoneIndexAt(block, seed) % zones.length]
 }
 
+export function zoneProfileAt(zone: ZoneKind): ZoneProfile {
+  return {
+    residential: { gapChance: 0.46, slopeChance: 0.34, coinMultiplier: 1, specialRouteChance: 0.18 },
+    shopping: { gapChance: 0.7, slopeChance: 0.46, coinMultiplier: 2, specialRouteChance: 0.92 },
+    construction: { gapChance: 0.94, slopeChance: 0.88, coinMultiplier: 1, specialRouteChance: 0.26 },
+    station: { gapChance: 0.66, slopeChance: 0.52, coinMultiplier: 1, specialRouteChance: 0.58 },
+    school: { gapChance: 0.54, slopeChance: 0.4, coinMultiplier: 1, specialRouteChance: 0.88 },
+  }[zone]
+}
+
 export function weatherAt(dist: number, seed = 0): WeatherKind {
   const weathers: WeatherKind[] = ['clear', 'rain', 'wind', 'fog']
   const block = Math.floor(Math.max(0, dist) / WEATHER_LENGTH)
   return weathers[(block + (seed >>> 0)) % weathers.length]
 }
 
-export function motionSpeedFor(run: Run): number {
-  const weather = effectiveWeatherFor(run)
+function motionSpeedWithWeather(run: Run, weather: WeatherKind): number {
   const windPush =
     weather === 'wind'
       ? ((run.seed & 1) === 0 ? 145 : -145) * (1 - run.traits.windResist)
       : 0
   const wetRoadBoost = weather === 'rain' ? 1 + 0.11 * (1 - run.traits.rainGrip) : 1
   return Math.max(320, run.speed * run.traits.speedMul * wetRoadBoost + windPush)
+}
+
+export function motionSpeedAt(run: Run, dist: number): number {
+  return motionSpeedWithWeather(run, weatherAt(dist, run.seed))
+}
+
+export function minimumMotionSpeedAt(run: Run, dist: number): number {
+  const baseSpeed = speedAt(dist) * run.traits.speedMul
+  return Math.max(320, baseSpeed - 145 * (1 - run.traits.windResist))
+}
+
+export function motionSpeedFor(run: Run): number {
+  return motionSpeedWithWeather(run, effectiveWeatherFor(run))
 }
 
 export function isUnderpassAt(run: Run, x = run.player.x): boolean {
@@ -468,23 +496,33 @@ export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
 function generateSegment(run: Run) {
   const dist = Math.max(0, run.nextX - run.startX)
   const speed = speedAt(dist)
+  // 穴の途中で向かい風へ切り替わっても越えられる幅にする。
+  const traversalSpeed = minimumMotionSpeedAt(run, dist)
   const difficulty = difficultyAt(dist)
   const zone = zoneAt(dist, run.seed)
+  const zoneProfile = zoneProfileAt(zone)
   const commutePhase = commuteClockAt(dist).phase
   const rng = run.rng
-  const underpass = difficulty > 0.12 && zone === 'station' && rng() < 0.3
+  const underpass =
+    difficulty > 0.12 && zone === 'station' && rng() < zoneProfile.specialRouteChance
 
   // 穴を伴う区間遷移だけ高さを変える。地続きの段差は作らない。
   // 後半ほど穴が続く。幅もジャンプ限界へ寄せるが、物理上の上限は必ず守る。
-  const hasGap = !underpass && run.segments.length > 0 && rng() < 0.8 + difficulty * 0.14
+  const hasGap =
+    !underpass &&
+    run.segments.length > 0 &&
+    rng() < clamp(zoneProfile.gapChance + difficulty * 0.08, 0, 0.98)
   // 穴幅と同じ乱数から大穴かを決め、追加要素によって後続コースの乱数列を
   // ずらさない。既存の障害物配置のプレイ可能性を保ったまま大穴を混ぜられる。
   const gapRoll = hasGap ? rng() : 0
   const airGap = hasGap && difficulty > 0.12 && gapRoll < 0.2 + difficulty * 0.2
   const gap = hasGap
     ? airGap
-      ? speed * JUMP_AIRTIME * (1.06 + gapRoll * 0.07)
-      : Math.max(64, maxGapFor(speed) * (0.9 + gapRoll * (0.09 + difficulty * 0.01)))
+      ? traversalSpeed * JUMP_AIRTIME * (1.06 + gapRoll * 0.07)
+      : Math.max(
+          64,
+          maxGapFor(traversalSpeed) * (0.9 + gapRoll * (0.09 + difficulty * 0.01)),
+        )
     : 0
   let y = run.nextY
   if (hasGap && rng() < 0.38) {
@@ -497,7 +535,7 @@ function generateSegment(run: Run) {
   // 長い道路区間は緩やかな上り／下りにする。区間末端を次区間の始点へ
   // 引き継ぐので、穴がない場所では路面が滑らかにつながる。
   const slopeRoll = rng()
-  const slopeChance = 0.64
+  const slopeChance = zoneProfile.slopeChance
   const slopeDelta =
     !underpass && slopeRoll < slopeChance
       ? (rng() < 0.5 ? -1 : 1) * (36 + rng() * (SLOPE_MAX_H - 36))
@@ -531,18 +569,25 @@ function generateSegment(run: Run) {
     const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
     const kindRoll = rng()
-    if (zone === 'construction' && kindRoll < 0.3) {
+    if (zone === 'construction' && kindRoll < 0.58) {
       const count = 3
       for (let i = 0; i < count; i++) {
         const px = clamp(center - 40 + i * 40, safeStart, safeEnd)
         addObstacle(run, 'pylon', px, roadAt(px + 12), cluster)
       }
       addObstacle(run, 'fence', clamp(center + 95, safeStart, safeEnd - 42), roadAt(center + 116), cluster)
-    } else if (zone === 'station' && kindRoll < 0.16 && difficulty > 0.25) {
+    } else if (zone === 'construction' && kindRoll < 0.78 && difficulty > 0.3) {
+      const truckX = clamp(center, safeStart, safeEnd - 118)
+      addObstacle(run, 'truck', truckX, roadAt(truckX + 59), cluster)
+      addCoinArc(run, truckX - 45, truckX + 165, roadAt(truckX + 59), 155)
+    } else if (zone === 'station' && kindRoll < 0.3 && difficulty > 0.2) {
       addObstacle(run, 'crossing', center, roadAt(center + 10), cluster)
-    } else if (zone === 'school' && kindRoll < 0.18 && difficulty > 0.08) {
+    } else if (zone === 'station' && kindRoll < 0.58 && difficulty > 0.1) {
+      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
+      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
+    } else if (zone === 'school' && kindRoll < 0.32 && difficulty > 0.08) {
       addObstacle(run, 'students', center, roadAt(center + 29), cluster)
-    } else if (zone === 'school' && kindRoll < 0.34) {
+    } else if (zone === 'school' && kindRoll < 0.64) {
       addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
     } else if (
       (commutePhase === 'lunch' || commutePhase === 'eveningRush') &&
@@ -551,7 +596,11 @@ function generateSegment(run: Run) {
     ) {
       addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
       addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
-    } else if ((zone === 'residential' || zone === 'shopping') && kindRoll < 0.13 && difficulty > 0.12) {
+    } else if (
+      ((zone === 'residential' && kindRoll < 0.38) ||
+        (zone === 'shopping' && kindRoll < 0.2)) &&
+      difficulty > 0.1
+    ) {
       addObstacle(run, 'signal', clamp(center, safeStart, safeEnd - 104), roadAt(center + 52), cluster)
     } else if (kindRoll < 0.35) {
       // 最初から2連、少し走ればほぼ3連。ひと跳びで越せるクラスタ幅に収める。
@@ -614,7 +663,7 @@ function generateSegment(run: Run) {
     routeEnd - routeStart > 620 &&
     difficulty > 0.18 &&
     zone !== 'shopping' &&
-    routeRoll < (zone === 'school' ? 0.62 : 0.18)
+    routeRoll < (zone === 'school' ? zoneProfile.specialRouteChance : 0.18)
   ) {
     const heights = [58, 94, 126, 94, 58]
     const platformW = 128
@@ -628,7 +677,7 @@ function generateSegment(run: Run) {
   } else if (
     routeEnd - routeStart > 620 &&
     difficulty > 0.18 &&
-    routeRoll < (zone === 'shopping' ? 0.72 : 0.38)
+    routeRoll < (zone === 'shopping' ? zoneProfile.specialRouteChance : 0.38)
   ) {
     const roofRoute = zone === 'shopping'
     const count = roofRoute ? 4 : 3
@@ -914,7 +963,9 @@ export function step(run: Run, input: Input, dt: number): void {
         run.maxCombo = Math.max(run.maxCombo, run.combo)
         run.comboTimer = COMBO_TIMEOUT + run.traits.comboBonus
         const lunchBonus = commuteClockAt(run.distance).phase === 'lunch' ? 2 : 1
-        const points = 10 * Math.min(4, 1 + Math.floor(run.combo / 5)) * lunchBonus
+        const zoneBonus = zoneProfileAt(zoneAt(run.distance, run.seed)).coinMultiplier
+        const points =
+          10 * Math.min(4, 1 + Math.floor(run.combo / 5)) * lunchBonus * zoneBonus
         run.coinScore += points
         event(run, 'coin', points)
         if (run.combo > 1) event(run, 'combo', run.combo)

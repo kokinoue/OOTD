@@ -120,6 +120,14 @@ const zoneLabel = {
   school: 'スクールゾーン',
 } as const
 
+const zoneEffectLabel = {
+  residential: '信号中心',
+  shopping: '屋根・COIN×2',
+  construction: '大穴・急坂',
+  station: '踏切・地下道',
+  school: '児童・歩道橋',
+} as const
+
 const weatherLabel = {
   clear: '晴れ',
   rain: '雨',
@@ -287,6 +295,13 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
       ctx.fillStyle = '#d45b4c'
       ctx.fillRect(x + 92, 258, 48, 7)
     }
+    const trainX = ((cameraX * -0.72) % (VIEW_W + 620)) - 180
+    ctx.fillStyle = '#d9e1e2'
+    ctx.fillRect(trainX, 292, 520, 62)
+    ctx.fillStyle = '#4f7381'
+    for (let wx = 18; wx < 490; wx += 62) ctx.fillRect(trainX + wx, 304, 42, 25)
+    ctx.fillStyle = '#d85d4b'
+    ctx.fillRect(trainX, 342, 520, 8)
   } else if (zone === 'school') {
     for (let i = -1; i < 5; i++) {
       const x = i * 300 - ((cameraX * 0.2) % 300)
@@ -600,6 +615,7 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
 
 function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
   const weather = effectiveWeatherFor(run)
+  const zone = zoneAt(run.distance, run.seed)
   if (weather === 'rain') {
     ctx.strokeStyle = 'rgba(220,239,247,.62)'
     ctx.lineWidth = 2
@@ -681,6 +697,16 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     light.addColorStop(1, 'rgba(4,7,18,.72)')
     ctx.fillStyle = light
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+  }
+  if (zone === 'construction') {
+    ctx.fillStyle = 'rgba(199,166,111,.22)'
+    for (let i = 0; i < 16; i++) {
+      const phase = (t * 0.18 + i * 0.093) % 1
+      const x = (i * 83 - t * 55) % (VIEW_W + 100)
+      ctx.beginPath()
+      ctx.arc(x, 410 - phase * 190, 18 + phase * 34, 0, Math.PI * 2)
+      ctx.fill()
+    }
   }
 }
 
@@ -987,7 +1013,8 @@ export default function ChariGameView({ data, onBack }: Props) {
       const weather = weatherAt(run.distance, run.seed)
       const commute = commuteClockAt(run.distance)
       if (zoneRef.current) {
-        zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
+        zoneRef.current.textContent =
+          `${zoneIcon[zone]} ${zoneLabel[zone]}・${zoneEffectLabel[zone]}`
         zoneRef.current.dataset.zone = zone
       }
       if (weatherRef.current) {

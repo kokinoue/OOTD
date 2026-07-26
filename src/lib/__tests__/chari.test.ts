@@ -25,6 +25,7 @@ import {
   maxAirGapFor,
   maxGapFor,
   metersOf,
+  minimumMotionSpeedAt,
   minObstacleSpacing,
   motionSpeedFor,
   nextZoneInfo,
@@ -37,6 +38,7 @@ import {
   surfaceAt,
   weatherAt,
   zoneAt,
+  zoneProfileAt,
   type Run,
 } from '../chari'
 
@@ -82,7 +84,7 @@ describe('チャリ通のコース生成', () => {
     ensureAhead(run, 100_000)
     for (const s of run.segments) {
       if (s.gapBefore <= 0) continue
-      const speed = speedAt(s.x - run.startX)
+      const speed = minimumMotionSpeedAt(run, s.x - run.startX)
       expect(s.gapBefore).toBeLessThanOrEqual(s.airGap ? maxAirGapFor(speed) : maxGapFor(speed))
     }
   })
@@ -93,7 +95,7 @@ describe('チャリ通のコース生成', () => {
     const airGaps = run.segments.filter((s) => s.airGap)
     expect(airGaps.length).toBeGreaterThan(0)
     for (const s of airGaps) {
-      const speed = speedAt(s.x - run.startX)
+      const speed = minimumMotionSpeedAt(run, s.x - run.startX)
       expect(s.gapBefore).toBeGreaterThan((speed * 2 * JUMP_V) / GRAV)
       expect(s.gapBefore).toBeLessThanOrEqual(maxAirGapFor(speed))
     }
@@ -194,6 +196,16 @@ describe('チャリ通のコース生成', () => {
     expect(new Set(first)).toEqual(
       new Set(['residential', 'shopping', 'construction', 'station', 'school']),
     )
+  })
+
+  it('エリアごとにコース生成と報酬の特性が大きく異なる', () => {
+    expect(zoneProfileAt('residential').gapChance).toBeLessThan(
+      zoneProfileAt('construction').gapChance,
+    )
+    expect(zoneProfileAt('construction').slopeChance).toBeGreaterThan(0.8)
+    expect(zoneProfileAt('shopping').coinMultiplier).toBe(2)
+    expect(zoneProfileAt('station').specialRouteChance).toBeGreaterThan(0.5)
+    expect(zoneProfileAt('school').specialRouteChance).toBeGreaterThan(0.8)
   })
 
   it('晴れ・雨・強風・霧が距離に応じて切り替わる', () => {
@@ -548,12 +560,25 @@ describe('チャリ通の物理', () => {
   })
 
   it('ランチタイムはコイン得点が2倍になる', () => {
-    const run = createRun(7)
+    const seed = Array.from({ length: 100 }, (_, index) => index + 1)
+      .find((candidate) => zoneAt(75_000, candidate) !== 'shopping')!
+    const run = createRun(seed)
     run.startX = run.player.x - 75_000
     run.obstacles = []
     run.coins = [{ id: 1, x: run.player.x + 2, y: run.player.y - 28, taken: false }]
     step(run, idle, 1 / 120)
     expect(commuteClockAt(run.distance).phase).toBe('lunch')
+    expect(run.coinScore).toBe(20)
+  })
+
+  it('商店街はコイン得点が2倍になる', () => {
+    const seed = Array.from({ length: 100 }, (_, index) => index + 1)
+      .find((candidate) => zoneAt(0, candidate) === 'shopping')!
+    const run = createRun(seed)
+    run.obstacles = []
+    run.coins = [{ id: 1, x: run.player.x + 2, y: run.player.y - 28, taken: false }]
+    step(run, idle, 1 / 120)
+    expect(zoneAt(run.distance, run.seed)).toBe('shopping')
     expect(run.coinScore).toBe(20)
   })
 
