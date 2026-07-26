@@ -3,6 +3,7 @@ import {
   BEST_KEY,
   COIN_RADIUS,
   COMBO_TIMEOUT,
+  COMMUTE_MINUTE_SECONDS,
   DEFAULT_RIDER_TRAITS,
   GRAV,
   JUMP_V,
@@ -295,16 +296,59 @@ describe('チャリ通のコース生成', () => {
     expect(zoneProfileAt('school').specialRouteChance).toBeGreaterThan(0.8)
   })
 
+  it('各エリアは3段階の専用障害物パターンを持つ', () => {
+    const signatures = new Set<string>()
+    for (let seed = 1; seed <= 12; seed++) {
+      const run = createRun(seed)
+      ensureAhead(run, 200_000)
+      for (const segment of run.segments) {
+        if (segment.route === 'underpass') continue
+        const dist = Math.max(0, segment.x - run.startX)
+        const zone = zoneAt(dist, seed)
+        const patternStep = Math.min(
+          2,
+          Math.floor(((dist % 9000) / 9000) * 3),
+        )
+        const kinds = run.obstacles
+          .filter(
+            (obstacle) =>
+              obstacle.x >= segment.x && obstacle.x < segment.x + segment.w,
+          )
+          .map((obstacle) => obstacle.kind)
+        for (const kind of kinds) signatures.add(`${zone}:${patternStep}:${kind}`)
+      }
+    }
+
+    for (const signature of [
+      'residential:0:signal',
+      'residential:1:commuter',
+      'residential:2:bird',
+      'shopping:0:fence',
+      'shopping:1:commuter',
+      'shopping:2:ramp',
+      'construction:0:pylon',
+      'construction:1:pylon',
+      'construction:2:truck',
+      'station:0:crossing',
+      'station:1:commuter',
+      'school:0:ball',
+      'school:1:students',
+      'school:2:students',
+    ]) {
+      expect(signatures.has(signature), signature).toBe(true)
+    }
+  })
+
   it('晴れ・雨・強風・霧が距離に応じて切り替わる', () => {
-    expect(new Set([0, 6000, 12000, 18000].map((d) => weatherAt(d, 0)))).toEqual(
+    expect(new Set([0, 12000, 24000, 36000].map((d) => weatherAt(d, 0)))).toEqual(
       new Set(['clear', 'rain', 'wind', 'fog']),
     )
   })
 
   it('天候は区間境界から徐々に次の状態へ変化する', () => {
-    const start = weatherTransitionAt(6000, 0)
-    const middle = weatherTransitionAt(6900, 0)
-    const end = weatherTransitionAt(7800, 0)
+    const start = weatherTransitionAt(12000, 0)
+    const middle = weatherTransitionAt(13200, 0)
+    const end = weatherTransitionAt(14400, 0)
     expect(start).toEqual({ from: 'clear', to: 'rain', progress: 0 })
     expect(middle).toEqual({ from: 'clear', to: 'rain', progress: 0.5 })
     expect(end).toEqual({ from: 'clear', to: 'rain', progress: 1 })
@@ -312,39 +356,40 @@ describe('チャリ通のコース生成', () => {
     expect(weatherStrength(middle, 'rain')).toBe(0.5)
 
     const run = createRun(0)
-    expect(motionSpeedAt(run, 6000)).toBeCloseTo(800)
-    expect(motionSpeedAt(run, 6900)).toBeCloseTo(844)
-    expect(motionSpeedAt(run, 7800)).toBeCloseTo(888)
+    expect(motionSpeedAt(run, 12000)).toBeCloseTo(800)
+    expect(motionSpeedAt(run, 13200)).toBeCloseTo(844)
+    expect(motionSpeedAt(run, 14400)).toBeCloseTo(888)
   })
 
   it('通勤時刻が一日の時間帯に応じて切り替わる', () => {
     expect(commuteClockAt(0)).toMatchObject({ label: '07:20', phase: 'early' })
-    expect(commuteClockAt(12_000)).toMatchObject({ label: '08:00', phase: 'morningRush' })
-    expect(commuteClockAt(25_500)).toMatchObject({ label: '08:45', phase: 'morningRush' })
-    expect(commuteClockAt(48_000)).toMatchObject({ label: '10:00', phase: 'daytime' })
-    expect(commuteClockAt(75_000)).toMatchObject({ label: '11:30', phase: 'lunch' })
-    expect(commuteClockAt(111_000)).toMatchObject({ label: '13:30', phase: 'afternoon' })
-    expect(commuteClockAt(174_000)).toMatchObject({ label: '17:00', phase: 'eveningRush' })
-    expect(commuteClockAt(192_000)).toMatchObject({ label: '18:00', phase: 'eveningRush' })
-    expect(commuteClockAt(228_000)).toMatchObject({ label: '20:00', phase: 'night' })
-    expect(isNightTimeAt(192_000)).toBe(true)
-    expect(commuteClockAt(432_000)).toMatchObject({ label: '07:20', phase: 'early' })
+    expect(commuteClockAt(15)).toMatchObject({ label: '08:00', phase: 'morningRush' })
+    expect(commuteClockAt(31.875)).toMatchObject({ label: '08:45', phase: 'morningRush' })
+    expect(commuteClockAt(60)).toMatchObject({ label: '10:00', phase: 'daytime' })
+    expect(commuteClockAt(93.75)).toMatchObject({ label: '11:30', phase: 'lunch' })
+    expect(commuteClockAt(138.75)).toMatchObject({ label: '13:30', phase: 'afternoon' })
+    expect(commuteClockAt(217.5)).toMatchObject({ label: '17:00', phase: 'eveningRush' })
+    expect(commuteClockAt(240)).toMatchObject({ label: '18:00', phase: 'eveningRush' })
+    expect(commuteClockAt(285)).toMatchObject({ label: '20:00', phase: 'night' })
+    expect(isNightTimeAt(240)).toBe(true)
+    expect(commuteClockAt(540)).toMatchObject({ label: '07:20', phase: 'early' })
   })
 
   it('プレイごとに通勤時計の開始時刻が変わり、同じseedでは再現できる', () => {
     const starts = Array.from({ length: 24 }, (_, index) => commuteClockAt(0, index + 1).label)
     expect(new Set(starts).size).toBeGreaterThan(16)
     expect(commuteClockAt(0, 2026)).toEqual(commuteClockAt(0, 2026))
-    expect(commuteClockAt(18_000, 2026).minute)
+    expect(commuteClockAt(60 * COMMUTE_MINUTE_SECONDS, 2026).minute)
       .toBe((commuteStartMinute(2026) + 60) % 60)
   })
 
   it('夜間モードとエリアは独立して組み合わせられる', () => {
+    const nightElapsed = 240
     const nightDistance = 192_000
     const area = zoneAt(nightDistance, 77)
     expect(['residential', 'shopping', 'construction', 'station', 'school']).toContain(area)
-    expect(commuteClockAt(nightDistance).phase).toBe('eveningRush')
-    expect(isNightTimeAt(nightDistance)).toBe(true)
+    expect(commuteClockAt(nightElapsed).phase).toBe('eveningRush')
+    expect(isNightTimeAt(nightElapsed)).toBe(true)
   })
 
   it('次のエリアと境界までの距離を返す', () => {
@@ -519,19 +564,18 @@ describe('チャリ通の物理', () => {
     run.elapsed = 3.3
     expect(obstacleActive(run, signal)).toBe(false)
     expect(obstacleActive(run, crossing)).toBe(false)
-    run.distance = 12_000
-    run.elapsed = 3.1
+    run.elapsed = 19.1
     expect(obstacleActive(run, signal)).toBe(false)
-    run.distance = 174_000
+    run.elapsed = 219.1
     expect(obstacleActive(run, signal)).toBe(true)
-    run.elapsed = 2.7
+    run.elapsed = 218.7
     expect(obstacleActive(run, signal)).toBe(true)
   })
 
   it('帰宅ラッシュは出勤ラッシュより通勤者の移動が速い', () => {
-    const makeCommuterRun = (distance: number) => {
+    const makeCommuterRun = (elapsed: number) => {
       const run = createRun(0)
-      run.startX = run.player.x - distance
+      run.elapsed = elapsed
       run.obstacles = [{
         id: 1,
         kind: 'commuter',
@@ -546,8 +590,8 @@ describe('チャリ通の物理', () => {
       }]
       return run
     }
-    const morning = makeCommuterRun(12_000)
-    const evening = makeCommuterRun(174_000)
+    const morning = makeCommuterRun(19)
+    const evening = makeCommuterRun(219)
     step(morning, idle, 1 / 120)
     step(evening, idle, 1 / 120)
     expect(evening.obstacles[0].x).toBeLessThan(morning.obstacles[0].x)
@@ -572,7 +616,7 @@ describe('チャリ通の物理', () => {
     expect(motionSpeedFor(tailwind)).toBeCloseTo(945)
 
     const headwind = createRun(1)
-    headwind.distance = 7800
+    headwind.distance = 15_600
     expect(motionSpeedFor(headwind)).toBeCloseTo(655)
     headwind.traits = { ...DEFAULT_RIDER_TRAITS, windResist: 0.8, effects: ['強風耐性'] }
     expect(motionSpeedFor(headwind)).toBeCloseTo(771)
@@ -721,16 +765,16 @@ describe('チャリ通の物理', () => {
     const candidate = Array.from({ length: 100 }, (_, index) => {
       const seed = index + 1
       const minutesUntilLunch = (11 * 60 + 30 - commuteStartMinute(seed) + 24 * 60) % (24 * 60)
-      const distance = minutesUntilLunch * 300
-      return { seed, distance }
-    }).find(({ seed, distance }) => zoneAt(distance, seed) !== 'shopping')!
-    const { seed, distance } = candidate
+      const elapsed = minutesUntilLunch * COMMUTE_MINUTE_SECONDS
+      return { seed, elapsed }
+    }).find(({ seed }) => zoneAt(0, seed) !== 'shopping')!
+    const { seed, elapsed } = candidate
     const run = createRun(seed)
-    run.startX = run.player.x - distance
+    run.elapsed = elapsed
     run.obstacles = []
     run.coins = [{ id: 1, x: run.player.x + 2, y: run.player.y - 28, taken: false }]
     step(run, idle, 1 / 120)
-    expect(commuteClockAt(run.distance, run.seed).phase).toBe('lunch')
+    expect(commuteClockAt(run.elapsed, run.seed).phase).toBe('lunch')
     expect(run.coinScore).toBe(20)
   })
 

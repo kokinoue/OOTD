@@ -124,11 +124,11 @@ const zoneLabel = {
 } as const
 
 const zoneEffectLabel = {
-  residential: '信号中心',
-  shopping: '屋根・COIN×2',
-  construction: '大穴・急坂',
-  station: '踏切・地下道',
-  school: '児童・歩道橋',
+  residential: '信号・通勤者・飛来鳥',
+  shopping: '屋根・人波・COIN×2',
+  construction: '資材・急坂・トラック',
+  station: '踏切・人波・地下道',
+  school: 'ボール・児童・歩道橋',
 } as const
 
 const weatherLabel = {
@@ -188,8 +188,8 @@ function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number
   const weatherTransition = weatherTransitionAt(run.distance, run.seed)
   const rainStrength = weatherStrength(weatherTransition, 'rain')
   const fogStrength = weatherStrength(weatherTransition, 'fog')
-  const commute = commuteClockAt(run.distance, run.seed)
-  const isNight = isNightTimeAt(run.distance, run.seed)
+  const commute = commuteClockAt(run.elapsed, run.seed)
+  const isNight = isNightTimeAt(run.elapsed, run.seed)
   const daytimeTop =
     commute.phase === 'early'
       ? '#e6b5a1'
@@ -508,7 +508,7 @@ function drawRoadAndItems(ctx: CanvasRenderingContext2D, run: Run, cameraX: numb
     ctx.stroke()
   }
   ctx.save()
-  ctx.shadowColor = isNightTimeAt(run.distance, run.seed)
+  ctx.shadowColor = isNightTimeAt(run.elapsed, run.seed)
     ? 'rgba(255,232,151,.62)'
     : 'rgba(255,255,255,.52)'
   ctx.shadowBlur = 7
@@ -793,7 +793,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
     ctx.restore()
   }
-  if (isNightTimeAt(run.distance, run.seed)) {
+  if (isNightTimeAt(run.elapsed, run.seed)) {
     const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
     light.addColorStop(0, 'rgba(255,244,183,0)')
     light.addColorStop(0.62, 'rgba(7,10,22,.32)')
@@ -1111,7 +1111,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       const zone = zoneAt(run.distance, run.seed)
       const weather = weatherAt(run.distance, run.seed)
       const weatherTransition = weatherTransitionAt(run.distance, run.seed)
-      const commute = commuteClockAt(run.distance, run.seed)
+      const commute = commuteClockAt(run.elapsed, run.seed)
       if (zoneRef.current) {
         zoneRef.current.textContent =
           `${zoneIcon[zone]} ${zoneLabel[zone]}・${zoneEffectLabel[zone]}`

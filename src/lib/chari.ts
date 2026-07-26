@@ -23,8 +23,10 @@ export const GENERATE_AHEAD = 1800
 export const PRUNE_BEHIND = 700
 export const COMBO_TIMEOUT = 1.8
 export const ZONE_LENGTH = 9000
-export const WEATHER_LENGTH = 6000
-export const WEATHER_TRANSITION_LENGTH = 1800
+// 1天候は約400m（基本速度で約15秒）続き、うち約3秒を遷移に使う。
+export const WEATHER_LENGTH = 12000
+export const WEATHER_TRANSITION_LENGTH = 2400
+export const COMMUTE_MINUTE_SECONDS = 0.375
 export const UNDERPASS_DEPTH = 96
 export const UNDERPASS_STREET_LIFT = 100
 
@@ -363,13 +365,16 @@ export function commuteStartMinute(seed = 0): number {
   return ((mixed ^ (mixed >>> 16)) >>> 0) % (24 * 60)
 }
 
-export function commuteClockAt(dist: number, seed = 0): {
+export function commuteClockAt(elapsedSeconds: number, seed = 0): {
   hour: number
   minute: number
   label: string
   phase: CommutePhase
 } {
-  const total = commuteStartMinute(seed) + Math.floor(Math.max(0, dist) / 300)
+  // 走行距離や坂・天候による速度差から切り離し、実時間0.375秒で1分進める。
+  const total =
+    commuteStartMinute(seed) +
+    Math.floor(Math.max(0, elapsedSeconds) / COMMUTE_MINUTE_SECONDS)
   const minutesOfDay = total % (24 * 60)
   const hour = Math.floor(minutesOfDay / 60)
   const minute = minutesOfDay % 60
@@ -390,8 +395,8 @@ export function commuteClockAt(dist: number, seed = 0): {
   return { hour, minute, label: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`, phase }
 }
 
-export function isNightTimeAt(dist: number, seed = 0): boolean {
-  const { hour } = commuteClockAt(dist, seed)
+export function isNightTimeAt(elapsedSeconds: number, seed = 0): boolean {
+  const { hour } = commuteClockAt(elapsedSeconds, seed)
   return hour < 5 || hour >= 18
 }
 
@@ -557,7 +562,7 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
 
 export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   if (obstacle.kind === 'signal') {
-    const phase = commuteClockAt(run.distance, run.seed).phase
+    const phase = commuteClockAt(run.elapsed, run.seed).phase
     const redTime =
       phase === 'eveningRush'
         ? 3.25
@@ -572,6 +577,91 @@ export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   return true
 }
 
+function addZonePattern(
+  run: Run,
+  zone: ZoneKind,
+  patternStep: number,
+  center: number,
+  safeStart: number,
+  safeEnd: number,
+  roadAt: (x: number) => number,
+  difficulty: number,
+): void {
+  const cluster = run.serial++
+  if (zone === 'residential') {
+    if (patternStep === 0) {
+      const obstacleX = clamp(center, safeStart, safeEnd - 104)
+      addObstacle(run, 'signal', obstacleX, roadAt(obstacleX + 52), cluster)
+    } else if (patternStep === 1) {
+      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
+      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
+    } else {
+      if (difficulty > 0.16) {
+        addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
+        for (let coinX = center - 35; coinX <= center + 75; coinX += 42) {
+          addCoin(run, coinX, roadAt(coinX) - 44)
+        }
+      } else {
+        addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
+      }
+    }
+    return
+  }
+  if (zone === 'shopping') {
+    if (patternStep === 0) {
+      addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
+      addCoinArc(run, center - 28, center + 72, roadAt(center + 21), 62)
+    } else if (patternStep === 1) {
+      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
+      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
+    } else {
+      addObstacle(run, 'ramp', center, roadAt(center + 29), cluster)
+      addCoinArc(run, center + 38, safeEnd, roadAt(center + 80), 115)
+    }
+    return
+  }
+  if (zone === 'construction') {
+    if (patternStep === 2 && difficulty > 0.3) {
+      const truckX = clamp(center, safeStart, safeEnd - 118)
+      addObstacle(run, 'truck', truckX, roadAt(truckX + 59), cluster)
+      addCoinArc(run, truckX - 45, truckX + 165, roadAt(truckX + 59), 155)
+      return
+    }
+    const count = patternStep === 1 ? 2 : 3
+    const first = clamp(center - 40, safeStart, safeEnd - (count - 1) * 40)
+    for (let index = 0; index < count; index++) {
+      const obstacleX = first + index * 40
+      addObstacle(run, 'pylon', obstacleX, roadAt(obstacleX + 12), cluster)
+    }
+    if (patternStep !== 1) {
+      const fenceX = clamp(first + count * 40 + 15, safeStart, safeEnd - 42)
+      addObstacle(run, 'fence', fenceX, roadAt(fenceX + 21), cluster)
+    }
+    addCoinArc(run, first - 5, first + count * 40 + 60, roadAt(center), 58)
+    return
+  }
+  if (zone === 'station') {
+    if (patternStep === 0) {
+      addObstacle(run, 'crossing', center, roadAt(center + 10), cluster)
+    } else if (patternStep === 1) {
+      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
+      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
+    } else {
+      addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
+      addCoinArc(run, center - 28, center + 72, roadAt(center + 21), 62)
+    }
+    return
+  }
+  if (patternStep === 0) {
+    addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
+  } else if (patternStep === 1) {
+    addObstacle(run, 'students', center, roadAt(center + 29), cluster)
+  } else {
+    addObstacle(run, 'students', center, roadAt(center + 29), cluster)
+    addCoinArc(run, center - 25, center + 100, roadAt(center + 29), 82)
+  }
+}
+
 function generateSegment(run: Run) {
   const dist = Math.max(0, run.nextX - run.startX)
   const speed = speedAt(dist)
@@ -580,10 +670,17 @@ function generateSegment(run: Run) {
   const difficulty = difficultyAt(dist)
   const zone = zoneAt(dist, run.seed)
   const zoneProfile = zoneProfileAt(zone)
-  const commutePhase = commuteClockAt(dist, run.seed).phase
+  const zonePatternStep = Math.min(
+    2,
+    Math.floor(((dist % ZONE_LENGTH) / ZONE_LENGTH) * 3),
+  )
   const rng = run.rng
   const underpass =
-    difficulty > 0.12 && zone === 'station' && rng() < zoneProfile.specialRouteChance
+    difficulty > 0.12 &&
+    zone === 'station' &&
+    (zonePatternStep === 2
+      ? rng() < 0.82
+      : rng() < zoneProfile.specialRouteChance * 0.32)
 
   // 急降下なしでも二段ジャンプ後に着地できるよう、直前の障害物から
   // 次の穴までは十分な回復距離を空ける。
@@ -668,78 +765,8 @@ function generateSegment(run: Run) {
   const roadAt = (px: number) => segmentSurfaceAt(segment, px)
   const roll = rng()
   if (!underpass && room > 120 && roll < 1) {
-    const cluster = run.serial++
     const center = safeStart + room * (0.25 + rng() * 0.5)
-    const kindRoll = rng()
-    if (zone === 'construction' && kindRoll < 0.58) {
-      const count = 3
-      for (let i = 0; i < count; i++) {
-        const px = clamp(center - 40 + i * 40, safeStart, safeEnd)
-        addObstacle(run, 'pylon', px, roadAt(px + 12), cluster)
-      }
-      addObstacle(run, 'fence', clamp(center + 95, safeStart, safeEnd - 42), roadAt(center + 116), cluster)
-    } else if (zone === 'construction' && kindRoll < 0.78 && difficulty > 0.3) {
-      const truckX = clamp(center, safeStart, safeEnd - 118)
-      addObstacle(run, 'truck', truckX, roadAt(truckX + 59), cluster)
-      addCoinArc(run, truckX - 45, truckX + 165, roadAt(truckX + 59), 155)
-    } else if (zone === 'station' && kindRoll < 0.3 && difficulty > 0.2) {
-      addObstacle(run, 'crossing', center, roadAt(center + 10), cluster)
-    } else if (zone === 'station' && kindRoll < 0.58 && difficulty > 0.1) {
-      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
-      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
-    } else if (zone === 'school' && kindRoll < 0.32 && difficulty > 0.08) {
-      addObstacle(run, 'students', center, roadAt(center + 29), cluster)
-    } else if (zone === 'school' && kindRoll < 0.64) {
-      addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
-    } else if (
-      (commutePhase === 'lunch' || commutePhase === 'eveningRush') &&
-      kindRoll < (commutePhase === 'eveningRush' ? 0.52 : 0.44) &&
-      difficulty > 0.1
-    ) {
-      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
-      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
-    } else if (
-      ((zone === 'residential' && kindRoll < 0.38) ||
-        (zone === 'shopping' && kindRoll < 0.2)) &&
-      difficulty > 0.1
-    ) {
-      addObstacle(run, 'signal', clamp(center, safeStart, safeEnd - 104), roadAt(center + 52), cluster)
-    } else if (kindRoll < 0.35) {
-      // 最初から2連、少し走ればほぼ3連。ひと跳びで越せるクラスタ幅に収める。
-      const count = difficulty > 0.2 ? (rng() < 0.88 ? 3 : 2) : 2
-      const spread = 40
-      const first = clamp(center - ((count - 1) * spread) / 2, safeStart, safeEnd - (count - 1) * spread)
-      for (let i = 0; i < count; i++) {
-        const px = first + i * spread
-        addObstacle(run, 'pylon', px, roadAt(px + 12), cluster)
-      }
-      const arcEnd = first + Math.max(75, (count - 1) * spread + 30)
-      addCoinArc(run, first - 5, arcEnd, roadAt((first + arcEnd) / 2), 48)
-    } else if (kindRoll < 0.61 && difficulty > 0.04) {
-      addObstacle(run, 'fence', center, roadAt(center + 21), cluster)
-      addCoinArc(run, center - 28, center + 72, roadAt(center + 22), 62)
-    } else if (kindRoll < 0.72 && difficulty > 0.3) {
-      // 通常ジャンプの最高点より高い配送トラック。手前から跳び、
-      // 空中ジャンプを重ねないと車体上端を越えられない。
-      const truckX = clamp(center, safeStart, safeEnd - 118)
-      addObstacle(run, 'truck', truckX, roadAt(truckX + 59), cluster)
-      addCoinArc(run, truckX - 45, truckX + 165, roadAt(truckX + 59), 155)
-    } else if (kindRoll < 0.82 && difficulty > 0.22) {
-      addObstacle(run, 'commuter', center, roadAt(center + 17), cluster)
-      addCoinArc(run, center - 25, center + 85, roadAt(center + 17), 54)
-    } else if (kindRoll < 0.94 && difficulty > 0.16) {
-      // 鳥は地上なら頭上を抜けられる。ジャンプ中だけ衝突する逆転障害物。
-      if (center - lastJumpObstacleEnd >= speed * 1.35) {
-        addObstacle(run, 'bird', center, roadAt(center + 21), cluster)
-      }
-      for (let px = center - 35; px <= center + 75; px += 42) {
-        addCoin(run, px, roadAt(px) - 44)
-      }
-    } else {
-      addObstacle(run, 'ramp', center, roadAt(center + 29), cluster)
-      const arcEnd = Math.min(safeEnd, center + 250)
-      addCoinArc(run, center + 38, arcEnd, roadAt((center + 38 + arcEnd) / 2), 115)
-    }
+    addZonePattern(run, zone, zonePatternStep, center, safeStart, safeEnd, roadAt, difficulty)
   } else if (room > 180) {
     const start = safeStart + 35
     const end = Math.min(safeEnd - 20, start + 150)
@@ -805,7 +832,9 @@ function generateSegment(run: Run) {
     !hasBirdOnSegment &&
     difficulty > 0.18 &&
     zone !== 'shopping' &&
-    routeRoll < (zone === 'school' ? zoneProfile.specialRouteChance : 0.18)
+    (zone === 'school' && zonePatternStep === 2
+      ? true
+      : routeRoll < (zone === 'school' ? zoneProfile.specialRouteChance : 0.18))
   ) {
     const heights = [58, 94, 126, 94, 58]
     const platformW = 128
@@ -820,7 +849,9 @@ function generateSegment(run: Run) {
     routeEnd - routeStart > 620 &&
     !hasBirdOnSegment &&
     difficulty > 0.18 &&
-    routeRoll < (zone === 'shopping' ? zoneProfile.specialRouteChance : 0.38)
+    (zone === 'shopping' && zonePatternStep !== 1
+      ? true
+      : routeRoll < (zone === 'shopping' ? zoneProfile.specialRouteChance : 0.38))
   ) {
     const roofRoute = zone === 'shopping'
     const count = roofRoute ? 4 : 3
@@ -1043,7 +1074,7 @@ export function step(run: Run, input: Input, dt: number): void {
           // 前方に見えてから動き出し、約0.6秒の予告を保ったまま接近させる。
           if (o.x - p.x <= 650) o.x += o.vx * h
         } else {
-          const phase = commuteClockAt(run.distance, run.seed).phase
+          const phase = commuteClockAt(run.elapsed, run.seed).phase
           const rushMul =
             phase === 'eveningRush'
               ? 1.5
@@ -1110,7 +1141,7 @@ export function step(run: Run, input: Input, dt: number): void {
         run.combo++
         run.maxCombo = Math.max(run.maxCombo, run.combo)
         run.comboTimer = COMBO_TIMEOUT + run.traits.comboBonus
-        const lunchBonus = commuteClockAt(run.distance, run.seed).phase === 'lunch' ? 2 : 1
+        const lunchBonus = commuteClockAt(run.elapsed, run.seed).phase === 'lunch' ? 2 : 1
         const zoneBonus = zoneProfileAt(zoneAt(run.distance, run.seed)).coinMultiplier
         const points =
           10 * Math.min(4, 1 + Math.floor(run.combo / 5)) * lunchBonus * zoneBonus

@@ -6046,17 +6046,24 @@ a {
   .chari-screen {
     aspect-ratio: 2 / 3;
     border-radius: 7px;
+    background:
+      linear-gradient(
+        to bottom,
+        #dbe6e5 0%,
+        #d7dfda 55%,
+        #3a3a41 55%,
+        #303138 100%
+      );
   }
   .chari-canvas {
     position: absolute;
     top: 0;
     left: -20%;
-    width: auto;
+    width: 156%;
     max-width: none;
-    height: 100%;
+    height: auto;
     aspect-ratio: 960 / 540;
-    transform: scaleX(0.56);
-    transform-origin: left center;
+    transform: none;
   }
   .chari-environment {
     top: 9px;
