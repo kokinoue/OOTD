@@ -6855,6 +6855,14 @@ a {
   cursor: default;
 }
 
+.orbit-nav-short {
+  display: none;
+}
+
+.orbit-open-short {
+  display: none;
+}
+
 .orbit-open-button {
   padding: 0 18px;
   color: #11131c;
@@ -7004,35 +7012,88 @@ a {
     right: 14px;
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     left: 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(152px, 0.9fr);
+    gap: 10px;
+    align-items: end;
     width: auto;
-    padding: 14px;
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  /* 軌道上にも選択中の服が見えているため、SPカードでは重複情報を省いて
+     日付・天気・主要操作へ視線を集める */
+  .orbit-detail-number,
+  .orbit-detail-main > img {
+    display: none;
   }
 
   .orbit-detail-main {
-    grid-template-columns: 52px 1fr;
-    gap: 12px;
-    min-height: 88px;
-  }
-
-  .orbit-detail-main > img {
-    max-width: 52px;
-    height: 88px;
+    display: block;
+    min-width: 0;
+    min-height: 0;
   }
 
   .orbit-detail h2 {
-    font-size: 21px;
+    font-size: 18px;
   }
 
-  .orbit-item:nth-child(n + 4) {
+  .orbit-weather {
+    margin: 1px 0 6px;
+    overflow: hidden;
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .orbit-item-list {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .orbit-item {
+    min-width: 0;
+    padding: 2px 6px;
+    font-size: 8px;
+  }
+
+  .orbit-item:nth-child(n + 3) {
     display: none;
   }
 
   .orbit-detail-actions {
-    margin-top: 12px;
+    grid-template-columns: 40px minmax(64px, 1fr) 40px;
+    gap: 4px;
+    margin-top: 0;
+  }
+
+  .orbit-detail-actions button {
+    min-height: 40px;
+  }
+
+  .orbit-detail-actions .orbit-nav-button {
+    text-align: center;
+  }
+
+  .orbit-nav-long {
+    display: none;
+  }
+
+  .orbit-nav-short {
+    display: inline;
+    font-size: 15px;
+  }
+
+  .orbit-open-long {
+    display: none;
+  }
+
+  .orbit-open-short {
+    display: inline;
   }
 
   .orbit-open-button {
-    padding: 0 14px;
+    padding: 0 12px;
   }
 
   .orbit-scrubber {
