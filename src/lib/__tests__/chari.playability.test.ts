@@ -28,9 +28,9 @@ function needsJump(run: Run): boolean {
           ? motionSpeed * 0.55
           : o.kind === 'crossing'
             ? motionSpeed * 0.72
-            : o.kind === 'signal' || o.kind === 'students'
+            : o.kind === 'signal' || o.kind === 'sprinkler'
               ? motionSpeed * 0.58
-              : o.kind === 'commuter'
+              : o.kind === 'commuter' || o.kind === 'jogger'
                 ? motionSpeed * 0.58
             : look),
   )
@@ -93,8 +93,9 @@ function needsAirJumpForBarrier(run: Run): boolean {
     (o) =>
       (o.kind === 'crossing' ||
         o.kind === 'signal' ||
-        o.kind === 'students' ||
-        o.kind === 'commuter') &&
+        o.kind === 'sprinkler' ||
+        o.kind === 'commuter' ||
+        o.kind === 'jogger') &&
       o.x - (p.x + 15) >= 0 &&
       o.x - (p.x + 15) <= motionSpeedFor(run) * 0.24,
   )

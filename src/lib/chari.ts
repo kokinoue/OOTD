@@ -57,7 +57,7 @@ export type Segment = {
   entryClear: number
   exitClear: number
 }
-export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station' | 'school'
+export type ZoneKind = 'residential' | 'shopping' | 'construction' | 'station' | 'park'
 export type ZoneProfile = {
   gapChance: number
   slopeChance: number
@@ -85,7 +85,7 @@ export type RiderTraits = {
   comboBonus: number
   effects: string[]
 }
-export type PlatformKind = 'branch' | 'roof' | 'footbridge' | 'street'
+export type PlatformKind = 'branch' | 'roof' | 'park' | 'street'
 export type Platform = {
   id: number
   kind: PlatformKind
@@ -105,7 +105,10 @@ export type ObstacleKind =
   | 'commuter'
   | 'crossing'
   | 'ball'
-  | 'students'
+  | 'dog'
+  | 'sprinkler'
+  | 'jogger'
+  | 'bench'
 export type Obstacle = {
   id: number
   kind: ObstacleKind
@@ -262,7 +265,7 @@ function zoneIndexAt(block: number, seed: number): number {
 }
 
 export function zoneAt(dist: number, seed = 0): ZoneKind {
-  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'station', 'school']
+  const zones: ZoneKind[] = ['residential', 'shopping', 'construction', 'station', 'park']
   const block = Math.floor(Math.max(0, dist) / ZONE_LENGTH)
   return zones[zoneIndexAt(block, seed) % zones.length]
 }
@@ -273,7 +276,7 @@ export function zoneProfileAt(zone: ZoneKind): ZoneProfile {
     shopping: { gapChance: 0.7, slopeChance: 0.46, coinMultiplier: 2, specialRouteChance: 0.92 },
     construction: { gapChance: 0.94, slopeChance: 0.88, coinMultiplier: 1, specialRouteChance: 0.26 },
     station: { gapChance: 0.66, slopeChance: 0.52, coinMultiplier: 1, specialRouteChance: 0.58 },
-    school: { gapChance: 0.54, slopeChance: 0.4, coinMultiplier: 1, specialRouteChance: 0.88 },
+    park: { gapChance: 0.54, slopeChance: 0.4, coinMultiplier: 1, specialRouteChance: 0.88 },
   }[zone]
 }
 
@@ -549,8 +552,14 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
         ? { w: 34, h: 64 }
         : kind === 'ball'
           ? { w: 28, h: 28 }
-          : kind === 'students'
-            ? { w: 108, h: 74 }
+          : kind === 'dog'
+            ? { w: 112, h: 42 }
+            : kind === 'sprinkler'
+              ? { w: 46, h: 108 }
+              : kind === 'jogger'
+                ? { w: 34, h: 68 }
+                : kind === 'bench'
+                  ? { w: 86, h: 44 }
           : { w: 92, h: 12 }
   // 描画上の人物は物理ヒットボックスより背が高いため、地上走行時に
   // スプライトとも重ならない高さへ置く。ジャンプ中だけ届く位置は維持する。
@@ -565,8 +574,8 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
     cluster,
     used: false,
     phase:
-      kind === 'students'
-        ? run.rng() * 6
+      kind === 'sprinkler'
+        ? run.rng() * 5
         : kind === 'signal' || kind === 'crossing'
           ? run.rng() * 4
           : undefined,
@@ -577,9 +586,14 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
         ? -55 - run.rng() * 55
         : kind === 'ball'
           ? -105 - run.rng() * 45
+          : kind === 'dog'
+            ? -72 - run.rng() * 28
+            : kind === 'jogger'
+              ? -92 - run.rng() * 34
           : undefined,
     originX:
-      kind === 'bird' || kind === 'commuter' || kind === 'ball'
+      kind === 'bird' || kind === 'commuter' || kind === 'ball' ||
+        kind === 'dog' || kind === 'jogger'
         ? x
         : undefined,
   })
@@ -592,39 +606,39 @@ export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   if (obstacle.kind === 'crossing') {
     return crossingStateAt(run, obstacle).closure >= 0.78
   }
-  if (obstacle.kind === 'students') {
-    return schoolCrossingStateAt(run, obstacle).presence >= 0.72
+  if (obstacle.kind === 'sprinkler') {
+    return sprinklerStateAt(run, obstacle).pressure >= 0.82
   }
   return true
 }
 
-export function schoolCrossingStateAt(
+export function sprinklerStateAt(
   run: Run,
   obstacle: Pick<Obstacle, 'phase'>,
 ): {
-  presence: number
+  pressure: number
   warning: boolean
-  bellPulse: number
+  pulse: number
 } {
   const time = run.elapsed + (obstacle.phase ?? 0)
-  const cycle = ((time % 6) + 6) % 6
+  const cycle = ((time % 5) + 5) % 5
   const smooth = (value: number) => {
     const progress = clamp(value, 0, 1)
     return progress * progress * (3 - 2 * progress)
   }
-  let presence = 0
-  if (cycle >= 0.8 && cycle < 1.35) {
-    presence = smooth((cycle - 0.8) / 0.55)
-  } else if (cycle < 2.85 && cycle >= 1.35) {
-    presence = 1
-  } else if (cycle >= 2.85 && cycle < 3.45) {
-    presence = 1 - smooth((cycle - 2.85) / 0.6)
+  let pressure = 0
+  if (cycle >= 0.7 && cycle < 1.25) {
+    pressure = smooth((cycle - 0.7) / 0.55)
+  } else if (cycle < 2.8 && cycle >= 1.25) {
+    pressure = 1
+  } else if (cycle >= 2.8 && cycle < 3.4) {
+    pressure = 1 - smooth((cycle - 2.8) / 0.6)
   }
-  const warning = cycle < 0.8
+  const warning = cycle < 0.7
   return {
-    presence,
+    pressure,
     warning,
-    bellPulse: warning ? 0.55 + Math.sin(time * 16) * 0.45 : 0,
+    pulse: warning ? 0.55 + Math.sin(time * 16) * 0.45 : 0,
   }
 }
 
@@ -778,14 +792,16 @@ function addZonePattern(
     return
   }
   if (patternStep === 0) {
-    addObstacle(run, 'ball', center, roadAt(center + 14), cluster)
-    addCoinArc(run, center - 30, center + 78, roadAt(center), 72)
+    addObstacle(run, 'dog', center, roadAt(center + 56), cluster)
+    addCoinArc(run, center - 25, center + 145, roadAt(center + 56), 78)
   } else if (patternStep === 1) {
-    addObstacle(run, 'students', center, roadAt(center + 54), cluster)
+    addObstacle(run, 'sprinkler', center, roadAt(center + 23), cluster)
+    addCoinArc(run, center - 35, center + 82, roadAt(center + 23), 120)
   } else {
-    const groupX = clamp(center - 54, safeStart, safeEnd - 108)
-    addObstacle(run, 'students', groupX, roadAt(groupX + 54), cluster)
-    addCoinArc(run, groupX - 25, groupX + 158, roadAt(center), 108)
+    const joggerX = clamp(center - 65, safeStart, safeEnd - 154)
+    addObstacle(run, 'jogger', joggerX, roadAt(joggerX + 17), cluster)
+    addObstacle(run, 'bench', joggerX + 68, roadAt(joggerX + 111), cluster)
+    addCoinArc(run, joggerX - 20, joggerX + 180, roadAt(center), 92)
   }
 }
 
@@ -1003,9 +1019,9 @@ function generateSegment(run: Run) {
     !hasBirdOnSegment &&
     difficulty > 0.18 &&
     zone !== 'shopping' &&
-    (zone === 'school' && zonePatternStep === 2
+    (zone === 'park' && zonePatternStep === 2
       ? true
-      : routeRoll < (zone === 'school' ? zoneProfile.specialRouteChance : 0.18))
+      : routeRoll < (zone === 'park' ? zoneProfile.specialRouteChance : 0.18))
   ) {
     const heights = [58, 94, 126, 94, 58]
     const platformW = 128
@@ -1013,7 +1029,7 @@ function generateSegment(run: Run) {
       const px = routeStart + i * (platformW + 24)
       if (px + platformW > routeEnd) break
       const py = roadAt(px + platformW / 2) - heights[i]
-      addPlatform(run, 'footbridge', px, platformW, py)
+      addPlatform(run, 'park', px, platformW, py)
       for (let coinX = px + 25; coinX < px + platformW - 10; coinX += 40) addCoin(run, coinX, py - 32)
     }
   } else if (
@@ -1265,15 +1281,16 @@ export function step(run: Run, input: Input, dt: number): void {
                 : phase === 'lunch'
                   ? 1.15
                   : 1
-          const maxDrift =
-            run.speed *
-            (phase === 'eveningRush'
-              ? 0.28
-              : phase === 'morningRush'
-                ? 0.22
-                : phase === 'lunch'
-                  ? 0.2
-                  : 0.18)
+          const maxDrift = run.speed *
+            (o.kind === 'dog' || o.kind === 'jogger'
+              ? 0.06
+              : phase === 'eveningRush'
+                ? 0.28
+                : phase === 'morningRush'
+                  ? 0.22
+                  : phase === 'lunch'
+                    ? 0.2
+                    : 0.18)
           const nextX = o.x + o.vx * rushMul * h
           o.x = Math.max((o.originX ?? o.x) - maxDrift, nextX)
         }

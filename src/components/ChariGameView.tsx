@@ -15,9 +15,9 @@ import {
   nextZoneInfo,
   saveBest,
   scoreOf,
-  schoolCrossingStateAt,
   segmentSurfaceAt,
   signalStateAt,
+  sprinklerStateAt,
   step,
   weatherAt,
   weatherStrength,
@@ -124,7 +124,7 @@ const zoneLabel = {
   shopping: '商店街',
   construction: '工事現場',
   station: '駅前',
-  school: 'スクールゾーン',
+  park: '公園通り',
 } as const
 
 const weatherLabel = {
@@ -156,7 +156,7 @@ const zoneIcon = {
   shopping: '🏬',
   construction: '🚧',
   station: '🚉',
-  school: '🏫',
+  park: '🌳',
 } as const
 
 const weatherIcon = {
@@ -327,21 +327,23 @@ function drawBackground(
     for (let wx = 18; wx < 490; wx += 62) ctx.fillRect(trainX + wx, 304, 42, 25)
     ctx.fillStyle = '#d85d4b'
     ctx.fillRect(trainX, 342, 520, 8)
-  } else if (zone === 'school') {
-    for (let i = -1; i < 5; i++) {
-      const x = i * 300 - ((cameraX * 0.2) % 300)
-      ctx.fillStyle = '#d8c59d'
-      ctx.fillRect(x, 242, 248, 123)
-      ctx.fillStyle = '#7898a2'
-      for (let wx = 18; wx < 220; wx += 48) ctx.fillRect(x + wx, 264, 28, 31)
-      ctx.fillStyle = '#c66b55'
-      ctx.fillRect(x + 94, 318, 56, 47)
-      ctx.fillStyle = '#f3e8c8'
-      ctx.fillRect(x + 78, 248, 88, 10)
-    }
-    ctx.fillStyle = 'rgba(255,255,255,.72)'
-    for (let x = -80 - ((cameraX * 0.65) % 150); x < VIEW_W; x += 150) {
-      ctx.fillRect(x, 346, 76, 9)
+  } else if (zone === 'park') {
+    ctx.fillStyle = '#78945f'
+    ctx.fillRect(0, 326, VIEW_W, 40)
+    for (let i = -2; i < 9; i++) {
+      const x = i * 145 - ((cameraX * 0.28) % 145)
+      ctx.fillStyle = '#554f43'
+      ctx.fillRect(x + 57, 278, 9, 88)
+      ctx.fillStyle = i % 2 ? '#5f8454' : '#6f955d'
+      ctx.beginPath()
+      ctx.arc(x + 60, 260, 34, 0, Math.PI * 2)
+      ctx.arc(x + 36, 281, 25, 0, Math.PI * 2)
+      ctx.arc(x + 84, 282, 27, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = '#78684f'
+      ctx.fillRect(x + 93, 337, 42, 7)
+      ctx.fillRect(x + 99, 344, 5, 18)
+      ctx.fillRect(x + 125, 344, 5, 18)
     }
   }
 
@@ -465,12 +467,15 @@ function drawRoadAndItems(
       ctx.setLineDash([])
       continue
     }
-    if (platform.kind === 'footbridge') {
-      ctx.fillStyle = '#69757b'
-      ctx.fillRect(x, platform.y, platform.w, 12)
-      ctx.strokeStyle = '#9aa5a8'
-      ctx.lineWidth = 4
-      ctx.strokeRect(x + 3, platform.y - 25, platform.w - 6, 25)
+    if (platform.kind === 'park') {
+      ctx.fillStyle = '#6f8e58'
+      ctx.fillRect(x, platform.y, platform.w, 15)
+      ctx.fillStyle = '#456843'
+      for (let bush = 12; bush < platform.w - 5; bush += 25) {
+        ctx.beginPath()
+        ctx.arc(x + bush, platform.y - 4, 15, 0, Math.PI * 2)
+        ctx.fill()
+      }
       continue
     }
     ctx.fillStyle = platform.kind === 'roof' ? '#875e55' : '#596b72'
@@ -796,53 +801,84 @@ function drawRoadAndItems(
       ctx.beginPath()
       ctx.arc(ballX, ballY, 8, spin, spin + Math.PI * 1.45)
       ctx.stroke()
-    } else if (o.kind === 'students') {
-      const crossing = schoolCrossingStateAt(run, o)
-      ctx.fillStyle = 'rgba(245,245,232,.58)'
-      for (let stripe = -14; stripe < o.w + 18; stripe += 18) {
-        ctx.fillRect(x + stripe, o.y + o.h - 3, 10, 34)
-      }
-      if (crossing.warning) {
-        ctx.save()
-        ctx.globalAlpha = 0.55 + crossing.bellPulse * 0.45
-        ctx.fillStyle = '#f2bd3f'
+    } else if (o.kind === 'dog') {
+      const stride = Math.sin(t * 12 + o.id) * 5
+      const dogX = x + 18
+      const baseY = o.y + o.h - 7
+      ctx.strokeStyle = '#e16f55'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(dogX + 15, baseY - 17)
+      ctx.quadraticCurveTo(x + 58, o.y - 12 + stride, x + 95, o.y + 5)
+      ctx.stroke()
+      ctx.fillStyle = '#805e43'
+      ctx.beginPath()
+      ctx.ellipse(dogX, baseY - 15, 20, 11, 0, 0, Math.PI * 2)
+      ctx.arc(dogX - 18, baseY - 21, 9, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#5c4635'
+      ctx.lineWidth = 4
+      for (const leg of [-10, 8]) {
         ctx.beginPath()
-        ctx.arc(x + o.w / 2, o.y - 24, 18 + crossing.bellPulse * 4, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillStyle = '#2f3137'
-        ctx.font = 'bold 15px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.fillText('🔔', x + o.w / 2, o.y - 18)
-        ctx.restore()
-      }
-      const waitingOffset = (1 - crossing.presence) * -46
-      ctx.save()
-      ctx.globalAlpha *= 0.52 + crossing.presence * 0.48
-      ctx.translate(0, waitingOffset)
-      const studentCount = 5
-      for (let i = 0; i < studentCount; i++) {
-        const sx = x + 10 + (i * (o.w - 20)) / (studentCount - 1)
-        const stride = Math.sin(t * 11 + o.id + i * 0.8) * 5 * crossing.presence
-        ctx.fillStyle = i % 2 ? '#e0b24c' : '#4b7089'
-        ctx.fillRect(sx - 7, o.y + 25, 14, 34)
-        ctx.strokeStyle = '#39434a'
-        ctx.lineWidth = 3
-        ctx.beginPath()
-        ctx.moveTo(sx - 2, o.y + 58)
-        ctx.lineTo(sx - 4 + stride, o.y + 70)
-        ctx.moveTo(sx + 2, o.y + 58)
-        ctx.lineTo(sx + 4 - stride, o.y + 70)
-        ctx.moveTo(sx - 6, o.y + 31)
-        ctx.lineTo(sx - 10 - stride * 0.5, o.y + 44)
-        ctx.moveTo(sx + 6, o.y + 31)
-        ctx.lineTo(sx + 10 + stride * 0.5, o.y + 44)
+        ctx.moveTo(dogX + leg, baseY - 8)
+        ctx.lineTo(dogX + leg + stride, baseY)
         ctx.stroke()
-        ctx.fillStyle = '#d9aa86'
+      }
+      ctx.fillStyle = '#4d765b'
+      ctx.fillRect(x + 88, o.y + 5, 14, 27)
+      ctx.fillStyle = '#d3a17e'
+      ctx.beginPath()
+      ctx.arc(x + 95, o.y - 2, 7, 0, Math.PI * 2)
+      ctx.fill()
+    } else if (o.kind === 'sprinkler') {
+      const spray = sprinklerStateAt(run, o)
+      const baseY = o.y + o.h
+      if (spray.warning) {
+        ctx.fillStyle = `rgba(93,177,215,${0.35 + spray.pulse * 0.45})`
         ctx.beginPath()
-        ctx.arc(sx, o.y + 15, 8, 0, Math.PI * 2)
+        ctx.arc(x + o.w / 2, baseY - 8, 8 + spray.pulse * 5, 0, Math.PI * 2)
         ctx.fill()
       }
-      ctx.restore()
+      ctx.strokeStyle = 'rgba(140,218,242,.78)'
+      ctx.lineWidth = 5
+      ctx.beginPath()
+      ctx.moveTo(x + o.w / 2, baseY - 8)
+      ctx.quadraticCurveTo(
+        x + o.w / 2 + 35,
+        baseY - 108 * spray.pressure,
+        x + o.w + 22,
+        baseY - 12,
+      )
+      ctx.stroke()
+      ctx.fillStyle = '#477d70'
+      ctx.fillRect(x + 15, baseY - 12, 16, 12)
+    } else if (o.kind === 'jogger') {
+      const stride = Math.sin(t * 13 + o.id) * 10
+      ctx.fillStyle = '#e36f55'
+      ctx.fillRect(x + 10, o.y + 18, 14, 27)
+      ctx.fillStyle = '#d4a07c'
+      ctx.beginPath()
+      ctx.arc(x + 17, o.y + 9, 8, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = '#33434c'
+      ctx.lineWidth = 4
+      ctx.beginPath()
+      ctx.moveTo(x + 14, o.y + 44)
+      ctx.lineTo(x + 10 + stride, o.y + 65)
+      ctx.moveTo(x + 20, o.y + 44)
+      ctx.lineTo(x + 24 - stride, o.y + 65)
+      ctx.moveTo(x + 11, o.y + 25)
+      ctx.lineTo(x + 2 - stride * 0.5, o.y + 40)
+      ctx.moveTo(x + 23, o.y + 25)
+      ctx.lineTo(x + 31 + stride * 0.5, o.y + 38)
+      ctx.stroke()
+    } else if (o.kind === 'bench') {
+      ctx.fillStyle = '#806548'
+      ctx.fillRect(x, o.y + 5, o.w, 10)
+      ctx.fillRect(x, o.y + 22, o.w, 9)
+      ctx.fillStyle = '#454b43'
+      ctx.fillRect(x + 8, o.y + 30, 6, 14)
+      ctx.fillRect(x + o.w - 14, o.y + 30, 6, 14)
     } else {
       const arrowPhase = (t * 42 + o.id * 7) % 18
       ctx.fillStyle = o.used ? '#77747b' : '#dc9b36'

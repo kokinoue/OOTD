@@ -36,9 +36,9 @@ import {
   obstacleActive,
   saveBest,
   scoreOf,
-  schoolCrossingStateAt,
   segmentSurfaceAt,
   signalStateAt,
+  sprinklerStateAt,
   slopeSpeedMultiplierFor,
   speedAt,
   step,
@@ -248,11 +248,11 @@ describe('チャリ通のコース生成', () => {
     expect(run.obstacles.some((o) => o.kind === 'truck')).toBe(true)
   })
 
-  it('信号・通勤者・踏切・スクール障害物と、分岐・屋根・歩道橋・地下道を生成する', () => {
+  it('信号・通勤者・踏切・公園障害物と、分岐・屋根・公園ルート・地下道を生成する', () => {
     const kinds = new Set<string>()
     let hasBranch = false
     let hasRoofChain = false
-    let hasFootbridge = false
+    let hasParkRoute = false
     let hasUnderpass = false
     let hasStreetRoute = false
     let hasRampLinkedRoofs = false
@@ -261,7 +261,7 @@ describe('チャリ通のコース生成', () => {
       ensureAhead(run, 180_000)
       run.obstacles.forEach((o) => kinds.add(o.kind))
       hasBranch ||= run.platforms.some((p) => p.kind === 'branch')
-      hasFootbridge ||= run.platforms.some((p) => p.kind === 'footbridge')
+      hasParkRoute ||= run.platforms.some((p) => p.kind === 'park')
       hasUnderpass ||= run.segments.some((segment) => segment.route === 'underpass')
       hasStreetRoute ||= run.platforms.some((platform) => platform.kind === 'street')
       const roofs = run.platforms.filter((p) => p.kind === 'roof').sort((a, b) => a.x - b.x)
@@ -290,12 +290,14 @@ describe('チャリ通のコース生成', () => {
     expect(kinds.has('signal')).toBe(true)
     expect(kinds.has('commuter')).toBe(true)
     expect(kinds.has('crossing')).toBe(true)
-    expect(kinds.has('ball')).toBe(true)
-    expect(kinds.has('students')).toBe(true)
+    expect(kinds.has('dog')).toBe(true)
+    expect(kinds.has('sprinkler')).toBe(true)
+    expect(kinds.has('jogger')).toBe(true)
+    expect(kinds.has('bench')).toBe(true)
     expect(hasBranch).toBe(true)
     expect(hasRoofChain).toBe(true)
     expect(hasRampLinkedRoofs).toBe(true)
-    expect(hasFootbridge).toBe(true)
+    expect(hasParkRoute).toBe(true)
     expect(hasUnderpass).toBe(true)
     expect(hasStreetRoute).toBe(true)
   })
@@ -307,7 +309,7 @@ describe('チャリ通のコース生成', () => {
     expect(first).toEqual(sameSeed)
     expect(first).not.toEqual(anotherSeed)
     expect(new Set(first)).toEqual(
-      new Set(['residential', 'shopping', 'construction', 'station', 'school']),
+      new Set(['residential', 'shopping', 'construction', 'station', 'park']),
     )
   })
 
@@ -318,7 +320,7 @@ describe('チャリ通のコース生成', () => {
     expect(zoneProfileAt('construction').slopeChance).toBeGreaterThan(0.8)
     expect(zoneProfileAt('shopping').coinMultiplier).toBe(2)
     expect(zoneProfileAt('station').specialRouteChance).toBeGreaterThan(0.5)
-    expect(zoneProfileAt('school').specialRouteChance).toBeGreaterThan(0.8)
+    expect(zoneProfileAt('park').specialRouteChance).toBeGreaterThan(0.8)
   })
 
   it('各エリアは3段階の専用障害物パターンを持つ', () => {
@@ -356,9 +358,10 @@ describe('チャリ通のコース生成', () => {
       'construction:2:truck',
       'station:0:crossing',
       'station:1:commuter',
-      'school:0:ball',
-      'school:1:students',
-      'school:2:students',
+      'park:0:dog',
+      'park:1:sprinkler',
+      'park:2:jogger',
+      'park:2:bench',
     ]) {
       expect(signatures.has(signature), signature).toBe(true)
     }
@@ -412,7 +415,7 @@ describe('チャリ通のコース生成', () => {
     const nightElapsed = 240
     const nightDistance = 192_000
     const area = zoneAt(nightDistance, 77)
-    expect(['residential', 'shopping', 'construction', 'station', 'school']).toContain(area)
+    expect(['residential', 'shopping', 'construction', 'station', 'park']).toContain(area)
     expect(commuteClockAt(nightElapsed).phase).toBe('eveningRush')
     expect(isNightTimeAt(nightElapsed)).toBe(true)
   })
@@ -742,33 +745,33 @@ describe('チャリ通の物理', () => {
     expect(obstacleActive(run, signal)).toBe(false)
   })
 
-  it('スクールゾーンはベルの予告後に児童が横断する', () => {
+  it('公園通りのスプリンクラーは予告後に噴き上がる', () => {
     const run = createRun(0)
-    const students = {
+    const sprinkler = {
       id: 3,
-      kind: 'students' as const,
+      kind: 'sprinkler' as const,
       x: 500,
-      y: 310,
-      w: 58,
-      h: 74,
+      y: 276,
+      w: 46,
+      h: 108,
       cluster: 3,
       used: false,
       phase: 0,
     }
     run.elapsed = 0.4
-    expect(schoolCrossingStateAt(run, students).warning).toBe(true)
-    expect(obstacleActive(run, students)).toBe(false)
+    expect(sprinklerStateAt(run, sprinkler).warning).toBe(true)
+    expect(obstacleActive(run, sprinkler)).toBe(false)
 
-    run.elapsed = 0.95
-    const entering = schoolCrossingStateAt(run, students)
-    run.elapsed = 1.3
-    const crossing = schoolCrossingStateAt(run, students)
-    expect(entering.presence).toBeLessThan(crossing.presence)
-    expect(obstacleActive(run, students)).toBe(true)
+    run.elapsed = 0.85
+    const starting = sprinklerStateAt(run, sprinkler)
+    run.elapsed = 1.2
+    const spraying = sprinklerStateAt(run, sprinkler)
+    expect(starting.pressure).toBeLessThan(spraying.pressure)
+    expect(obstacleActive(run, sprinkler)).toBe(true)
 
     run.elapsed = 3.3
-    expect(schoolCrossingStateAt(run, students).presence).toBeLessThan(0.72)
-    expect(obstacleActive(run, students)).toBe(false)
+    expect(sprinklerStateAt(run, sprinkler).pressure).toBeLessThan(0.82)
+    expect(obstacleActive(run, sprinkler)).toBe(false)
   })
 
   it('踏切は警告灯のあと徐々に閉まり、徐々に開く', () => {
