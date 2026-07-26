@@ -170,8 +170,8 @@ const weatherIcon = {
 function drawBackground(ctx: CanvasRenderingContext2D, run: Run, cameraX: number) {
   const zone = zoneAt(run.distance, run.seed)
   const weather = weatherAt(run.distance, run.seed)
-  const commute = commuteClockAt(run.distance)
-  const isNight = isNightTimeAt(run.distance)
+  const commute = commuteClockAt(run.distance, run.seed)
+  const isNight = isNightTimeAt(run.distance, run.seed)
   const daytimeTop =
     commute.phase === 'early'
       ? '#e6b5a1'
@@ -691,7 +691,7 @@ function drawAtmosphere(ctx: CanvasRenderingContext2D, run: Run, t: number) {
     ctx.fillStyle = visibility
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
   }
-  if (isNightTimeAt(run.distance)) {
+  if (isNightTimeAt(run.distance, run.seed)) {
     const light = ctx.createRadialGradient(HERO_X + 55, 330, 20, HERO_X + 55, 330, 300)
     light.addColorStop(0, 'rgba(255,244,183,0)')
     light.addColorStop(0.62, 'rgba(7,10,22,.32)')
@@ -1012,7 +1012,7 @@ export default function ChariGameView({ data, onBack }: Props) {
       if (comboRef.current) comboRef.current.textContent = run.combo > 1 ? ` · ${run.combo} COMBO` : ''
       const zone = zoneAt(run.distance, run.seed)
       const weather = weatherAt(run.distance, run.seed)
-      const commute = commuteClockAt(run.distance)
+      const commute = commuteClockAt(run.distance, run.seed)
       if (zoneRef.current) {
         zoneRef.current.textContent =
           `${zoneIcon[zone]} ${zoneLabel[zone]}・${zoneEffectLabel[zone]}`

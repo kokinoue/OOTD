@@ -16,6 +16,7 @@ import {
   WALL_TOL,
   createRun,
   commuteClockAt,
+  commuteStartMinute,
   deriveRiderTraits,
   effectiveWeatherFor,
   ensureAhead,
@@ -271,6 +272,14 @@ describe('チャリ通のコース生成', () => {
     expect(commuteClockAt(432_000)).toMatchObject({ label: '07:20', phase: 'early' })
   })
 
+  it('プレイごとに通勤時計の開始時刻が変わり、同じseedでは再現できる', () => {
+    const starts = Array.from({ length: 24 }, (_, index) => commuteClockAt(0, index + 1).label)
+    expect(new Set(starts).size).toBeGreaterThan(16)
+    expect(commuteClockAt(0, 2026)).toEqual(commuteClockAt(0, 2026))
+    expect(commuteClockAt(18_000, 2026).minute)
+      .toBe((commuteStartMinute(2026) + 60) % 60)
+  })
+
   it('夜間モードとエリアは独立して組み合わせられる', () => {
     const nightDistance = 192_000
     const area = zoneAt(nightDistance, 77)
@@ -442,7 +451,7 @@ describe('チャリ通の物理', () => {
   })
 
   it('信号と踏切は時間で開閉する', () => {
-    const run = createRun(57)
+    const run = createRun(0)
     const signal = { id: 1, kind: 'signal' as const, x: 300, y: 326, w: 72, h: 58, cluster: 1, used: false, phase: 0 }
     const crossing = { id: 2, kind: 'crossing' as const, x: 500, y: 326, w: 92, h: 12, cluster: 2, used: false, phase: 0 }
     run.elapsed = 0
@@ -462,7 +471,7 @@ describe('チャリ通の物理', () => {
 
   it('帰宅ラッシュは出勤ラッシュより通勤者の移動が速い', () => {
     const makeCommuterRun = (distance: number) => {
-      const run = createRun(21)
+      const run = createRun(0)
       run.startX = run.player.x - distance
       run.obstacles = [{
         id: 1,
@@ -603,20 +612,29 @@ describe('チャリ通の物理', () => {
   })
 
   it('ランチタイムはコイン得点が2倍になる', () => {
-    const seed = Array.from({ length: 100 }, (_, index) => index + 1)
-      .find((candidate) => zoneAt(75_000, candidate) !== 'shopping')!
+    const candidate = Array.from({ length: 100 }, (_, index) => {
+      const seed = index + 1
+      const minutesUntilLunch = (11 * 60 + 30 - commuteStartMinute(seed) + 24 * 60) % (24 * 60)
+      const distance = minutesUntilLunch * 300
+      return { seed, distance }
+    }).find(({ seed, distance }) => zoneAt(distance, seed) !== 'shopping')!
+    const { seed, distance } = candidate
     const run = createRun(seed)
-    run.startX = run.player.x - 75_000
+    run.startX = run.player.x - distance
     run.obstacles = []
     run.coins = [{ id: 1, x: run.player.x + 2, y: run.player.y - 28, taken: false }]
     step(run, idle, 1 / 120)
-    expect(commuteClockAt(run.distance).phase).toBe('lunch')
+    expect(commuteClockAt(run.distance, run.seed).phase).toBe('lunch')
     expect(run.coinScore).toBe(20)
   })
 
   it('商店街はコイン得点が2倍になる', () => {
     const seed = Array.from({ length: 100 }, (_, index) => index + 1)
-      .find((candidate) => zoneAt(0, candidate) === 'shopping')!
+      .find(
+        (candidate) =>
+          zoneAt(0, candidate) === 'shopping' &&
+          commuteClockAt(0, candidate).phase !== 'lunch',
+      )!
     const run = createRun(seed)
     run.obstacles = []
     run.coins = [{ id: 1, x: run.player.x + 2, y: run.player.y - 28, taken: false }]
@@ -660,7 +678,7 @@ describe('チャリ通のスコアと保存', () => {
   })
 
   it('コインを連続取得するとコンボ倍率が上がり、時間切れでリセットする', () => {
-    const run = createRun(58)
+    const run = createRun(0)
     run.segments = [{ ...run.segments[0], x: -500, w: 4000 }]
     run.obstacles = []
     run.coins = Array.from({ length: 5 }, (_, i) => ({

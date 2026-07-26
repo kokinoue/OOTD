@@ -319,13 +319,22 @@ export function effectiveWeatherFor(run: Run): WeatherKind {
   return isUnderpassAt(run) ? 'clear' : weatherAt(run.distance, run.seed)
 }
 
-export function commuteClockAt(dist: number): {
+export function commuteStartMinute(seed = 0): number {
+  // seed=0 は従来の表示との後方互換用。実際のプレイは毎回ランダムなseedを持つ。
+  if (seed === 0) return 7 * 60 + 20
+  let mixed = seed >>> 0
+  mixed = Math.imul(mixed ^ (mixed >>> 16), 0x45d9f3b)
+  mixed = Math.imul(mixed ^ (mixed >>> 16), 0x45d9f3b)
+  return ((mixed ^ (mixed >>> 16)) >>> 0) % (24 * 60)
+}
+
+export function commuteClockAt(dist: number, seed = 0): {
   hour: number
   minute: number
   label: string
   phase: CommutePhase
 } {
-  const total = 7 * 60 + 20 + Math.floor(Math.max(0, dist) / 300)
+  const total = commuteStartMinute(seed) + Math.floor(Math.max(0, dist) / 300)
   const minutesOfDay = total % (24 * 60)
   const hour = Math.floor(minutesOfDay / 60)
   const minute = minutesOfDay % 60
@@ -346,8 +355,8 @@ export function commuteClockAt(dist: number): {
   return { hour, minute, label: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`, phase }
 }
 
-export function isNightTimeAt(dist: number): boolean {
-  const { hour } = commuteClockAt(dist)
+export function isNightTimeAt(dist: number, seed = 0): boolean {
+  const { hour } = commuteClockAt(dist, seed)
   return hour < 5 || hour >= 18
 }
 
@@ -500,7 +509,7 @@ function addObstacle(run: Run, kind: ObstacleKind, x: number, roadY: number, clu
 
 export function obstacleActive(run: Run, obstacle: Obstacle): boolean {
   if (obstacle.kind === 'signal') {
-    const phase = commuteClockAt(run.distance).phase
+    const phase = commuteClockAt(run.distance, run.seed).phase
     const redTime =
       phase === 'eveningRush'
         ? 3.25
@@ -523,7 +532,7 @@ function generateSegment(run: Run) {
   const difficulty = difficultyAt(dist)
   const zone = zoneAt(dist, run.seed)
   const zoneProfile = zoneProfileAt(zone)
-  const commutePhase = commuteClockAt(dist).phase
+  const commutePhase = commuteClockAt(dist, run.seed).phase
   const rng = run.rng
   const underpass =
     difficulty > 0.12 && zone === 'station' && rng() < zoneProfile.specialRouteChance
@@ -929,7 +938,7 @@ export function step(run: Run, input: Input, dt: number): void {
     // ジャンプ台は上面を下向きに横切ったときだけ、一度だけ作動する。
     for (const o of run.obstacles) {
       if (o.vx) {
-        const phase = commuteClockAt(run.distance).phase
+        const phase = commuteClockAt(run.distance, run.seed).phase
         const rushMul =
           phase === 'eveningRush'
             ? 1.5
@@ -995,7 +1004,7 @@ export function step(run: Run, input: Input, dt: number): void {
         run.combo++
         run.maxCombo = Math.max(run.maxCombo, run.combo)
         run.comboTimer = COMBO_TIMEOUT + run.traits.comboBonus
-        const lunchBonus = commuteClockAt(run.distance).phase === 'lunch' ? 2 : 1
+        const lunchBonus = commuteClockAt(run.distance, run.seed).phase === 'lunch' ? 2 : 1
         const zoneBonus = zoneProfileAt(zoneAt(run.distance, run.seed)).coinMultiplier
         const points =
           10 * Math.min(4, 1 + Math.floor(run.combo / 5)) * lunchBonus * zoneBonus
