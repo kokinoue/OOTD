@@ -6020,11 +6020,13 @@ a {
   .chari-canvas {
     position: absolute;
     top: 0;
-    left: -35%;
+    left: -22%;
     width: auto;
     max-width: none;
     height: 100%;
     aspect-ratio: 960 / 540;
+    transform: scaleX(0.75);
+    transform-origin: left center;
   }
   .chari-environment {
     top: 9px;
