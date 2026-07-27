@@ -5788,12 +5788,19 @@ a {
   border-radius: 10px;
   background: #d8e6e8;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 .chari-canvas {
   display: block;
   width: 100%;
   aspect-ratio: 960 / 540;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 .chari-environment {
   position: absolute;
