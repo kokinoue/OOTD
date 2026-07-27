@@ -1349,6 +1349,7 @@ export default function ChariGameView({ data, onBack }: Props) {
     const jumpDown = (e: PointerEvent) => {
       if (run.status !== 'playing') return
       if ((e.target as Element | null)?.closest('button')) return
+      e.preventDefault()
       screen.setPointerCapture(e.pointerId)
       audioRef.current?.unlock()
       jumpQueueRef.current = Math.min(2, jumpQueueRef.current + 1)
@@ -1357,11 +1358,17 @@ export default function ChariGameView({ data, onBack }: Props) {
     const jumpUp = () => {
       inputRef.current.jumpHeld = false
     }
+    const preventGameContextMenu = (e: Event) => {
+      if ((e.target as Element | null)?.closest('button')) return
+      e.preventDefault()
+    }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     screen.addEventListener('pointerdown', jumpDown)
     screen.addEventListener('pointerup', jumpUp)
     screen.addEventListener('pointercancel', jumpUp)
+    screen.addEventListener('contextmenu', preventGameContextMenu)
+    screen.addEventListener('selectstart', preventGameContextMenu)
 
     const frame = (now: number) => {
       if (disposed) return
@@ -1498,6 +1505,8 @@ export default function ChariGameView({ data, onBack }: Props) {
       screen.removeEventListener('pointerdown', jumpDown)
       screen.removeEventListener('pointerup', jumpUp)
       screen.removeEventListener('pointercancel', jumpUp)
+      screen.removeEventListener('contextmenu', preventGameContextMenu)
+      screen.removeEventListener('selectstart', preventGameContextMenu)
       inputRef.current = { jumpPressed: false, jumpHeld: false }
       jumpQueueRef.current = 0
     }
