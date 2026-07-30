@@ -4,6 +4,7 @@ import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
 import ScrollToTopButton from './components/ScrollToTopButton'
 import { useOverrides } from './lib/store'
+import { useGameInteractionGuard } from './lib/gameInteractionGuard'
 
 // 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
 // ゲーム（DuelGameView / MemoryGameView）と色解析は依存が重いので特に効果が大きい。
@@ -18,6 +19,7 @@ const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 const TowerGameView = lazy(() => import('./components/TowerGameView'))
 const ChariGameView = lazy(() => import('./components/ChariGameView'))
 const QuizGameView = lazy(() => import('./components/QuizGameView'))
+const ClashGameView = lazy(() => import('./components/ClashGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -38,6 +40,7 @@ export type View =
   | 'tower'
   | 'chari'
   | 'quiz'
+  | 'clash'
 
 export type Filters = {
   from: string
@@ -122,10 +125,12 @@ export default function App() {
     view === 'platform' ||
     view === 'tower' ||
     view === 'chari' ||
-    view === 'quiz'
+    view === 'quiz' ||
+    view === 'clash'
+  const gameInteractionRef = useGameInteractionGuard(isPlayingGame)
 
   return (
-    <div className={isPlayingGame ? 'app playing-game' : 'app'}>
+    <div ref={gameInteractionRef} className={isPlayingGame ? 'app playing-game' : 'app'}>
       <header className="header">
         <button
           className="brand"
@@ -182,7 +187,8 @@ export default function App() {
               view === 'platform' ||
               view === 'tower' ||
               view === 'chari' ||
-              view === 'quiz'
+              view === 'quiz' ||
+              view === 'clash'
                 ? 'tab active'
                 : 'tab'
             }
@@ -252,6 +258,7 @@ export default function App() {
         {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
         {view === 'chari' && <ChariGameView data={data} onBack={() => setView('game')} />}
         {view === 'quiz' && <QuizGameView data={data} onBack={() => setView('game')} />}
+        {view === 'clash' && <ClashGameView data={data} onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (
