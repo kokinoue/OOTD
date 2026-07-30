@@ -7,6 +7,12 @@ type Props = {
 
 const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
   {
+    view: 'clash',
+    title: '着戦',
+    tag: 'KISEKAE CLASH',
+    lead: 'ダメージをためてステージ外へ吹っ飛ばす、出勤服の本格プラットフォーム対戦。CPU戦・2人対戦、全12ファイター。',
+  },
+  {
     view: 'memory',
     title: '神経衰弱',
     tag: 'CONCENTRATION',

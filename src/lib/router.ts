@@ -67,6 +67,8 @@ export function decodeHash(hash: string): Route {
                           ? 'chari'
                           : path === 'quiz'
                             ? 'quiz'
+                            : path === 'clash'
+                              ? 'clash'
                             : 'fits'
   const p = new URLSearchParams(query ?? '')
 
