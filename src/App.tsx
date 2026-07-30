@@ -4,6 +4,7 @@ import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
 import ScrollToTopButton from './components/ScrollToTopButton'
 import { useOverrides } from './lib/store'
+import { useGameInteractionGuard } from './lib/gameInteractionGuard'
 
 // 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
 // ゲーム（DuelGameView / MemoryGameView）と色解析は依存が重いので特に効果が大きい。
@@ -126,9 +127,10 @@ export default function App() {
     view === 'chari' ||
     view === 'quiz' ||
     view === 'clash'
+  const gameInteractionRef = useGameInteractionGuard(isPlayingGame)
 
   return (
-    <div className={isPlayingGame ? 'app playing-game' : 'app'}>
+    <div ref={gameInteractionRef} className={isPlayingGame ? 'app playing-game' : 'app'}>
       <header className="header">
         <button
           className="brand"

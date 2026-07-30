@@ -130,6 +130,7 @@ node scripts/cutout.mjs --force         # 作り直し
 - 「チャリ通」の無限コース生成・物理は `src/lib/chari.ts`。穴幅や安全帯の公平性と、30シード×90秒の走破可能性をbotテストで保証している（`chari.playability.test.ts`）
 - 「着戦」の吹っ飛ばし・足場・攻撃・ガード・ストック・CPU判断は `src/lib/clash.ts`、Canvas描画と入力は `src/components/ClashGameView.tsx`。ルールは `clash.test.ts` で、吹っ飛ばし倍率、単発ヒット、ガード破壊、飛び道具、復帰、ストック進行を検証する
 - 「着戦」の12ファイターは春夏秋冬から新しい3着ずつを選ぶ。季節と代表色から、スピード・ジャンプ・パワー・重さ・空中ジャンプ数・空中制御を導出する
+- 個別ゲーム表示中の長押し選択・コンテキストメニュー・画像ドラッグ・Canvasのブラウザ既定操作は `src/lib/gameInteractionGuard.ts` で共通抑止する。ボタン・リンク・入力欄は除外し、通常操作を維持する
 
 ## 公開ビルドのデータの持ち方
 

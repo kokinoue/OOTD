@@ -7075,6 +7075,23 @@ a {
   }
 }
 
+/* 個別ゲーム共通: iOS/Androidの長押し選択・コールアウト・画像ドラッグを抑止。
+   ボタンやリンクのクリックはイベント側の除外ルールで通常どおり動作する。 */
+.app.playing-game main {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.app.playing-game main canvas {
+  touch-action: none;
+}
+
+.app.playing-game main canvas,
+.app.playing-game main img {
+  -webkit-user-drag: none;
+}
+
 /* ==========================================================================
    着戦 — KISEKAE CLASH
    ========================================================================== */
