@@ -22,7 +22,7 @@ import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
-import { useI18n } from './lib/i18n'
+import { isLocale, LOCALE_OPTIONS, useI18n } from './lib/i18n'
 
 export type View =
   | 'fits'
@@ -161,11 +161,16 @@ export default function App() {
           <select
             className="locale-select mono"
             value={locale}
-            onChange={(event) => setLocale(event.target.value === 'en' ? 'en' : 'ja')}
+            onChange={(event) => {
+              if (isLocale(event.target.value)) setLocale(event.target.value)
+            }}
             aria-label={t('表示言語')}
           >
-            <option value="ja">JA</option>
-            <option value="en">EN</option>
+            {LOCALE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
         <nav className="tabs" aria-label={t('ビュー切り替え')}>

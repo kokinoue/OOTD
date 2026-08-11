@@ -7,13 +7,21 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { KO } from './i18n-ko'
 
-export type Locale = 'ja' | 'en'
+export const LOCALES = ['ja', 'en', 'ko'] as const
+export type Locale = (typeof LOCALES)[number]
 type Variables = Record<string, string | number>
+
+export const LOCALE_OPTIONS: ReadonlyArray<{ value: Locale; label: string }> = [
+  { value: 'ja', label: 'JA' },
+  { value: 'en', label: 'EN' },
+  { value: 'ko', label: 'KO' },
+]
 
 const LOCALE_STORAGE_KEY = 'ootd-locale'
 
-const EN: Record<string, string> = {
+export const EN: Record<string, string> = {
   // App shell
   '出勤服': 'WORKDAY OUTFITS',
   'ビュー切り替え': 'Switch view',
@@ -31,6 +39,7 @@ const EN: Record<string, string> = {
   '表示言語': 'Display language',
   '日本語': 'Japanese',
   '英語': 'English',
+  '韓国語': 'Korean',
 
   // Common controls
   '閉じる': 'Close',
@@ -819,24 +828,43 @@ const interpolate = (message: string, variables: Variables = {}) =>
     Object.hasOwn(variables, key) ? String(variables[key]) : match,
   )
 
-const translateDynamicEnglish = (message: string) => {
+const TRANSLATIONS: Record<Exclude<Locale, 'ja'>, Record<string, string>> = {
+  en: EN,
+  ko: KO,
+}
+
+const translateDynamic = (locale: Exclude<Locale, 'ja'>, message: string) => {
+  const dictionary = TRANSLATIONS[locale]
   let match = message.match(/^同じ(.+)$/)
-  if (match) return `Same ${match[1]}`
+  if (match) return locale === 'en' ? `Same ${match[1]}` : `같은 ${match[1]}`
   match = message.match(/^(.+)あり$/)
-  if (match) return `Includes ${match[1]}`
+  if (match) return locale === 'en' ? `Includes ${match[1]}` : `${match[1]} 있음`
   match = message.match(/^(\d+)℃台$/)
-  if (match) return `Around ${match[1]}°C`
+  if (match) return locale === 'en' ? `Around ${match[1]}°C` : `${match[1]}℃대`
   match = message.match(/^(髪色|髪型|帽子): (.+)$/)
-  if (match) return `${EN[match[1]] ?? match[1]}: ${EN[match[2]] ?? match[2]}`
+  if (match) return `${dictionary[match[1]] ?? match[1]}: ${dictionary[match[2]] ?? match[2]}`
   return message
 }
 
-export const translate = (locale: Locale, message: string, variables?: Variables) =>
-  interpolate(locale === 'en' ? (EN[message] ?? translateDynamicEnglish(message)) : message, variables)
+export const translate = (locale: Locale, message: string, variables?: Variables) => {
+  const translated =
+    locale === 'ja' ? message : (TRANSLATIONS[locale][message] ?? translateDynamic(locale, message))
+  return interpolate(translated, variables)
+}
+
+export const isLocale = (value: string): value is Locale =>
+  LOCALES.some((locale) => locale === value)
 
 export const detectLocale = (stored: string | null, languages: readonly string[]): Locale => {
-  if (stored === 'ja' || stored === 'en') return stored
-  return languages.some((language) => language.toLowerCase().startsWith('ja')) ? 'ja' : 'en'
+  if (stored && isLocale(stored)) return stored
+  for (const language of languages) {
+    const normalized = language.toLowerCase()
+    const locale = LOCALES.find(
+      (candidate) => normalized === candidate || normalized.startsWith(`${candidate}-`),
+    )
+    if (locale) return locale
+  }
+  return 'en'
 }
 
 const initialLocale = (): Locale => {
@@ -866,6 +894,11 @@ const PAGE_META: Record<Locale, { title: string; description: string }> = {
     title: 'Workday Outfit Archive — Daily looks by koki inoue',
     description:
       'More than 600 daily outfits across four years, with outfit and item views, seasonal insights, and timelapse playback.',
+  },
+  ko: {
+    title: '출근룩 아카이브 — koki inoue의 데일리 코디',
+    description:
+      '4년간 600일 이상의 출근룩을 모은 아카이브. 코디와 아이템 목록, 계절별 분석, 타임랩스로 매일의 스타일을 돌아보세요.',
   },
 }
 
