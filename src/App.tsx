@@ -91,26 +91,43 @@ export default function App() {
   const { splits, assign, createSub, moveOutfit, saveState } = useSplits()
   const { hair, setHair, saveState: hairSaveState } = useHair()
   const data = useData(ov, splits)
-  const [{ view, filters, itemsFilters }, navigate] = useHashRoute()
+  const [{ view, filters, itemsFilters, outfitKey }, navigate] = useHashRoute()
 
-  const setView = (v: View) => navigate({ view: v, filters, itemsFilters })
+  const setView = (v: View) => navigate({ view: v, filters, itemsFilters, outfitKey: null })
   const setFilters = (f: Filters) =>
-    navigate({ view: 'fits', filters: f, itemsFilters }, { replace: true })
+    navigate({ view: 'fits', filters: f, itemsFilters, outfitKey: null }, { replace: true })
   const setItemsFilters = (f: ItemsFilters) =>
-    navigate({ view: 'items', filters, itemsFilters: f }, { replace: true })
+    navigate({ view: 'items', filters, itemsFilters: f, outfitKey: null }, { replace: true })
+  const setOpenOutfitKey = (key: string | null) =>
+    navigate({ view: 'fits', filters, itemsFilters, outfitKey: key }, { replace: true })
 
   const showFitsForItem = (itemId: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId, itemIds: [] }, itemsFilters })
+    navigate({
+      view: 'fits',
+      filters: { ...defaultFilters, itemId, itemIds: [] },
+      itemsFilters,
+      outfitKey: null,
+    })
     window.scrollTo({ top: 0 })
   }
 
   const showFitsForItems = (itemIds: string[]) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId: null, itemIds }, itemsFilters })
+    navigate({
+      view: 'fits',
+      filters: { ...defaultFilters, itemId: null, itemIds },
+      itemsFilters,
+      outfitKey: null,
+    })
     window.scrollTo({ top: 0 })
   }
 
   const showFitsForDate = (date: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, from: date, to: date }, itemsFilters })
+    navigate({
+      view: 'fits',
+      filters: { ...defaultFilters, from: date, to: date },
+      itemsFilters,
+      outfitKey: null,
+    })
     window.scrollTo({ top: 0 })
   }
 
@@ -132,7 +149,7 @@ export default function App() {
         <button
           className="brand"
           onClick={() => {
-            navigate({ view: 'fits', filters: defaultFilters, itemsFilters })
+            navigate({ view: 'fits', filters: defaultFilters, itemsFilters, outfitKey: null })
             window.scrollTo({ top: 0 })
           }}
         >
@@ -212,6 +229,8 @@ export default function App() {
           data={data}
           filters={filters}
           setFilters={setFilters}
+          openOutfitKey={outfitKey}
+          setOpenOutfitKey={setOpenOutfitKey}
           splits={splits}
           hair={hair}
           onAssign={assign}

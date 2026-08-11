@@ -30,6 +30,8 @@ type Props = {
   data: Data
   filters: Filters
   setFilters: (f: Filters) => void
+  openOutfitKey: string | null
+  setOpenOutfitKey: (key: string | null) => void
   splits: SplitsFile
   hair: HairFile
   onAssign: (baseId: string, outfitKey: string, subKey: string | null) => void
@@ -52,6 +54,8 @@ export default function FitsView({
   data,
   filters,
   setFilters,
+  openOutfitKey,
+  setOpenOutfitKey,
   splits,
   hair,
   onAssign,
@@ -136,7 +140,6 @@ export default function FitsView({
   }, [data, filters, hair, todayDoy])
 
   const [shown, setShown] = useState(PAGE)
-  const [openOutfitKey, setOpenOutfitKey] = useState<string | null>(null)
   const [timelapseFrames, setTimelapseFrames] = useState<TimelapseFrame[] | null>(null)
   // スマホでは絞り込み操作群を畳んで、写真グリッドをすぐ見られるようにする（PC では常に展開）
   const [filtersOpen, setFiltersOpen] = useState(false)
