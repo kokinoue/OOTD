@@ -22,6 +22,7 @@ import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
+import { useI18n } from './lib/i18n'
 
 export type View =
   | 'fits'
@@ -85,6 +86,7 @@ export const defaultItemsFilters: ItemsFilters = {
 }
 
 export default function App() {
+  const { locale, setLocale, t } = useI18n()
   const ov = useOverrides()
   const { splits, assign, createSub, moveOutfit, saveState } = useSplits()
   const { hair, setHair, saveState: hairSaveState } = useHair()
@@ -134,10 +136,22 @@ export default function App() {
             window.scrollTo({ top: 0 })
           }}
         >
-          <span className="brand-mark jp">出勤服</span>
+          <span className="brand-mark jp">{t('出勤服')}</span>
           <span className="brand-sub">DAILY FITS ARCHIVE</span>
         </button>
-        <nav className="tabs" aria-label="ビュー切り替え">
+        <label className="locale-control">
+          <span className="sr-only">{t('表示言語')}</span>
+          <select
+            className="locale-select mono"
+            value={locale}
+            onChange={(event) => setLocale(event.target.value === 'en' ? 'en' : 'ja')}
+            aria-label={t('表示言語')}
+          >
+            <option value="ja">JA</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+        <nav className="tabs" aria-label={t('ビュー切り替え')}>
           <button
             className={view === 'fits' || view === 'orbit' ? 'tab active' : 'tab'}
             onClick={() => setView('fits')}
@@ -154,25 +168,25 @@ export default function App() {
             className={view === 'closet' ? 'tab active' : 'tab'}
             onClick={() => setView('closet')}
           >
-            稼働率
+            {t('稼働率')}
           </button>
           <button
             className={view === 'palette' ? 'tab active' : 'tab'}
             onClick={() => setView('palette')}
           >
-            色
+            {t('色')}
           </button>
           <button
             className={view === 'weather' ? 'tab active' : 'tab'}
             onClick={() => setView('weather')}
           >
-            衣替え
+            {t('衣替え')}
           </button>
           <button
             className={view === 'today' ? 'tab active' : 'tab'}
             onClick={() => setView('today')}
           >
-            今日の服
+            {t('今日の服')}
           </button>
           <button
             className={
@@ -188,7 +202,7 @@ export default function App() {
             }
             onClick={() => setView('game')}
           >
-            ゲーム
+            {t('ゲーム')}
           </button>
         </nav>
       </header>
@@ -216,7 +230,7 @@ export default function App() {
         />
       )}
       {view === 'game' && <GameHubView onSelect={setView} />}
-      <Suspense fallback={<div className="view-loading jp">読み込み中…</div>}>
+      <Suspense fallback={<div className="view-loading jp">{t('読み込み中…')}</div>}>
         {view === 'closet' && (
           <ClosetDashboardView
             data={data}
@@ -256,16 +270,16 @@ export default function App() {
 
       {(saveState === 'error' || hairSaveState === 'error') && (
         <div className="save-error jp">
-          データを保存できませんでした。`pnpm dev` のサーバーで開いているか確認してください
+          {t('データを保存できませんでした。`pnpm dev` のサーバーで開いているか確認してください')}
         </div>
       )}
 
       <footer className="footer jp">
-        データ元:{' '}
+        {t('データ元:')}{' '}
         <a href={meta.magazineUrl} target="_blank" rel="noreferrer">
-          note マガジン「出勤服」
+          {t('note マガジン「出勤服」')}
         </a>{' '}
-        · {fmtDate(meta.scrapedAt.slice(0, 10))} 取得
+        · {fmtDate(meta.scrapedAt.slice(0, 10))} {t('取得')}
       </footer>
 
       <ScrollToTopButton />

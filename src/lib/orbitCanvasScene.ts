@@ -9,6 +9,7 @@ import type {
   OrbitSceneController,
   OrbitSceneOptions,
 } from './orbitScene'
+import { translate } from './i18n'
 
 type Point = { x: number; y: number; z: number }
 type ProjectedPoint = Point & { scale: number }
@@ -36,6 +37,7 @@ export function createOrbitCanvasScene({
   initialIndex,
   colorLayout,
   colorSwatches,
+  locale = 'ja',
   onIndexChange,
 }: OrbitSceneOptions): OrbitSceneController {
   if (entries.length === 0) throw new Error('Orbit requires at least one outfit')
@@ -48,7 +50,7 @@ export function createOrbitCanvasScene({
   canvas.tabIndex = 0
   canvas.setAttribute(
     'aria-label',
-    '出勤服の軌道。上下キー、マウスホイール、ドラッグで年代を移動できます',
+    translate(locale, '出勤服の軌道。上下キー、マウスホイール、ドラッグで年代を移動できます'),
   )
   canvas.style.touchAction = 'none'
   canvas.style.cursor = 'grab'

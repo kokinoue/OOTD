@@ -5,6 +5,7 @@ import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
 import { buildHairFacets, effectiveHair, HAIR_FIELDS } from '../lib/hair'
 import { findSimilarOutfits } from '../lib/similar'
+import { useI18n } from '../lib/i18n'
 import type { HairFile, HairTag, SplitsFile } from '../types'
 import OutfitModal from './OutfitModal'
 import TimelapsePlayer, { type TimelapseFrame } from './TimelapsePlayer'
@@ -59,6 +60,7 @@ export default function FitsView({
   onSetHair,
   onOpenOrbit,
 }: Props) {
+  const { t } = useI18n()
   const years = useMemo(() => {
     const ys = new Set<number>()
     for (const o of outfits) ys.add(Number(o.date.slice(0, 4)))
@@ -226,7 +228,7 @@ export default function FitsView({
           aria-expanded={filtersOpen}
           onClick={() => setFiltersOpen((o) => !o)}
         >
-          <span className="jp">絞り込み・検索</span>
+          <span className="jp">{t('絞り込み・検索')}</span>
           {collapsedFilterCount > 0 && (
             <span className="filter-toggle-count mono">{collapsedFilterCount}</span>
           )}
@@ -279,9 +281,9 @@ export default function FitsView({
                 to: '',
               })
             }
-            title="過去の同じ時期（今日の前後3日）に着ていた服を横断"
+            title={t('過去の同じ時期（今日の前後3日）に着ていた服を横断')}
           >
-            <span className="jp">今日この頃</span>
+            <span className="jp">{t('今日この頃')}</span>
           </button>
           {filters.year != null && (
             <span className="month-chips">
@@ -294,7 +296,7 @@ export default function FitsView({
                   }
                 >
                   <span className="mono">{m}</span>
-                  <span className="jp">月</span>
+                  <span className="jp">{t('月')}</span>
                 </button>
               ))}
             </span>
@@ -322,7 +324,7 @@ export default function FitsView({
           <input
             className="search jp"
             type="search"
-            placeholder="ブランド・アイテム・メモで検索"
+            placeholder={t('ブランド・アイテム・メモで検索')}
             value={filters.q}
             onChange={(e) => setFilters({ ...filters, q: e.target.value })}
           />
@@ -330,11 +332,11 @@ export default function FitsView({
             className="select"
             value={filters.sort}
             onChange={(e) => setFilters({ ...filters, sort: e.target.value as Filters['sort'] })}
-            title="並び替え"
+            title={t('並び替え')}
           >
-            <option value="new">新しい順</option>
-            <option value="old">古い順</option>
-            <option value="like">スキ順</option>
+            <option value="new">{t('新しい順')}</option>
+            <option value="old">{t('古い順')}</option>
+            <option value="like">{t('スキ順')}</option>
           </select>
         </div>
 
@@ -346,7 +348,7 @@ export default function FitsView({
               const label = HAIR_FIELDS.find((f) => f.key === facet.field)!.label
               return (
                 <span key={facet.field} className="hair-group">
-                  <span className="hair-group-label jp">{label}</span>
+                  <span className="hair-group-label jp">{t(label)}</span>
                   {facet.values.map(({ value, count }) => (
                     <button
                       key={value}
@@ -358,7 +360,7 @@ export default function FitsView({
                         })
                       }
                     >
-                      <span className="jp">{value}</span>
+                      <span className="jp">{t(value)}</span>
                       <span className="chip-count mono">{count}</span>
                     </button>
                   ))}
@@ -375,7 +377,7 @@ export default function FitsView({
             <button
               className="chip item-chip active"
               onClick={() => setFilters({ ...filters, itemId: null, itemIds: [] })}
-              title="アイテム絞り込みを解除"
+              title={t('アイテム絞り込みを解除')}
             >
               <span className="chip-cat mono">{activeItem.category}</span>
               {activeItem.label} ✕
@@ -385,7 +387,7 @@ export default function FitsView({
             <button
               className="chip item-chip active"
               onClick={() => setFilters({ ...filters, itemId: null, itemIds: [] })}
-              title="ペア絞り込みを解除"
+              title={t('ペア絞り込みを解除')}
             >
               {activeItems.map((item, index) => (
                 <span key={item.id} className="pair-chip-part">
@@ -399,10 +401,10 @@ export default function FitsView({
           )}
           <span className="result-count">
             <span className="mono">{filtered.length}</span>
-            <span className="jp"> 件</span>
+            <span className="jp">{t('件')}</span>
             {hasFilter && (
               <button className="link jp" onClick={() => setFilters(defaultFilters)}>
-                すべて解除
+                {t('すべて解除')}
               </button>
             )}
           </span>
@@ -410,24 +412,24 @@ export default function FitsView({
             className="chip"
             onClick={openRandom}
             disabled={filtered.length === 0}
-            title="絞り込んだ中からランダムに1枚開く"
+            title={t('絞り込んだ中からランダムに1枚開く')}
           >
-            🎲 <span className="jp">ランダム</span>
+            🎲 <span className="jp">{t('ランダム')}</span>
           </button>
           <button
             className="chip"
             onClick={startTimelapse}
             disabled={filtered.length < 2}
-            title="絞り込んだコーデを時系列で連続再生"
+            title={t('絞り込んだコーデを時系列で連続再生')}
           >
-            ▶ <span className="jp">タイムラプス</span>
+            ▶ <span className="jp">{t('タイムラプス')}</span>
           </button>
           <button
             className="chip orbit-entry"
             onClick={onOpenOrbit}
             onMouseEnter={preloadOrbitView}
             onFocus={preloadOrbitView}
-            title="出勤服を3Dタイムラインで辿る"
+            title={t('出勤服を3Dタイムラインで辿る')}
           >
             <span className="orbit-entry-dot" aria-hidden="true" />
             <span className="mono">OOTD ORBIT</span>
@@ -437,7 +439,7 @@ export default function FitsView({
       </div>
 
       {filtered.length === 0 ? (
-        <p className="empty jp">条件に合うコーデがありません</p>
+        <p className="empty jp">{t('条件に合うコーデがありません')}</p>
       ) : (
         <div className="grid">
           {filtered.slice(0, shown).map((o, i) => {

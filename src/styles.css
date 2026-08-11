@@ -36,6 +36,22 @@ body {
   letter-spacing: 0.05em;
 }
 
+html[lang='en'] .jp {
+  letter-spacing: 0.02em;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .mono {
   font-family: var(--font-mono);
   letter-spacing: 0;
@@ -100,9 +116,26 @@ a {
 
 .tabs {
   display: flex;
+  flex: 1;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.locale-control {
+  flex: 0 0 auto;
+}
+
+.locale-select {
+  min-height: 34px;
+  padding: 0 26px 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .tab {
@@ -2617,6 +2650,7 @@ a {
   /* タブは2行目に落として全幅で折り返す（5タブが1行に収まらないため） */
   .tabs {
     width: 100%;
+    flex-basis: 100%;
     justify-content: flex-start;
     gap: 6px;
   }

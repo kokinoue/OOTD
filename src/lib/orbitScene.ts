@@ -11,6 +11,7 @@ import {
   visibleOrbitRange,
 } from './orbit'
 import type { Sky } from './weather'
+import { translate, type Locale } from './i18n'
 
 type SpriteSize = { w: number; h: number }
 
@@ -23,6 +24,7 @@ export type OrbitSceneOptions = {
   colorLayout: OrbitColorPoint[]
   colorSwatches: Record<string, string>
   weatherKinds: Array<Sky | null>
+  locale?: Locale
   onIndexChange: (index: number) => void
 }
 
@@ -66,6 +68,7 @@ export function createOrbitScene({
   colorLayout,
   colorSwatches,
   weatherKinds,
+  locale = 'ja',
   onIndexChange,
 }: OrbitSceneOptions): OrbitSceneController {
   if (entries.length === 0) throw new Error('Orbit requires at least one outfit')
@@ -83,7 +86,10 @@ export function createOrbitScene({
   renderer.domElement.tabIndex = 0
   renderer.domElement.setAttribute(
     'aria-label',
-    '出勤服の3Dタイムライン。上下キー、マウスホイール、ドラッグで年代を移動できます',
+    translate(
+      locale,
+      '出勤服の3Dタイムライン。上下キー、マウスホイール、ドラッグで年代を移動できます',
+    ),
   )
   container.appendChild(renderer.domElement)
 

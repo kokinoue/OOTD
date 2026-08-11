@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '../lib/i18n'
 
 // ゲーム別OGPを持つ静的ページ（public/game/<name>/）のURLを共有する。
 // 共有シート非対応の環境ではクリップボードへのコピーで代替する。
@@ -8,6 +9,7 @@ type Props = {
 }
 
 export default function GameShareButton({ game, title }: Props) {
+  const { t } = useI18n()
   const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle')
   const timer = useRef<number>()
   useEffect(() => () => window.clearTimeout(timer.current), [])
@@ -20,7 +22,7 @@ export default function GameShareButton({ game, title }: Props) {
 
   const onShare = async () => {
     const url = `${location.origin}${import.meta.env.BASE_URL}game/${game}/`
-    const data = { title: `${title} — 出勤服アーカイブ GAME`, url }
+    const data = { title: `${t(title)} — ${t('出勤服アーカイブ')} GAME`, url }
     const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean }
     if (nav.canShare?.(data)) {
       try {
@@ -42,10 +44,10 @@ export default function GameShareButton({ game, title }: Props) {
 
   return (
     <span className="game-share">
-      {state === 'copied' && <span className="game-share-msg jp">リンクをコピーしました</span>}
-      {state === 'error' && <span className="game-share-msg error jp">コピーできませんでした</span>}
-      <button className="game-share-btn jp" onClick={onShare} title="このゲームのリンクを共有">
-        共有
+      {state === 'copied' && <span className="game-share-msg jp">{t('リンクをコピーしました')}</span>}
+      {state === 'error' && <span className="game-share-msg error jp">{t('コピーできませんでした')}</span>}
+      <button className="game-share-btn jp" onClick={onShare} title={t('このゲームのリンクを共有')}>
+        {t('共有')}
       </button>
     </span>
   )

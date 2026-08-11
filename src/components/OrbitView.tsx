@@ -11,6 +11,7 @@ import type { OrbitSceneController } from '../lib/orbitScene'
 import { createCompatibleOrbitScene } from '../lib/orbitSceneFallback'
 import { colorBuckets, fmtDate, outfits, type Data } from '../lib/useData'
 import { SKY_LABELS, skyOfDay, type Sky } from '../lib/weather'
+import { useI18n } from '../lib/i18n'
 import type { CutoutsFile } from '../lib/platform'
 import type { HairFile, HairTag, SplitsFile } from '../types'
 import OutfitModal from './OutfitModal'
@@ -57,10 +58,10 @@ const WEATHER_ICONS: Record<Sky, string> = {
   snow: '✦',
 }
 
-const weatherLabel = (day?: WeatherDay) => {
+const weatherLabel = (day: WeatherDay | undefined, t: (message: string) => string) => {
   if (!day) return 'WEATHER —'
   const sky = skyOfDay(day)
-  const condition = sky ? `${WEATHER_ICONS[sky]} ${SKY_LABELS[sky]} · ` : ''
+  const condition = sky ? `${WEATHER_ICONS[sky]} ${t(SKY_LABELS[sky])} · ` : ''
   return `${condition}${day.mean.toFixed(1)}°C · ${day.min.toFixed(1)}–${day.max.toFixed(1)}°`
 }
 
@@ -75,6 +76,7 @@ export default function OrbitView({
   onShowItem,
   onClose,
 }: Props) {
+  const { locale, t } = useI18n()
   const canvasHostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<OrbitSceneController | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(() => orbitEntries.length - 1)
@@ -119,6 +121,7 @@ export default function OrbitView({
         colorLayout,
         colorSwatches,
         weatherKinds,
+        locale,
         onIndexChange: (index) => {
           startTransition(() => setSelectedIndex(index))
         },
@@ -134,7 +137,7 @@ export default function OrbitView({
       console.error('3Dタイムラインを開始できませんでした:', error)
       setSceneState('fallback')
     }
-  }, [colorLayout])
+  }, [colorLayout, locale])
 
   useEffect(() => {
     sceneRef.current?.setLayoutMode(layoutMode)
@@ -179,29 +182,28 @@ export default function OrbitView({
       <div ref={canvasHostRef} className="orbit-canvas" aria-hidden={sceneState === 'fallback'} />
 
       <div className="orbit-vignette" aria-hidden="true" />
-      <button className="orbit-close" onClick={onClose} aria-label="3Dタイムラインを閉じる">
+      <button className="orbit-close" onClick={onClose} aria-label={t('3Dタイムラインを閉じる')}>
         ×
       </button>
       <header className="orbit-intro">
         <p className="orbit-kicker mono">{orbitEntries.length} DAYS IN ORBIT</p>
-        <h1 className="orbit-title jp">出勤服の軌道</h1>
+        <h1 className="orbit-title jp">{t('出勤服の軌道')}</h1>
         <p className="orbit-lead jp">
-          スクロール、ドラッグ、上下キーで時間を移動。ひとつの定点から生まれた毎日の装いを、
-          2022年から現在まで辿れます。
+          {t('スクロール、ドラッグ、上下キーで時間を移動。ひとつの定点から生まれた毎日の装いを、2022年から現在まで辿れます。')}
         </p>
         {/* SPは軌道の表示面積を確保するため、同じ案内を1行に圧縮する */}
-        <p className="orbit-lead-compact jp">上下スワイプで2022年から現在まで移動。</p>
+        <p className="orbit-lead-compact jp">{t('上下スワイプで2022年から現在まで移動。')}</p>
       </header>
 
-      <section className="orbit-view-tools" aria-label="軌道の表示方法">
-        <div className="orbit-view-toggle" role="group" aria-label="表示レイアウト">
+      <section className="orbit-view-tools" aria-label={t('軌道の表示方法')}>
+        <div className="orbit-view-toggle" role="group" aria-label={t('表示レイアウト')}>
           <button
             className={layoutMode === 'time' ? 'active' : ''}
             aria-pressed={layoutMode === 'time'}
             onClick={() => setLayoutMode('time')}
           >
             <span className="mono">TIME</span>
-            <span className="jp">時間</span>
+            <span className="jp">{t('時間')}</span>
           </button>
           <button
             className={layoutMode === 'color' ? 'active' : ''}
@@ -209,17 +211,17 @@ export default function OrbitView({
             onClick={() => setLayoutMode('color')}
           >
             <span className="mono">COLOR</span>
-            <span className="jp">色別</span>
+            <span className="jp">{t('色別')}</span>
           </button>
         </div>
         {layoutMode === 'color' ? (
-          <div className="orbit-color-spectrum" aria-label="カラーパレット">
+          <div className="orbit-color-spectrum" aria-label={t('カラーパレット')}>
             {colorBuckets.map((bucket) => (
               <i
                 key={bucket.name}
                 style={{ background: bucket.swatch }}
-                title={bucket.label}
-                aria-label={bucket.label}
+                title={t(bucket.label)}
+                aria-label={t(bucket.label)}
               />
             ))}
           </div>
@@ -252,11 +254,11 @@ export default function OrbitView({
             src={`${import.meta.env.BASE_URL}cutouts/${selected.outfit.key}.webp`}
             alt={selected.outfit.title}
           />
-          <p className="jp">この環境では3D表示を利用できないため、1日ずつ表示しています。</p>
+          <p className="jp">{t('この環境では3D表示を利用できないため、1日ずつ表示しています。')}</p>
         </div>
       ) : null}
 
-      <nav className="orbit-years" aria-label="年へ移動">
+      <nav className="orbit-years" aria-label={t('年へ移動')}>
         {yearStarts.map(({ year, index }) => (
           <button
             key={year}
@@ -287,7 +289,7 @@ export default function OrbitView({
             <p
               className={`orbit-weather mono ${skyOfDay(selectedWeather) ?? 'unknown'}`}
             >
-              {weatherLabel(selectedWeather)}
+              {weatherLabel(selectedWeather, t)}
             </p>
             <div className="orbit-item-list">
               {selectedItems.slice(0, 4).map((item) => {
@@ -297,7 +299,7 @@ export default function OrbitView({
                     key={item.id}
                     className={traceItemId === item.id ? 'orbit-item active jp' : 'orbit-item jp'}
                     aria-pressed={traceItemId === item.id}
-                    title={`${item.label}の着用軌跡を表示`}
+                    title={t('{label}の着用軌跡を表示', { label: item.label })}
                     onClick={() =>
                       setTraceItemId((current) => (current === item.id ? null : item.id))
                     }
@@ -315,32 +317,32 @@ export default function OrbitView({
         <div className="orbit-detail-actions">
           <button
             className="orbit-nav-button jp"
-            aria-label="過去へ"
+            aria-label={t('過去へ')}
             disabled={selectedIndex === 0}
             onClick={() => navigate(selectedIndex - 1)}
           >
-            <span className="orbit-nav-long">← 過去へ</span>
+            <span className="orbit-nav-long">{t('← 過去へ')}</span>
             <span className="orbit-nav-short" aria-hidden="true">
               ←
             </span>
           </button>
           <button
             className="orbit-open-button jp"
-            aria-label="詳細を見る"
+            aria-label={t('詳細を見る')}
             onClick={() => setOpenOutfitKey(selected.outfit.key)}
           >
-            <span className="orbit-open-long">詳細を見る</span>
+            <span className="orbit-open-long">{t('詳細を見る')}</span>
             <span className="orbit-open-short" aria-hidden="true">
-              詳細
+              {t('詳細')}
             </span>
           </button>
           <button
             className="orbit-nav-button jp"
-            aria-label="現在へ"
+            aria-label={t('現在へ')}
             disabled={selectedIndex === orbitEntries.length - 1}
             onClick={() => navigate(selectedIndex + 1)}
           >
-            <span className="orbit-nav-long">現在へ →</span>
+            <span className="orbit-nav-long">{t('現在へ →')}</span>
             <span className="orbit-nav-short" aria-hidden="true">
               →
             </span>
@@ -355,7 +357,7 @@ export default function OrbitView({
           min={0}
           max={orbitEntries.length - 1}
           value={selectedIndex}
-          aria-label="出勤服の日付を移動"
+          aria-label={t('出勤服の日付を移動')}
           onChange={(event) => navigate(Number(event.target.value))}
         />
         <span className="mono">NOW</span>

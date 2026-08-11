@@ -10,6 +10,7 @@ import {
   SEASONAL_CATEGORIES,
   weather,
 } from '../lib/weather'
+import { useI18n } from '../lib/i18n'
 
 // 気温→色（青=寒い 〜 赤=暑い）
 const tempColor = (t: number) => {
@@ -40,6 +41,7 @@ const realTodayDoy = () => {
 }
 
 export default function WeatherView() {
+  const { t } = useI18n()
   const available = useMemo(
     () => SEASONAL_CATEGORIES.filter((c) => analyzeCategory(c) != null),
     [],
@@ -89,7 +91,7 @@ export default function WeatherView() {
   }, [analysis])
 
   if (!analysis || !forecast) {
-    return <main className="weather"><p className="empty jp">データがありません</p></main>
+    return <main className="weather"><p className="empty jp">{t('データがありません')}</p></main>
   }
 
   const showThreshold = analysis.thresholdReliable && analysis.threshold != null
@@ -105,7 +107,7 @@ export default function WeatherView() {
               className={category === c ? 'chip active' : 'chip'}
               onClick={() => setCategory(c)}
             >
-              {labelOf(c)}
+              {t(labelOf(c))}
             </button>
           ))}
         </div>
@@ -139,18 +141,21 @@ export default function WeatherView() {
               return <circle key={i} cx={x} cy={y} r={2.4} fill={tempColor(p.temp)} opacity={0.85} />
             })}
             <text x={CX} y={CY - 4} className="polar-center-label jp">
-              {forecast.label}
+              {t(forecast.label)}
             </text>
             <text x={CX} y={CY + 12} className="polar-center-sub mono">
-              {analysis.wornCount}日
+              {t('{count}日', { count: analysis.wornCount })}
             </text>
           </svg>
           <figcaption className="jp">
-            中心から外へ {years[0]}→{years[years.length - 1]} 年。点 = 着用日（色は当日の最高気温）
+            {t('中心から外へ {from}→{to} 年。点 = 着用日（色は当日の最高気温）', {
+              from: years[0],
+              to: years[years.length - 1],
+            })}
             {isLayeredCategory(category) && (
               <>
                 <br />
-                ※一番外側に着た日のみ（インナー使いは除外）
+                {t('※一番外側に着た日のみ（インナー使いは除外）')}
               </>
             )}
           </figcaption>
@@ -159,15 +164,15 @@ export default function WeatherView() {
         {/* 私的気温閾値 */}
         <div className="weather-panel">
           <section className="threshold-card">
-            <div className="threshold-head jp">{forecast.label}を着る気温</div>
+            <div className="threshold-head jp">{t('{label}を着る気温', { label: t(forecast.label) })}</div>
             {showThreshold ? (
               <div className="threshold-value">
                 <span className="mono big">{analysis.threshold!.toFixed(1)}</span>
                 <span className="threshold-unit">℃</span>
                 <span className="threshold-desc jp">
-                  最高気温が
-                  {analysis.direction === 'cold' ? 'これを下回ると' : 'これを上回ると'}
-                  着用確率50%
+                  {t('最高気温が{direction}着用確率50%', {
+                    direction: t(analysis.direction === 'cold' ? 'これを下回ると' : 'これを上回ると'),
+                  })}
                 </span>
               </div>
             ) : (
@@ -175,8 +180,9 @@ export default function WeatherView() {
                 <span className="mono big">{analysis.wornAvg}</span>
                 <span className="threshold-unit">℃</span>
                 <span className="threshold-desc jp">
-                  着た日の平均最高気温（{analysis.direction === 'cold' ? '寒い' : '暖かい'}日中心だが
-                  気温との相関はゆるやか）
+                  {t('着た日の平均最高気温（{kind}日中心だが気温との相関はゆるやか）', {
+                    kind: t(analysis.direction === 'cold' ? '寒い' : '暖かい'),
+                  })}
                 </span>
               </div>
             )}
@@ -191,7 +197,7 @@ export default function WeatherView() {
               <span>35℃</span>
             </div>
             <div className="threshold-stats jp">
-              着た日の平均 <b className="mono">{analysis.wornAvg}℃</b> ／ 着なかった日{' '}
+              {t('着た日の平均')} <b className="mono">{analysis.wornAvg}℃</b> ／ {t('着なかった日')}{' '}
               <b className="mono">{analysis.notWornAvg}℃</b>
             </div>
           </section>
@@ -199,25 +205,25 @@ export default function WeatherView() {
           {/* 解禁予報 */}
           <section className="forecast-card">
             <div className="forecast-head jp">
-              {forecast.label}
-              {analysis.direction === 'cold' ? 'シーズンイン' : 'シーズンイン'}
+              {t(forecast.label)}
+              {t('シーズンイン')}
             </div>
             {countdown && (
               <div className={`forecast-countdown ${countdown.kind}`}>
                 {countdown.kind === 'upcoming' && (
                   <span className="jp">
-                    解禁まで <b className="mono big">{countdown.days}</b> 日
-                    <span className="dim">（平年 {countdown.mmdd}）</span>
+                    {t('解禁まで {days} 日', { days: countdown.days })}
+                    <span className="dim">{t('（平年 {date}）', { date: countdown.mmdd })}</span>
                   </span>
                 )}
                 {countdown.kind === 'open' && (
                   <span className="jp">
-                    <b className="mono">{countdown.days}</b> 日前に解禁済み
-                    <span className="dim">（平年 {countdown.mmdd}）</span>
+                    {t('{days} 日前に解禁済み', { days: countdown.days })}
+                    <span className="dim">{t('（平年 {date}）', { date: countdown.mmdd })}</span>
                   </span>
                 )}
                 {countdown.kind === 'far' && (
-                  <span className="jp dim">オフシーズン（平年解禁 {countdown.mmdd}）</span>
+                  <span className="jp dim">{t('オフシーズン（平年解禁 {date}）', { date: countdown.mmdd })}</span>
                 )}
               </div>
             )}
@@ -235,7 +241,10 @@ export default function WeatherView() {
             </ul>
             {todayTemp != null && (
               <p className="forecast-now jp">
-                直近の最高気温 <b className="mono">{todayTemp}℃</b>（{lastDate.slice(5).replace('-', '/')}）
+                {t('直近の最高気温 {temp}℃（{date}）', {
+                  temp: todayTemp,
+                  date: lastDate.slice(5).replace('-', '/'),
+                })}
               </p>
             )}
           </section>

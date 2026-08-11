@@ -15,6 +15,7 @@ import {
   type Scores,
 } from '../lib/quiz'
 import { generateStoryImage } from '../lib/quizShareImage'
+import { useI18n } from '../lib/i18n'
 
 // 性格診断「あなたのkokiはこれ！」
 // ・8問に答えると5軸スコアが集計され、16タイプのうち1つ + 実データの出勤服1着が決まる。
@@ -31,7 +32,10 @@ type Phase = 'intro' | 'asking' | 'result'
 // スコアをバー表示用に -1〜1 へクランプ正規化（質問側の想定レンジはおおよそ -6〜+6）
 const barRatio = (v: number) => Math.max(-1, Math.min(1, v / 6))
 
-const shareTextFor = (type: QuizType) => `私のkokiは『${type.name}（${type.code}）』でした！`
+const shareTextFor = (
+  type: QuizType,
+  t: (message: string, variables?: Record<string, string | number>) => string,
+) => t('私のkokiは『{name}（{code}）』でした！', { name: t(type.name), code: type.code })
 
 function readAnswersFromLocationHash(): number[] | null {
   const hash = window.location.hash
@@ -48,6 +52,7 @@ function shareUrlFor(encoded: string): string {
 }
 
 export default function QuizGameView({ data, onBack }: { data: Data; onBack: () => void }) {
+  const { locale, t } = useI18n()
   const restored = useMemo(() => readAnswersFromLocationHash(), [])
   const [phase, setPhase] = useState<Phase>(() => (restored ? 'result' : 'intro'))
   const [answers, setAnswers] = useState<number[]>(() => restored ?? [])
@@ -107,6 +112,10 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
   }, [phase, answers])
 
   const type = useMemo(() => (scores ? resolveType(scores) : null), [scores])
+  const displayType = useMemo(
+    () => type && { ...type, name: t(type.name), tagline: t(type.tagline), description: t(type.description) },
+    [type, t],
+  )
 
   const resultOutfit = useMemo(() => {
     if (!scores) return null
@@ -121,7 +130,8 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
 
   const shareOnX = () => {
     if (!shareUrl || !type) return
-    const text = `${shareTextFor(type)} #出勤服アーカイブ`
+    const hashtag = locale === 'ja' ? '#出勤服アーカイブ' : '#WorkdayOutfitArchive'
+    const text = `${shareTextFor(type, t)} ${hashtag}`
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`
     window.open(intentUrl, '_blank', 'noopener,noreferrer')
   }
@@ -142,14 +152,14 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
     if (!scores || !type || !resultOutfit) return
     setImageStatus('generating')
     try {
-      const blob = await generateStoryImage({ type, scores, outfitKey: resultOutfit.key })
+      const blob = await generateStoryImage({ type: displayType ?? type, scores, outfitKey: resultOutfit.key, locale })
       const fileName = `koki-quiz-${type.code.toLowerCase()}.png`
       const file = new File([blob], fileName, { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: 'あなたのkokiはこれ！',
-          text: shareTextFor(type),
+          title: t('あなたのkokiはこれ！'),
+          text: shareTextFor(type, t),
         })
       } else {
         const url = URL.createObjectURL(blob)
@@ -179,24 +189,22 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
         <div className="g-setup-card">
           <div className="game-nav">
             <button className="game-back jp" onClick={onBack}>
-              ← ゲームを選ぶ
+              ← {t('ゲームを選ぶ')}
             </button>
             <GameShareButton game="quiz" title="性格診断" />
           </div>
-          <h2 className="g-setup-title jp">性格診断 — あなたのkokiはこれ！</h2>
+          <h2 className="g-setup-title jp">{t('性格診断 — あなたのkokiはこれ！')}</h2>
           <p className="g-setup-lead jp">
-            服・朝の支度・休日の過ごし方など8つの質問に答えると、
-            <b>4文字コード付きの性格タイプ</b>と、660着以上の出勤服から選ばれた
-            <b>ぴったりの一着</b>がわかります。
+            {t('服・朝の支度・休日の過ごし方など8つの質問に答えると、4文字コード付きの性格タイプと、660着以上の出勤服から選ばれたぴったりの一着がわかります。')}
           </p>
           <ul className="g-rules jp">
-            <li>質問は全部で {QUESTIONS.length} 問</li>
-            <li>4つの軸から16通りの4文字コードを判定</li>
-            <li>選択肢をタップするとすぐ次の質問へ</li>
-            <li>同じ回答なら、いつでも同じ結果になります</li>
+            <li>{t('質問は全部で {count} 問', { count: QUESTIONS.length })}</li>
+            <li>{t('4つの軸から16通りの4文字コードを判定')}</li>
+            <li>{t('選択肢をタップするとすぐ次の質問へ')}</li>
+            <li>{t('同じ回答なら、いつでも同じ結果になります')}</li>
           </ul>
           <button className="g-start jp" onClick={start}>
-            はじめる
+            {t('はじめる')}
           </button>
         </div>
       </main>
@@ -211,7 +219,7 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
       <main className="g-setup">
         <div className="g-setup-card g-quiz-card">
           <button className="game-back jp" onClick={goPrev}>
-            ← {step === 0 ? 'ゲームを選ぶ' : '前の質問'}
+            ← {t(step === 0 ? 'ゲームを選ぶ' : '前の質問')}
           </button>
           <div className="g-quiz-progress-row">
             <span className="g-quiz-progress-label mono">
@@ -221,11 +229,11 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
               <div className="g-quiz-progress-fill" style={{ width: `${progress}%` }} />
             </div>
           </div>
-          <h3 className="g-quiz-question jp">{q.text}</h3>
+          <h3 className="g-quiz-question jp">{t(q.text)}</h3>
           <div className="g-quiz-choices">
             {q.choices.map((c, i) => (
               <button key={i} className="g-quiz-choice jp" onClick={() => choose(i)}>
-                {c.text}
+                {t(c.text)}
               </button>
             ))}
           </div>
@@ -247,17 +255,17 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
       <div className="g-setup-card g-quiz-card">
         <span className="g-quiz-type-tag mono">RESULT</span>
         <div className="g-quiz-type-code mono">{type.code}</div>
-        <h2 className="g-quiz-type-name jp">{type.name}</h2>
-        <p className="g-quiz-type-tagline jp">{type.tagline}</p>
-        <p className="g-quiz-type-desc jp">{type.description}</p>
+        <h2 className="g-quiz-type-name jp">{displayType?.name}</h2>
+        <p className="g-quiz-type-tagline jp">{displayType?.tagline}</p>
+        <p className="g-quiz-type-desc jp">{displayType?.description}</p>
 
         <div className="g-quiz-traits">
-          {TRAITS.map((t) => {
-            const ratio = barRatio(scores[t])
-            const label = TRAIT_LABEL[t]
+          {TRAITS.map((trait) => {
+            const ratio = barRatio(scores[trait])
+            const label = TRAIT_LABEL[trait]
             return (
-              <div className="g-quiz-trait-row" key={t}>
-                <span className="g-quiz-trait-label jp">{label.neg}</span>
+              <div className="g-quiz-trait-row" key={trait}>
+                <span className="g-quiz-trait-label jp">{t(label.neg)}</span>
                 <div className="g-quiz-trait-bar">
                   <div className="g-quiz-trait-bar-mid" />
                   <div
@@ -269,13 +277,13 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
                     }
                   />
                 </div>
-                <span className="g-quiz-trait-label jp">{label.pos}</span>
+                <span className="g-quiz-trait-label jp">{t(label.pos)}</span>
               </div>
             )
           })}
         </div>
 
-        <h3 className="g-quiz-result-heading jp">あなたのkokiはこれ！</h3>
+        <h3 className="g-quiz-result-heading jp">{t('あなたのkokiはこれ！')}</h3>
         <div className="g-quiz-outfit-card">
           <img
             className="g-quiz-outfit-img"
@@ -299,41 +307,41 @@ export default function QuizGameView({ data, onBack }: { data: Data; onBack: () 
               target="_blank"
               rel="noopener noreferrer"
             >
-              noteで見る →
+              {t('noteで見る')} →
             </a>
           </div>
         </div>
 
         <div className="g-quiz-share">
-          <h3 className="g-quiz-share-heading jp">結果をシェア</h3>
+          <h3 className="g-quiz-share-heading jp">{t('結果をシェア')}</h3>
           <div className="g-quiz-share-actions">
             <button className="chip jp" onClick={shareOnX} disabled={!shareUrl}>
-              Xでシェア
+              {t('Xでシェア')}
             </button>
             <button
               className="chip jp"
               onClick={shareImage}
               disabled={imageStatus === 'generating'}
             >
-              {imageStatus === 'generating' ? '画像を作成中…' : '画像でシェア'}
+              {t(imageStatus === 'generating' ? '画像を作成中…' : '画像でシェア')}
             </button>
             <button className="chip jp" onClick={copyLink} disabled={!shareUrl}>
-              {copyStatus === 'copied' ? 'コピーしました' : 'リンクをコピー'}
+              {t(copyStatus === 'copied' ? 'コピーしました' : 'リンクをコピー')}
             </button>
           </div>
           {imageStatus === 'error' && (
             <p className="g-quiz-share-error jp">
-              画像の生成に失敗しました。時間をおいてもう一度お試しください。
+              {t('画像の生成に失敗しました。時間をおいてもう一度お試しください。')}
             </p>
           )}
         </div>
 
         <div className="g-finished-actions">
           <button className="g-start jp" onClick={start}>
-            もう一度診断する
+            {t('もう一度診断する')}
           </button>
           <button className="chip jp" onClick={onBack}>
-            ゲームを選ぶ
+            {t('ゲームを選ぶ')}
           </button>
         </div>
       </div>

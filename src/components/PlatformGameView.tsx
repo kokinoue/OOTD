@@ -22,6 +22,7 @@ import {
   type Traits,
 } from '../lib/platform'
 import { colorBuckets, fmtDate, outfits, type Data } from '../lib/useData'
+import { useI18n } from '../lib/i18n'
 
 // ランウェイ: 出勤服からくり抜いた自分を操作するミニプラットフォーマー。
 // キャラ選択（季節×色で特性が変わる）→ ステージ選択 → Canvasプレイの3画面。
@@ -675,6 +676,7 @@ function CharaSelect({
   onPick: (key: string) => void
   onBack: () => void
 }) {
+  const { t } = useI18n()
   const [season, setSeason] = useState<Season | 'all'>('all')
   const filtered = season === 'all' ? charas : charas.filter((c) => c.season === season)
   const seasons: (Season | 'all')[] = ['all', 'spring', 'summer', 'autumn', 'winter']
@@ -683,13 +685,15 @@ function CharaSelect({
     <div className="plat-inner">
       <div className="game-nav">
         <button className="game-back jp" onClick={onBack}>
-          ← ゲーム選択にもどる
+          ← {t('ゲーム選択にもどる')}
         </button>
         <GameShareButton game="platform" title="ランウェイ" />
       </div>
-      <h2 className="plat-title jp">ランウェイ</h2>
+      <h2 className="plat-title jp">{t('ランウェイ')}</h2>
       <p className="plat-sub jp">
-        操作キャラにする出勤服を選んでください。季節と色で特性が変わります（全{charas.length}着）。
+        {t('操作キャラにする出勤服を選んでください。季節と色で特性が変わります（全{count}着）。', {
+          count: charas.length,
+        })}
       </p>
       <div className="plat-filter">
         {seasons.map((s) => (
@@ -698,7 +702,7 @@ function CharaSelect({
             className={`plat-chip jp ${season === s ? 'active' : ''}`}
             onClick={() => setSeason(s)}
           >
-            {s === 'all' ? 'すべて' : SEASON_LABEL[s]}
+            {t(s === 'all' ? 'すべて' : SEASON_LABEL[s])}
           </button>
         ))}
         <button
@@ -706,7 +710,7 @@ function CharaSelect({
           onClick={() => onPick(filtered[Math.floor(Math.random() * filtered.length)].key)}
           disabled={filtered.length === 0}
         >
-          おまかせ
+          {t('おまかせ')}
         </button>
       </div>
       <div className="plat-chara-grid">
@@ -723,19 +727,19 @@ function CharaSelect({
             <span className="plat-chara-date mono">{fmtDate(c.date)}</span>
             <span className="plat-chara-tags">
               <span className="plat-tag jp" style={{ background: SEASON_COLOR[c.season] }}>
-                {SEASON_LABEL[c.season]}
+                {t(SEASON_LABEL[c.season])}
               </span>
               {colorLabel(c.color) && (
                 <span
                   className="plat-tag jp plat-tag-color"
                   style={{ background: colorLabel(c.color)!.swatch }}
                 >
-                  {colorLabel(c.color)!.label}
+                  {t(colorLabel(c.color)!.label)}
                 </span>
               )}
             </span>
             <span className="plat-chara-traits jp">
-              {c.traits.notes.map((n) => n.name).join(' / ')}
+              {c.traits.notes.map((n) => t(n.name)).join(' / ')}
             </span>
           </button>
         ))}
@@ -758,12 +762,13 @@ function StageSelect({
   onChangeChara: () => void
   onBack: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="plat-inner">
       <button className="game-back jp" onClick={onBack}>
-        ← ゲーム選択にもどる
+        ← {t('ゲーム選択にもどる')}
       </button>
-      <h2 className="plat-title jp">ランウェイ</h2>
+      <h2 className="plat-title jp">{t('ランウェイ')}</h2>
       <div className="plat-lobby">
         <div className="plat-lobby-chara">
           <span className="plat-chara-stage big">
@@ -773,26 +778,26 @@ function StageSelect({
             <span className="mono">#{chara.no ?? '—'} · {fmtDate(chara.date)}</span>
             <span className="plat-chara-tags">
               <span className="plat-tag jp" style={{ background: SEASON_COLOR[chara.season] }}>
-                {SEASON_LABEL[chara.season]}
+                {t(SEASON_LABEL[chara.season])}
               </span>
               {colorLabel(chara.color) && (
                 <span
                   className="plat-tag jp plat-tag-color"
                   style={{ background: colorLabel(chara.color)!.swatch }}
                 >
-                  {colorLabel(chara.color)!.label}
+                  {t(colorLabel(chara.color)!.label)}
                 </span>
               )}
             </span>
             <ul className="plat-traits jp">
               {chara.traits.notes.map((n) => (
                 <li key={n.name}>
-                  <b>{n.name}</b> — {n.desc}
+                  <b>{t(n.name)}</b> — {t(n.desc)}
                 </li>
               ))}
             </ul>
             <button className="plat-change jp" onClick={onChangeChara}>
-              べつの服にする →
+              {t('べつの服にする →')}
             </button>
           </div>
         </div>
@@ -805,17 +810,22 @@ function StageSelect({
                 <span className="plat-stage-name mono">{lv.title}</span>
                 <span className="plat-stage-best mono">
                   {b
-                    ? `★ コイン ${b.coins}/${b.total} · タイム ${fmtTime(b.time)} · ミス ${b.miss}`
-                    : '未クリア'}
+                    ? t('★ コイン {coins}/{total} · タイム {time} · ミス {miss}', {
+                        coins: b.coins,
+                        total: b.total,
+                        time: fmtTime(b.time),
+                        miss: b.miss,
+                      })
+                    : t('未クリア')}
                 </span>
-                <span className="plat-stage-go jp">あそぶ →</span>
+                <span className="plat-stage-go jp">{t('あそぶ →')}</span>
               </button>
             )
           })}
         </div>
       </div>
       <p className="plat-help jp">
-        ←→ 移動 / Z・スペース ジャンプ（空中でもう1回） / X ダッシュ / R やりなおし / ESC ステージ選択
+        {t('←→ 移動 / Z・スペース ジャンプ（空中でもう1回） / X ダッシュ / R やりなおし / ESC ステージ選択')}
       </p>
     </div>
   )
@@ -835,6 +845,7 @@ function Play({
   onExit: () => void
   onNext: () => void
 }) {
+  const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const hudCoinRef = useRef<HTMLSpanElement>(null)
   const hudMissRef = useRef<HTMLSpanElement>(null)
@@ -1310,50 +1321,54 @@ function Play({
           STAGE {stageIdx + 1}/{LEVELS.length} {level.title}
         </span>
         <span className="plat-hud-stats">
-          コイン <span ref={hudCoinRef}>0/{totalCoins}</span> ミス <span ref={hudMissRef}>0</span> タイム{' '}
+          {t('コイン')} <span ref={hudCoinRef}>0/{totalCoins}</span> {t('ミス')} <span ref={hudMissRef}>0</span> {t('タイム')}{' '}
           <span ref={hudTimeRef}>0.0</span>
         </span>
         <span className="plat-hud-flow" ref={hudFlowRef}>FLOW —</span>
         <button
           className="plat-sound"
           onClick={() => setMuted(audioRef.current!.toggle())}
-          title={muted ? 'サウンドをオン' : 'サウンドをオフ'}
-          aria-label={muted ? 'サウンドをオン' : 'サウンドをオフ'}
+          title={t(muted ? 'サウンドをオン' : 'サウンドをオフ')}
+          aria-label={t(muted ? 'サウンドをオン' : 'サウンドをオフ')}
           aria-pressed={!muted}
         >
-          {muted ? '音 OFF' : '音 ON'}
+          {t(muted ? '音 OFF' : '音 ON')}
         </button>
         <button
           className="plat-fs"
           onClick={toggleFullscreen}
-          title="全画面（スマホは横向き固定）"
-          aria-label="全画面切り替え"
+          title={t('全画面（スマホは横向き固定）')}
+          aria-label={t('全画面切り替え')}
         >
           {isFs || pseudoFs ? '✕' : '⛶'}
         </button>
       </div>
       <div className="plat-screen">
         <canvas ref={canvasRef} className="plat-canvas" />
-        {showTip && !cleared && <div className="plat-tip jp">{level.tip}</div>}
+        {showTip && !cleared && <div className="plat-tip jp">{t(level.tip)}</div>}
         {cleared && (
           <div className="plat-overlay">
             <div className="plat-clear jp">
               <b className="mono">{isLast ? 'ALL CLEAR!!' : 'STAGE CLEAR!'}</b>
               <span className="mono">
-                コイン {cleared.coins}/{cleared.total} · タイム {fmtTime(cleared.time)} · ミス{' '}
-                {cleared.miss}
+                {t('コイン {coins}/{total} · タイム {time} · ミス {miss}', {
+                  coins: cleared.coins,
+                  total: cleared.total,
+                  time: fmtTime(cleared.time),
+                  miss: cleared.miss,
+                })}
               </span>
               <span className="plat-clear-actions">
                 {!isLast && (
                   <button className="plat-btn primary jp" onClick={onNext}>
-                    次のステージ →
+                    {t('次のステージ →')}
                   </button>
                 )}
                 <button className="plat-btn jp" onClick={() => setRestartTick((n) => n + 1)}>
-                  もう一度
+                  {t('もう一度')}
                 </button>
                 <button className="plat-btn jp" onClick={onExit}>
-                  ステージ選択
+                  {t('ステージ選択')}
                 </button>
               </span>
             </div>
@@ -1413,7 +1428,7 @@ function Play({
         </div>
       )}
       <div className="plat-controls jp">
-        ←→ 移動 / Z・スペース ジャンプ（空中でもう1回） / X ダッシュ / R やりなおし / ESC ステージ選択
+        {t('←→ 移動 / Z・スペース ジャンプ（空中でもう1回） / X ダッシュ / R やりなおし / ESC ステージ選択')}
       </div>
     </div>
   )
