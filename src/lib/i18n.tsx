@@ -257,6 +257,7 @@ export const EN: Record<string, string> = {
   // Outfit details and editing
   '← 前へ': '← PREVIOUS',
   '次へ →': 'NEXT →',
+  'このコーデのリンクを共有': 'Share this outfit',
   'ロック画面用に整形した画像を保存・共有する': 'Save or share an image formatted for a lock screen',
   '画像を生成中…': 'Creating image…',
   'ロック画面用に保存': 'Save for lock screen',

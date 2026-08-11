@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../lib/i18n'
+import { shareUrl } from '../lib/share'
 
 // ゲーム別OGPを持つ静的ページ（public/game/<name>/）のURLを共有する。
 // 共有シート非対応の環境ではクリップボードへのコピーで代替する。
@@ -23,23 +24,9 @@ export default function GameShareButton({ game, title }: Props) {
   const onShare = async () => {
     const url = `${location.origin}${import.meta.env.BASE_URL}game/${game}/`
     const data = { title: `${t(title)} — ${t('出勤服アーカイブ')} GAME`, url }
-    const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean }
-    if (nav.canShare?.(data)) {
-      try {
-        await nav.share(data)
-        return
-      } catch (err) {
-        // ユーザーが共有シートを閉じただけなら何もしない
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        // それ以外はコピーへフォールバック
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-      flash('copied')
-    } catch {
-      flash('error')
-    }
+    const result = await shareUrl(data)
+    if (result === 'copied') flash('copied')
+    if (result === 'error') flash('error')
   }
 
   return (

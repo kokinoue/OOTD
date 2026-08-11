@@ -8,6 +8,7 @@ import type { SimilarOutfit } from '../lib/similar'
 import { shareAsWallpaper } from '../lib/wallpaper'
 import type { HairFile, HairTag, Outfit, SplitsFile } from '../types'
 import { useI18n } from '../lib/i18n'
+import OutfitShareButton from './OutfitShareButton'
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
@@ -295,9 +296,12 @@ export default function OutfitModal({
               <span className="modal-like">♡ {outfit.like}</span>
             </p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label={t('閉じる')}>
-            ✕
-          </button>
+          <div className="modal-head-actions">
+            <OutfitShareButton key={outfit.key} outfit={outfit} />
+            <button className="icon-btn" onClick={onClose} aria-label={t('閉じる')}>
+              ✕
+            </button>
+          </div>
         </header>
 
         {outfit.images.map((img, i) => (

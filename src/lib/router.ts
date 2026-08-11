@@ -5,11 +5,17 @@ import { defaultFilters, defaultItemsFilters, type Filters, type ItemsFilters, t
 // 例: #/fits?item=shoes%7Cjmweston%23black-loafer&year=2024&month=3&q=...&order=asc
 //     #/items?q=loafer&cat=shoes&color=black&sort=recent
 //     #/closet  #/palette  #/weather  #/orbit
-// FITS は Filters、ITEMS は ItemsFilters をそれぞれのパス配下に載せる。衣替え等の内部状態は対象外。
+// FITS は Filters と開いているコーデ、ITEMS は ItemsFilters をそれぞれのパス配下に載せる。
+// 衣替え等の内部状態は対象外。
 
-export type Route = { view: View; filters: Filters; itemsFilters: ItemsFilters }
+export type Route = {
+  view: View
+  filters: Filters
+  itemsFilters: ItemsFilters
+  outfitKey: string | null
+}
 
-export function encodeHash({ view, filters, itemsFilters }: Route): string {
+export function encodeHash({ view, filters, itemsFilters, outfitKey }: Route): string {
   if (view === 'items') {
     const ip = new URLSearchParams()
     if (itemsFilters.q) ip.set('q', itemsFilters.q)
@@ -20,6 +26,7 @@ export function encodeHash({ view, filters, itemsFilters }: Route): string {
     return iqs ? `/items?${iqs}` : '/items'
   }
   const p = new URLSearchParams()
+  if (view === 'fits' && outfitKey) p.set('outfit', outfitKey)
   // URLSearchParams が | → %7C, # → %23 を自動エンコードするので itemId をそのまま入れて安全
   if (filters.itemId) p.set('item', filters.itemId)
   if (filters.itemIds.length > 0) p.set('items', filters.itemIds.join(','))
@@ -102,7 +109,8 @@ export function decodeHash(hash: string): Route {
           anniv: p.get('anniv') === '1',
         }
       : { ...defaultFilters }
-  return { view, filters, itemsFilters }
+  const outfitKey = view === 'fits' ? p.get('outfit') || null : null
+  return { view, filters, itemsFilters, outfitKey }
 }
 
 type NavigateOptions = {
