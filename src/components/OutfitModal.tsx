@@ -7,6 +7,7 @@ import { effectiveHair, HAIR_FIELDS } from '../lib/hair'
 import type { SimilarOutfit } from '../lib/similar'
 import { shareAsWallpaper } from '../lib/wallpaper'
 import type { HairFile, HairTag, Outfit, SplitsFile } from '../types'
+import { useI18n } from '../lib/i18n'
 
 const baseItemMap = new Map(baseItems.map((it) => [it.id, it]))
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
@@ -44,6 +45,7 @@ export default function OutfitModal({
   onNext,
   onItemClick,
 }: Props) {
+  const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
   const [assigningBaseId, setAssigningBaseId] = useState<string | null>(null)
   // ロック画面用に整形した画像の共有/保存ステータス
@@ -276,12 +278,12 @@ export default function OutfitModal({
       {/* スワイプ中に出る方向スタンプ（カードと一緒に動く） */}
       {onPrev && (
         <div ref={prevStampRef} className="swipe-stamp prev jp" aria-hidden="true">
-          ← 前へ
+          {t('← 前へ')}
         </div>
       )}
       {onNext && (
         <div ref={nextStampRef} className="swipe-stamp next jp" aria-hidden="true">
-          次へ →
+          {t('次へ →')}
         </div>
       )}
       <article className="modal-body">
@@ -293,7 +295,7 @@ export default function OutfitModal({
               <span className="modal-like">♡ {outfit.like}</span>
             </p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="閉じる">
+          <button className="icon-btn" onClick={onClose} aria-label={t('閉じる')}>
             ✕
           </button>
         </header>
@@ -320,25 +322,25 @@ export default function OutfitModal({
               className="chip wallpaper-btn"
               onClick={onSaveWallpaper}
               disabled={wpState === 'busy'}
-              title="ロック画面用に整形した画像を保存・共有する"
+              title={t('ロック画面用に整形した画像を保存・共有する')}
             >
               <span aria-hidden="true">▢</span>{' '}
               <span className="jp">
-                {wpState === 'busy' ? '画像を生成中…' : 'ロック画面用に保存'}
+                {t(wpState === 'busy' ? '画像を生成中…' : 'ロック画面用に保存')}
               </span>
             </button>
             {wpState === 'shared' && (
               <span className="wallpaper-msg jp">
-                共有メニューから「画像を保存」→ 写真アプリで壁紙に設定できます
+                {t('共有メニューから「画像を保存」→ 写真アプリで壁紙に設定できます')}
               </span>
             )}
             {wpState === 'downloaded' && (
               <span className="wallpaper-msg jp">
-                画像を保存しました。写真アプリから壁紙／ロック画面に設定できます
+                {t('画像を保存しました。写真アプリから壁紙／ロック画面に設定できます')}
               </span>
             )}
             {wpState === 'error' && (
-              <span className="wallpaper-msg error jp">画像を生成できませんでした</span>
+              <span className="wallpaper-msg error jp">{t('画像を生成できませんでした')}</span>
             )}
           </div>
         )}
@@ -350,7 +352,7 @@ export default function OutfitModal({
                 <button
                   className="chip item-chip"
                   onClick={() => onItemClick(displayId)}
-                  title={`${item!.label} のコーデを見る`}
+                  title={t('{label} のコーデを見る', { label: item!.label })}
                 >
                   <span className="chip-cat mono">{item!.category}</span>
                   {item!.label}
@@ -360,7 +362,7 @@ export default function OutfitModal({
                   <button
                     className="chip-edit"
                     onClick={() => setAssigningBaseId(baseId)}
-                    title="この着用を別の個体に割り当てる"
+                    title={t('この着用を別の個体に割り当てる')}
                   >
                     ⇄
                   </button>
@@ -378,19 +380,19 @@ export default function OutfitModal({
 
         {(onPrev || onNext) && (
           <p className="modal-swipe-hint jp" aria-hidden="true">
-            ← スワイプで前後のコーデ →
+            {t('← スワイプで前後のコーデ →')}
           </p>
         )}
 
         <footer className="modal-foot">
           <button className="chip" onClick={onPrev} disabled={!onPrev}>
-            ← <span className="jp">前</span>
+            ← <span className="jp">{t('前')}</span>
           </button>
           <a className="chip" href={outfit.noteUrl} target="_blank" rel="noreferrer">
-            <span className="jp">noteで見る</span> ↗
+            <span className="jp">{t('noteで見る')}</span> ↗
           </a>
           <button className="chip" onClick={onNext} disabled={!onNext}>
-            <span className="jp">次</span> →
+            <span className="jp">{t('次')}</span> →
           </button>
         </footer>
       </article>
@@ -418,11 +420,12 @@ function SimilarOutfitsSection({
   items: SimilarOutfit[]
   onOpenSimilar: (key: string) => void
 }) {
+  const { t } = useI18n()
   if (items.length === 0) return null
 
   return (
     <section className="modal-similar">
-      <h3 className="modal-section-title jp">似ている出勤服</h3>
+      <h3 className="modal-section-title jp">{t('似ている出勤服')}</h3>
       <div className="similar-strip">
         {items.map(({ outfit, reasons }) => {
           const image = outfit.images[0]
@@ -431,7 +434,7 @@ function SimilarOutfitsSection({
               key={outfit.key}
               className="similar-card"
               onClick={() => onOpenSimilar(outfit.key)}
-              title={`${fmtDate(outfit.date)} のコーデを見る`}
+              title={t('{date} のコーデを見る', { date: fmtDate(outfit.date) })}
             >
               <img
                 src={thumb(image.url, 240)}
@@ -444,7 +447,7 @@ function SimilarOutfitsSection({
                 <span className="similar-reasons">
                   {reasons.map((reason, i) => (
                     <span key={`${reason}-${i}`} className="similar-reason jp">
-                      {reason}
+                      {t(reason)}
                     </span>
                   ))}
                 </span>
@@ -467,6 +470,7 @@ function HairSection({
   outfitKey: string
   onSetHair: (outfitKey: string, tag: HairTag) => void
 }) {
+  const { t } = useI18n()
   const eff = effectiveHair(hair, outfitKey)
   const isManual = hair.manual[outfitKey] != null
   const hasAuto = hair.auto[outfitKey] != null
@@ -484,11 +488,11 @@ function HairSection({
     if (set.length === 0) return null
     return (
       <div className="modal-hair">
-        <span className="modal-hair-label jp">髪</span>
+        <span className="modal-hair-label jp">{t('髪')}</span>
         {set.map((f) => (
           <span key={f.key} className="hair-badge jp">
-            <span className="hair-badge-cat">{f.label}</span>
-            {eff[f.key]}
+            <span className="hair-badge-cat">{t(f.label)}</span>
+            {t(eff[f.key]!)}
           </span>
         ))}
       </div>
@@ -504,17 +508,17 @@ function HairSection({
   return (
     <div className="modal-hair edit">
       <span className="modal-hair-label jp">
-        髪
-        <span className="hair-src mono">{isManual ? '手動' : hasAuto ? 'AI推定' : '未設定'}</span>
+        {t('髪')}
+        <span className="hair-src mono">{t(isManual ? '手動' : hasAuto ? 'AI推定' : '未設定')}</span>
       </span>
       {HAIR_FIELDS.map((f) => (
         <label key={f.key} className="hair-field jp">
-          <span className="hair-field-label">{f.label}</span>
+          <span className="hair-field-label">{t(f.label)}</span>
           <input
             className="hair-input jp"
             type="text"
             value={draft[f.key] ?? ''}
-            placeholder={f.key === 'hat' ? 'なし' : '—'}
+            placeholder={f.key === 'hat' ? t('なし') : '—'}
             onChange={(e) => setDraft({ ...draft, [f.key]: blankToNull(e.target.value) })}
           />
         </label>
@@ -524,7 +528,7 @@ function HairSection({
         disabled={!dirty}
         onClick={() => onSetHair(outfitKey, draft)}
       >
-        <span className="jp">保存</span>
+        <span className="jp">{t('保存')}</span>
       </button>
       {isManual && (
         <button
@@ -534,9 +538,9 @@ function HairSection({
             setDraft(reset)
             onSetHair(outfitKey, { color: null, style: null, hat: null })
           }}
-          title="手動修正を消してAI推定に戻す"
+          title={t('手動修正を消してAI推定に戻す')}
         >
-          AI推定に戻す
+          {t('AI推定に戻す')}
         </button>
       )}
     </div>
@@ -562,6 +566,7 @@ function AssignDialog({
   onMoveOutfit: (baseId: string, outfitKey: string, targetId: string | null) => void
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
   const [newLabel, setNewLabel] = useState('')
   const [moving, setMoving] = useState(false)
@@ -659,7 +664,7 @@ function AssignDialog({
       <article className="modal-body">
         <header className="modal-head">
           <div>
-            <h2 className="modal-title jp">この日の着用をどの個体にする？</h2>
+            <h2 className="modal-title jp">{t('この日の着用をどの個体にする？')}</h2>
             <div className="modal-sub">
               {editingId === baseId ? (
                 <RenameEditor
@@ -676,7 +681,7 @@ function AssignDialog({
                   <button
                     className="assign-rename"
                     onClick={() => setEditingId(baseId)}
-                    title="アイテム名を変更"
+                    title={t('アイテム名を変更')}
                   >
                     ✎
                   </button>{' '}
@@ -685,7 +690,7 @@ function AssignDialog({
               )}
             </div>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="閉じる">
+          <button className="icon-btn" onClick={onClose} aria-label={t('閉じる')}>
             ✕
           </button>
         </header>
@@ -719,12 +724,12 @@ function AssignDialog({
                         {!currentMove && sub.key === currentSubKey ? '●' : '○'}
                       </span>
                       <span className="assign-label jp">{subLabelOf(sub.key, sub.label)}</span>
-                      <span className="item-meta mono dim">{count}回</span>
+                      <span className="item-meta mono dim">{count}{t('回')}</span>
                     </button>
                     <button
                       className="assign-rename"
                       onClick={() => setEditingId(subId)}
-                      title="この個体名を変更"
+                      title={t('この個体名を変更')}
                     >
                       ✎
                     </button>
@@ -743,7 +748,7 @@ function AssignDialog({
               <span className="assign-radio">
                 {currentSubKey == null && !currentMove ? '●' : '○'}
               </span>
-              <span className="assign-label jp dim">未分類</span>
+              <span className="assign-label jp dim">{t('未分類')}</span>
             </button>
           </li>
         </ul>
@@ -751,11 +756,13 @@ function AssignDialog({
         {mergedToId && (
           <div className="assign-moved jp">
             <span>
-              この個体（{naturalLabel}）は{' '}
-              <strong>{mergedToItem?.label ?? mergedToId}</strong> に統合されています
+              {t('この個体（{label}）は {target} に統合されています', {
+                label: naturalLabel,
+                target: mergedToItem?.label ?? mergedToId,
+              })}
             </span>
             <button className="link" onClick={unmergeNatural}>
-              統合を解除
+              {t('統合を解除')}
             </button>
           </div>
         )}
@@ -763,11 +770,12 @@ function AssignDialog({
         {currentMove && (
           <div className="assign-moved jp">
             <span>
-              この日の着用は{' '}
-              <strong>{movedItem?.label ?? currentMove}</strong> へ付け替え済み
+              {t('この日の着用は {target} へ付け替え済み', {
+                target: movedItem?.label ?? currentMove,
+              })}
             </span>
             <button className="link" onClick={clearMove}>
-              元に戻す
+              {t('元に戻す')}
             </button>
           </div>
         )}
@@ -775,17 +783,20 @@ function AssignDialog({
         <div className="assign-move">
           {!moving ? (
             <button className="link jp" onClick={() => setMoving(true)}>
-              {currentMove ? '別のアイテムへ付け替え直す →' : 'この日の着用だけ別のアイテムへ移す →'}
+              {t(currentMove ? '別のアイテムへ付け替え直す →' : 'この日の着用だけ別のアイテムへ移す →')}
             </button>
           ) : (
             <>
               <p className="merge-help jp">
-                この日（{fmtDate(outfit.date)}）の「{baseLabel}」の着用だけを、選んだアイテムへ付け替えます（「元に戻す」でいつでも戻せます）。
+                {t('この日（{date}）の「{label}」の着用だけを、選んだアイテムへ付け替えます（「元に戻す」でいつでも戻せます）。', {
+                  date: fmtDate(outfit.date),
+                  label: baseLabel,
+                })}
               </p>
               <input
                 className="search jp"
                 type="search"
-                placeholder="付け替え先のアイテムを検索"
+                placeholder={t('付け替え先のアイテムを検索')}
                 autoFocus
                 value={moveQ}
                 onChange={(e) => setMoveQ(e.target.value)}
@@ -796,7 +807,7 @@ function AssignDialog({
                     <button className="merge-candidate" onClick={() => moveTo(it.id)}>
                       <span className="chip-cat mono">{it.category}</span>
                       {it.label}
-                      <span className="item-meta mono dim">{it.count}回</span>
+                      <span className="item-meta mono dim">{it.count}{t('回')}</span>
                     </button>
                   </li>
                 ))}
@@ -809,7 +820,7 @@ function AssignDialog({
           <input
             className="search jp"
             type="text"
-            placeholder="新しい個体名（例: 紺フレアデニム）"
+            placeholder={t('新しい個体名（例: 紺フレアデニム）')}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => {
@@ -817,7 +828,7 @@ function AssignDialog({
             }}
           />
           <button className="chip" onClick={create} disabled={!newLabel.trim()}>
-            <span className="jp">＋作成して割当</span>
+            <span className="jp">{t('＋作成して割当')}</span>
           </button>
         </div>
       </article>
@@ -835,6 +846,7 @@ function RenameEditor({
   onSave: (label: string) => void
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   const [value, setValue] = useState(initial)
   return (
     <span className="assign-edit">
@@ -843,17 +855,17 @@ function RenameEditor({
         type="text"
         autoFocus
         value={value}
-        placeholder="名前（空で自動に戻す）"
+        placeholder={t('名前（空で自動に戻す）')}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSave(value)
         }}
       />
       <button className="chip sm primary" onClick={() => onSave(value)}>
-        <span className="jp">保存</span>
+        <span className="jp">{t('保存')}</span>
       </button>
       <button className="chip sm" onClick={onCancel}>
-        <span className="jp">取消</span>
+        <span className="jp">{t('取消')}</span>
       </button>
     </span>
   )

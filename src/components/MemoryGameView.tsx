@@ -4,6 +4,7 @@ import type { Data } from '../lib/useData'
 import { outfits, thumb } from '../lib/useData'
 import type { Outfit } from '../types'
 import GameShareButton from './GameShareButton'
+import { useI18n } from '../lib/i18n'
 
 // 出勤服 神経衰弱
 // ・場札は出勤服。2枚めくって「同じアイテム」の数だけ得点（jacketもpantsも同じなら +2pt）。
@@ -53,6 +54,7 @@ function hasMatch(down: GameCard[]): boolean {
 }
 
 export default function MemoryGameView({ data, onBack }: { data: Data; onBack: () => void }) {
+  const { t } = useI18n()
   // 画像とアイテムが揃っているコーデだけを場札の候補にする
   const pool = useMemo(
     () =>
@@ -217,26 +219,27 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
         <div className="g-setup-card">
           <div className="game-nav">
             <button className="game-back jp" onClick={onBack}>
-              ← ゲームを選ぶ
+              ← {t('ゲームを選ぶ')}
             </button>
             <GameShareButton game="memory" title="神経衰弱" />
           </div>
-          <h2 className="g-setup-title jp">出勤服 神経衰弱</h2>
+          <h2 className="g-setup-title jp">{t('出勤服 神経衰弱')}</h2>
           <p className="g-setup-lead jp">
-            場札は {Math.min(BOARD_SIZE, pool.length)} 枚の出勤服。2枚めくって、
-            <b>同じアイテム</b>（同じブランドの一着）があれば、その数だけ得点。
+            {t('場札は {count} 枚の出勤服。2枚めくって、同じアイテム（同じブランドの一着）があれば、その数だけ得点。', {
+              count: Math.min(BOARD_SIZE, pool.length),
+            })}
           </p>
           <ul className="g-rules jp">
             <li>
-              jacket も pants も同じなら <b className="g-pt">＋2pt</b>
+              {t('jacket も pants も同じなら ＋2pt')}
             </li>
-            <li>当たっても外れても、ターンは次の人へ交代</li>
-            <li>一致した2枚は獲得して場から外す</li>
-            <li>場が尽きたら終了 — 合計得点が最大の人が勝ち</li>
+            <li>{t('当たっても外れても、ターンは次の人へ交代')}</li>
+            <li>{t('一致した2枚は獲得して場から外す')}</li>
+            <li>{t('場が尽きたら終了 — 合計得点が最大の人が勝ち')}</li>
           </ul>
 
           <div className="g-setup-row">
-            <span className="g-setup-label jp">プレイヤー人数</span>
+            <span className="g-setup-label jp">{t('プレイヤー人数')}</span>
             <div className="g-num-pick">
               {[1, 2, 3, 4].map((n) => (
                 <button
@@ -245,14 +248,14 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
                   onClick={() => setNumPlayers(n)}
                 >
                   <span className="mono">{n}</span>
-                  <span className="jp">人</span>
+                  <span className="jp">{t('人')}</span>
                 </button>
               ))}
             </div>
           </div>
 
           <button className="g-start jp" onClick={() => startGame(numPlayers)}>
-            ゲーム開始
+            {t('ゲーム開始')}
           </button>
         </div>
       </main>
@@ -265,19 +268,21 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
     return (
       <main className="g-finished">
         <div className="g-setup-card">
-          <h2 className="g-setup-title jp">{solo ? 'クリア！' : '結果発表'}</h2>
+          <h2 className="g-setup-title jp">{t(solo ? 'クリア！' : '結果発表')}</h2>
           {!solo && (
             <p className="g-winner jp">
               {winners.length > 1 ? (
                 <>
-                  {winners.map((i) => `プレイヤー${i + 1}`).join(' · ')} の引き分け！
+                  {t('{players} の引き分け！', {
+                    players: winners.map((i) => t('プレイヤー{number}', { number: i + 1 })).join(' · '),
+                  })}
                 </>
               ) : (
                 <>
                   <b style={{ color: PLAYER_COLORS[winners[0]] }}>
-                    プレイヤー{winners[0] + 1}
+                    {t('プレイヤー{number}', { number: winners[0] + 1 })}
                   </b>{' '}
-                  の勝ち！
+                  {t('の勝ち！')}
                 </>
               )}
             </p>
@@ -287,7 +292,7 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
               <li key={r.i} className={'g-result-row' + (r.s === topScore ? ' top' : '')}>
                 <span className="g-result-rank mono">{rank + 1}</span>
                 <span className="g-dot" style={{ background: PLAYER_COLORS[r.i] }} />
-                <span className="g-result-name jp">プレイヤー{r.i + 1}</span>
+                <span className="g-result-name jp">{t('プレイヤー{number}', { number: r.i + 1 })}</span>
                 <span className="g-result-score mono">
                   {r.s}
                   <span className="g-pt-unit"> pt</span>
@@ -297,10 +302,10 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
           </ol>
           <div className="g-finished-actions">
             <button className="g-start jp" onClick={() => startGame(numPlayers)}>
-              もう一度（{numPlayers}人）
+              {t('もう一度（{count}人）', { count: numPlayers })}
             </button>
             <button className="chip jp" onClick={() => setPhase('setup')}>
-              人数を変える
+              {t('人数を変える')}
             </button>
           </div>
         </div>
@@ -322,11 +327,11 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
             <span className="g-dot" style={{ background: PLAYER_COLORS[i] }} />
             <span className="g-score-name jp">P{i + 1}</span>
             <span className="g-score-val mono">{s}</span>
-            {i === current && <span className="g-turn-tag jp">の番</span>}
+            {i === current && <span className="g-turn-tag jp">{t('の番')}</span>}
           </div>
         ))}
         <div className="g-remaining jp">
-          残り <span className="mono">{remaining}</span> 枚
+          {t('残り {count} 枚', { count: remaining })}
         </div>
       </div>
 
@@ -348,7 +353,7 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
                   </>
                 ) : (
                   <div className="g-slot-empty jp">
-                    {slot === 0 ? 'カードをめくる' : 'もう1枚めくる'}
+                    {t(slot === 0 ? 'カードをめくる' : 'もう1枚めくる')}
                   </div>
                 )}
               </div>
@@ -359,7 +364,10 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
         <div className="g-verdict">
           {!resolved ? (
             <span className="g-verdict-turn jp" style={{ color: PLAYER_COLORS[current] }}>
-              プレイヤー{current + 1} の番 — {selected.length}/2 枚
+              {t('プレイヤー{number} の番 — {selected}/2 枚', {
+                number: current + 1,
+                selected: selected.length,
+              })}
             </span>
           ) : matchedSet.size > 0 ? (
             <>
@@ -367,22 +375,24 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
                 <span className="mono">＋{matchedSet.size}</span> pt
               </span>
               <span className="g-verdict-detail jp">
-                {[...matchedSet].map((id) => itemInfo(id).cat).join(' · ')} が一致
+                {t('{categories} が一致', {
+                  categories: [...matchedSet].map((id) => itemInfo(id).cat).join(' · '),
+                })}
               </span>
             </>
           ) : (
-            <span className="g-verdict-miss jp">一致なし</span>
+            <span className="g-verdict-miss jp">{t('一致なし')}</span>
           )}
           {resolved && (
             <button className="g-next jp" onClick={commit}>
-              つぎへ →
+              {t('つぎへ →')}
             </button>
           )}
         </div>
       </div>
 
       {/* 場札: 52枚を散らして配置 */}
-      <div className="g-board" aria-label="場札">
+      <div className="g-board" aria-label={t('場札')}>
         {cards.map((c) => (
           <button
             key={c.key}
@@ -397,7 +407,7 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
             }
             onClick={() => flip(c.key)}
             disabled={locked || c.status !== 'down'}
-            aria-label={c.status === 'down' ? '伏せカード' : c.outfit.title}
+            aria-label={c.status === 'down' ? t('伏せカード') : c.outfit.title}
           >
             <span className="g-card-inner">
               <span className="g-card-face g-card-back" aria-hidden>
@@ -423,7 +433,7 @@ export default function MemoryGameView({ data, onBack }: { data: Data; onBack: (
 
       <div className="g-play-foot">
         <button className="chip jp" onClick={() => setPhase('setup')}>
-          ゲームをやめる
+          {t('ゲームをやめる')}
         </button>
         <span className="g-play-foot-note jp mono">turn {turnCount + 1}</span>
       </div>

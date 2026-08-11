@@ -6,6 +6,7 @@ import { regionBackgroundStyle } from '../lib/regions'
 import { buildItemNetwork } from '../lib/itemNetwork'
 import type { ItemNetwork, ItemNetworkNode } from '../lib/itemNetwork'
 import type { EffectiveItem } from '../types'
+import { useI18n } from '../lib/i18n'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const RECENT_DAYS = 90
@@ -44,6 +45,7 @@ const daysBetween = (from: string, to: string) =>
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
 export default function ClosetDashboardView({ data, onShowFits, onShowPairFits }: Props) {
+  const { t } = useI18n()
   const [category, setCategory] = useState('all')
   const [sort, setSort] = useState<Sort>('idle')
   const network = useMemo(() => buildItemNetwork(data), [data])
@@ -188,19 +190,19 @@ export default function ClosetDashboardView({ data, onShowFits, onShowPairFits }
             className="select"
             value={sort}
             onChange={(e) => setSort(e.target.value as Sort)}
-            title="アイテムの並び替え"
+            title={t('アイテムの並び替え')}
           >
-            <option value="idle">最近着た順</option>
-            <option value="recent">90日稼働順</option>
-            <option value="staple">年間稼働密度順</option>
-            <option value="dormant">休眠長い順</option>
+            <option value="idle">{t('最近着た順')}</option>
+            <option value="recent">{t('90日稼働順')}</option>
+            <option value="staple">{t('年間稼働密度順')}</option>
+            <option value="dormant">{t('休眠長い順')}</option>
           </select>
           <span className="result-count jp">
-            基準日 <span className="mono">{fmtDate(snapshot.asOf)}</span>
+            {t('基準日')} <span className="mono">{fmtDate(snapshot.asOf)}</span>
             {activeCategory && (
               <>
                 {' '}
-                · 稼働率 <span className="mono">{pct(activeCategory.usageRate)}</span>
+                · {t('稼働率')} <span className="mono">{pct(activeCategory.usageRate)}</span>
               </>
             )}
           </span>
@@ -209,35 +211,34 @@ export default function ClosetDashboardView({ data, onShowFits, onShowPairFits }
 
       <section className="closet-hero">
         <Metric
-          label="180日稼働率"
+          label={t('180日稼働率')}
           value={pct(snapshot.usageRate)}
           sub={`${snapshot.activeCount}/${snapshot.visibleCount} items`}
-          title="基準日から180日以内に1回以上着たアイテムの割合"
+          title={t('基準日から180日以内に1回以上着たアイテムの割合')}
         />
         <Metric
-          label="90日着用数"
+          label={t('90日着用数')}
           value={String(snapshot.recentWears)}
           sub="resolved wears"
-          title="基準日から90日以内の着用回数の合計"
+          title={t('基準日から90日以内の着用回数の合計')}
         />
         <Metric
-          label="365日休眠"
+          label={t('365日休眠')}
           value={String(snapshot.dormantCount)}
           sub="items"
-          title="最後の着用から365日以上たったアイテム数"
+          title={t('最後の着用から365日以上たったアイテム数')}
         />
         <Metric
-          label={`${snapshot.year} 初登場`}
+          label={t('{year} 初登場', { year: snapshot.year })}
           value={String(snapshot.firstThisYear)}
           sub="items"
-          title={`初めて着たのが${snapshot.year}年のアイテム数`}
+          title={t('初めて着たのが{year}年のアイテム数', { year: snapshot.year })}
         />
       </section>
       <p className="closet-note jp">
-        <strong>稼働率</strong>
-        は基準日（最終記録日{' '}
-        <span className="mono">{fmtDate(snapshot.asOf)}</span>
-        ）から180日以内に1回以上着たアイテムの割合です。個体に分けた服はそれぞれ1点として数え、非表示アイテムは母数から除きます。並び替えの「90日稼働」は直近90日の着用回数、「年間稼働密度」は年あたりの着用回数を指します。
+        {t('稼働率は基準日（最終記録日 {date}）から180日以内に1回以上着たアイテムの割合です。個体に分けた服はそれぞれ1点として数え、非表示アイテムは母数から除きます。並び替えの「90日稼働」は直近90日の着用回数、「年間稼働密度」は年あたりの着用回数を指します。', {
+          date: fmtDate(snapshot.asOf),
+        })}
       </p>
 
       <section className="closet-section">
@@ -259,8 +260,12 @@ export default function ClosetDashboardView({ data, onShowFits, onShowPairFits }
               </span>
               <span className="closet-category-stat mono">{pct(c.usageRate)}</span>
               <span className="closet-category-sub jp">
-                {c.activeItems}/{c.itemCount} 稼働 · 休眠 {c.dormantItems} · 90日{' '}
-                {c.recentWears}回
+                {t('{active}/{total} 稼働 · 休眠 {dormant} · 90日 {wears}回', {
+                  active: c.activeItems,
+                  total: c.itemCount,
+                  dormant: c.dormantItems,
+                  wears: c.recentWears,
+                })}
               </span>
             </button>
           ))}
@@ -271,25 +276,25 @@ export default function ClosetDashboardView({ data, onShowFits, onShowPairFits }
         <ItemPanel
           title="recent"
           count={recentItems.length}
-          empty="最近90日に動いたアイテムがありません"
+          empty={t('最近90日に動いたアイテムがありません')}
           items={recentItems}
-          meta={(s) => `90日 ${s.recentCount}回 / total ${s.item.count}回`}
+          meta={(s) => t('90日 {recent}回 / total {total}回', { recent: s.recentCount, total: s.item.count })}
           onShowFits={onShowFits}
         />
         <ItemPanel
           title="dormant"
           count={dormantItems.length}
-          empty="365日以上休眠中のアイテムはありません"
+          empty={t('365日以上休眠中のアイテムはありません')}
           items={dormantItems}
-          meta={(s) => `${s.daysSince}日休眠 / total ${s.item.count}回`}
+          meta={(s) => t('{days}日休眠 / total {total}回', { days: s.daysSince, total: s.item.count })}
           onShowFits={onShowFits}
         />
         <ItemPanel
           title={`${snapshot.year} debut`}
           count={newItems.length}
-          empty={`${snapshot.year}年初登場のアイテムはありません`}
+          empty={t('{year}年初登場のアイテムはありません', { year: snapshot.year })}
           items={newItems}
-          meta={(s) => `${fmtDate(s.item.firstDate)} 初登場 / ${s.yearCount}回`}
+          meta={(s) => t('{date} 初登場 / {count}回', { date: fmtDate(s.item.firstDate), count: s.yearCount })}
           onShowFits={onShowFits}
         />
       </div>
@@ -312,6 +317,7 @@ function ItemNetworkSection({
   onShowFits: (itemId: string) => void
   onShowPairFits: (itemIds: string[]) => void
 }) {
+  const { t } = useI18n()
   const positions = useMemo(() => buildNetworkPositions(network.nodes), [network.nodes])
   const strengthRange = range(network.nodes.map((node) => node.strength))
   const wearRange = range(network.nodes.map((node) => node.totalWears))
@@ -340,9 +346,7 @@ function ItemNetworkSection({
       </div>
 
       {network.edges.length === 0 ? (
-        <p className="closet-empty jp">
-          2回以上一緒に着られたアイテムペアがまだありません。
-        </p>
+        <p className="closet-empty jp">{t('2回以上一緒に着られたアイテムペアがまだありません。')}</p>
       ) : (
         <div className="network-layout">
           <div className="network-canvas">
@@ -350,9 +354,9 @@ function ItemNetworkSection({
               viewBox="0 0 720 420"
               preserveAspectRatio="xMidYMid meet"
               role="img"
-              aria-label="よく一緒に着られるアイテムのネットワーク"
+              aria-label={t('よく一緒に着られるアイテムのネットワーク')}
             >
-              <title>アイテム相関ネットワーク</title>
+              <title>{t('アイテム相関ネットワーク')}</title>
               <g className="network-edges" aria-hidden="true">
                 {network.edges.map((edge) => {
                   const source = positions.get(edge.source)
@@ -379,7 +383,11 @@ function ItemNetworkSection({
                     scale(node.strength, strengthRange, 13, 24) +
                     scale(node.totalWears, wearRange, 0, 5)
                   const label = shortLabel(node.item.label)
-                  const ariaLabel = `${node.item.label}、${node.item.category}、共起強度${node.strength}。FITSを見る`
+                  const ariaLabel = t('{label}、{category}、共起強度{strength}。FITSを見る', {
+                    label: node.item.label,
+                    category: node.item.category,
+                    strength: node.strength,
+                  })
                   return (
                     <g
                       key={node.id}
@@ -416,7 +424,10 @@ function ItemNetworkSection({
                   <button
                     className="network-pair-action"
                     onClick={() => onShowPairFits([pair.source, pair.target])}
-                    aria-label={`${pair.sourceItem.label} と ${pair.targetItem.label} のFITSを見る`}
+                    aria-label={t('{source} と {target} のFITSを見る', {
+                      source: pair.sourceItem.label,
+                      target: pair.targetItem.label,
+                    })}
                   >
                     <span className="network-pair-items">
                       <span className="network-pair-label jp">{pair.sourceItem.label}</span>
@@ -526,6 +537,7 @@ function ItemPanel({
   meta: (stat: ItemStat) => string
   onShowFits: (itemId: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <section className="closet-panel">
       <h2 className="section-title mono">
@@ -545,7 +557,7 @@ function ItemPanel({
                     thumb(stat.item.rep.url, 240),
                   )}
                   onClick={() => onShowFits(stat.item.id)}
-                  aria-label={`${stat.item.label} のコーデを見る`}
+                  aria-label={t('{label} のコーデを見る', { label: stat.item.label })}
                 />
               ) : (
                 <span className="closet-item-thumb empty" />

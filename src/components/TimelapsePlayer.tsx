@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fmtDate, thumb } from '../lib/useData'
+import { useI18n } from '../lib/i18n'
 
 export type TimelapseFrame = {
   key: string
@@ -37,6 +38,7 @@ type Props = {
 }
 
 export default function TimelapsePlayer({ frames, onClose }: Props) {
+  const { t } = useI18n()
   const ref = useRef<HTMLDialogElement>(null)
   const [index, setIndex] = useState(0)
   const [playing, setPlaying] = useState(true)
@@ -187,7 +189,7 @@ export default function TimelapsePlayer({ frames, onClose }: Props) {
         </div>
         <div className="tl-hud-right">
           <span className="tl-like mono">♡ {frame.like}</span>
-          <button className="icon-btn tl-close" onClick={onClose} aria-label="閉じる">
+          <button className="icon-btn tl-close" onClick={onClose} aria-label={t('閉じる')}>
             ✕
           </button>
         </div>
@@ -202,7 +204,7 @@ export default function TimelapsePlayer({ frames, onClose }: Props) {
               if (!playing && index >= frames.length - 1) setIndex(0)
               setPlaying((p) => !p)
             }}
-            aria-label={playing ? '一時停止' : '再生'}
+            aria-label={t(playing ? '一時停止' : '再生')}
           >
             {playing ? '❚❚' : '▶'}
           </button>
@@ -213,13 +215,13 @@ export default function TimelapsePlayer({ frames, onClose }: Props) {
                 className={msPerFrame === s.ms ? 'chip sm active' : 'chip sm'}
                 onClick={() => setMsPerFrame(s.ms)}
               >
-                <span className="jp">{s.label}</span>
+                <span className="jp">{t(s.label)}</span>
               </button>
             ))}
           </span>
           <span className="tl-counter mono">
             {index + 1} / {frames.length}
-            <span className="tl-total jp">（全{totalSec}秒）</span>
+            <span className="tl-total jp">{t('（全{seconds}秒）', { seconds: totalSec })}</span>
           </span>
         </div>
         <div
