@@ -7,8 +7,8 @@
   --accent: #161616;
   --danger: #c0392b;
   --radius: 14px;
-  --font-sans: 'Outfit', 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN',
-    'Hiragino Sans', 'Noto Sans JP', Meiryo, sans-serif;
+  --font-sans: 'Outfit', 'Helvetica Neue', Arial, 'Apple SD Gothic Neo', 'Noto Sans KR',
+    'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', Meiryo, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
 }
 
@@ -36,7 +36,8 @@ body {
   letter-spacing: 0.05em;
 }
 
-html[lang='en'] .jp {
+html[lang='en'] .jp,
+html[lang='ko'] .jp {
   letter-spacing: 0.02em;
 }
 
