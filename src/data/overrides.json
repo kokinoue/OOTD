@@ -176,7 +176,10 @@
     "shorts|conveniencewear": "pants|conveniencewear",
     "shorts|unitedarrowssons": "pants|unitedarrowssons#mint",
     "pants|80s#shorts": "pants|80sbananarepublic",
-    "shorts|used": "pants|used#black-shorts"
+    "shorts|used": "pants|used#black-shorts",
+    "pants|isseymiyake#olive": "pants|isseymiyake#black",
+    "pants|isseymiyake#brown": "pants|isseymiyake#black",
+    "pants|isseymiyake#navy": "pants|isseymiyake#black"
   },
   "hidden": [
     "pants|60slee"
@@ -290,6 +293,9 @@
     "pants|suzukitakayuki": "beige",
     "jacket|randy#u-20ss-randy-jyu": "black",
     "shirt|80s#u-80-s-japan-キモ": "green",
-    "shirt|80s": "green"
+    "shirt|80s": "green",
+    "shorts|80sbananarepublic": "beige",
+    "pants|marni": "beige",
+    "pants|call#salmon": "pink"
   }
 }
