@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { baseItems, fmtDate, thumb } from '../lib/useData'
 import { overrideActions, resolveId, useOverrides } from '../lib/store'
@@ -80,7 +80,8 @@ export default function OutfitModal({
     }
   }
 
-  useEffect(() => {
+  // View Transitions の新しいスナップショットに開いた状態を写すため、描画と同じタイミングで開く
+  useLayoutEffect(() => {
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
   }, [])
@@ -307,9 +308,10 @@ export default function OutfitModal({
         {outfit.images.map((img, i) => (
           <figure key={i} className="modal-figure">
             <img
+              className={i === 0 ? 'modal-hero' : undefined}
               src={thumb(img.url, 1280)}
               alt={img.caption || outfit.title}
-              loading="lazy"
+              loading={i === 0 ? 'eager' : 'lazy'}
               style={
                 img.width && img.height
                   ? { aspectRatio: `${img.width} / ${img.height}` }
@@ -578,7 +580,8 @@ function AssignDialog({
   // インラインで名前を編集中の対象id（ベースなら baseId、個体なら `${baseId}#${subKey}`）
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  // View Transitions の新しいスナップショットに開いた状態を写すため、描画と同じタイミングで開く
+  useLayoutEffect(() => {
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
   }, [])

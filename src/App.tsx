@@ -3,6 +3,7 @@ import FitsView from './components/FitsView'
 import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
 import ScrollToTopButton from './components/ScrollToTopButton'
+import ThemeToggle from './components/ThemeToggle'
 import { useOverrides } from './lib/store'
 
 // 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
@@ -156,23 +157,26 @@ export default function App() {
           <span className="brand-mark jp">{t('出勤服')}</span>
           <span className="brand-sub">DAILY FITS ARCHIVE</span>
         </button>
-        <label className="locale-control">
-          <span className="sr-only">{t('表示言語')}</span>
-          <select
-            className="locale-select mono"
-            value={locale}
-            onChange={(event) => {
-              if (isLocale(event.target.value)) setLocale(event.target.value)
-            }}
-            aria-label={t('表示言語')}
-          >
-            {LOCALE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="header-controls">
+          <ThemeToggle />
+          <label className="locale-control">
+            <span className="sr-only">{t('表示言語')}</span>
+            <select
+              className="locale-select mono"
+              value={locale}
+              onChange={(event) => {
+                if (isLocale(event.target.value)) setLocale(event.target.value)
+              }}
+              aria-label={t('表示言語')}
+            >
+              {LOCALE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         <nav className="tabs" aria-label={t('ビュー切り替え')}>
           <button
             className={view === 'fits' || view === 'orbit' ? 'tab active' : 'tab'}
