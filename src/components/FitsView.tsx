@@ -6,11 +6,15 @@ import { fmtDate, outfits, thumb } from '../lib/useData'
 import { buildHairFacets, effectiveHair, HAIR_FIELDS } from '../lib/hair'
 import { findSimilarOutfits } from '../lib/similar'
 import { useI18n } from '../lib/i18n'
+import { closeWithHero, findOutfitThumb, openWithHero } from '../lib/viewTransition'
 import type { HairFile, HairTag, SplitsFile } from '../types'
+import FitsCalendar from './FitsCalendar'
 import OutfitModal from './OutfitModal'
 import TimelapsePlayer, { type TimelapseFrame } from './TimelapsePlayer'
 
 const PAGE = 60
+type Layout = 'grid' | 'calendar'
+const LAYOUT_KEY = 'fits-layout'
 // 「今日この頃」(anniv) で今日の前後何日まで含めるか。±3日 = 7日幅
 const ANNIV_WINDOW = 3
 
@@ -143,6 +147,13 @@ export default function FitsView({
   const [timelapseFrames, setTimelapseFrames] = useState<TimelapseFrame[] | null>(null)
   // スマホでは絞り込み操作群を畳んで、写真グリッドをすぐ見られるようにする（PC では常に展開）
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [layout, setLayout] = useState<Layout>(() => {
+    try {
+      return localStorage.getItem(LAYOUT_KEY) === 'calendar' ? 'calendar' : 'grid'
+    } catch {
+      return 'grid'
+    }
+  })
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const outfitMap = useMemo(() => new Map(outfits.map((o) => [o.key, o])), [])
@@ -190,6 +201,21 @@ export default function FitsView({
   }, [filters])
 
   useEffect(() => {
+    try {
+      localStorage.setItem(LAYOUT_KEY, layout)
+    } catch {
+      // 保存できなくても、このタブ内では切り替えが効く
+    }
+  }, [layout])
+
+  const openOutfitFrom = (key: string, from: HTMLElement | null) =>
+    openWithHero(from, () => setOpenOutfitKey(key))
+  const closeOutfit = () =>
+    closeWithHero(openOutfitKey ? findOutfitThumb(openOutfitKey) : null, () =>
+      setOpenOutfitKey(null),
+    )
+
+  useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
     const io = new IntersectionObserver((entries) => {
@@ -197,7 +223,7 @@ export default function FitsView({
     })
     io.observe(el)
     return () => io.disconnect()
-  }, [])
+  }, [layout])
 
   const activeItem = filters.itemId ? data.itemMap.get(filters.itemId) : null
   const activeItems = filters.itemIds
@@ -427,6 +453,35 @@ export default function FitsView({
           >
             ▶ <span className="jp">{t('タイムラプス')}</span>
           </button>
+          <div className="view-toggle fits-view-toggle" role="group" aria-label={t('表示の切り替え')}>
+            <button
+              type="button"
+              className={layout === 'grid' ? 'view-toggle-btn active' : 'view-toggle-btn'}
+              onClick={() => setLayout('grid')}
+              aria-pressed={layout === 'grid'}
+              title={t('グリッド表示')}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+                <rect x="1" y="1" width="5.5" height="5.5" rx="1" />
+                <rect x="8.5" y="1" width="5.5" height="5.5" rx="1" />
+                <rect x="1" y="8.5" width="5.5" height="5.5" rx="1" />
+                <rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={layout === 'calendar' ? 'view-toggle-btn active' : 'view-toggle-btn'}
+              onClick={() => setLayout('calendar')}
+              aria-pressed={layout === 'calendar'}
+              title={t('カレンダー表示')}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+                <path d="M3 1.5h1.5V3h6V1.5H12V3h.5A1.5 1.5 0 0 1 14 4.5v8a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 1 12.5v-8A1.5 1.5 0 0 1 2.5 3H3V1.5ZM2.5 6.5v6h10v-6h-10Z" />
+                <rect x="4" y="8" width="2" height="2" rx="0.4" />
+                <rect x="7" y="8" width="2" height="2" rx="0.4" />
+              </svg>
+            </button>
+          </div>
           <button
             className="chip orbit-entry"
             onClick={onOpenOrbit}
@@ -443,6 +498,12 @@ export default function FitsView({
 
       {filtered.length === 0 ? (
         <p className="empty jp">{t('条件に合うコーデがありません')}</p>
+      ) : layout === 'calendar' ? (
+        <FitsCalendar
+          outfits={filtered}
+          focusDate={openOutfit?.date ?? null}
+          onOpen={openOutfitFrom}
+        />
       ) : (
         <div className="grid">
           {filtered.slice(0, shown).map((o, i) => {
@@ -451,7 +512,8 @@ export default function FitsView({
               <button
                 key={o.key}
                 className={byLike ? 'card rank-card' : 'card'}
-                onClick={() => setOpenOutfitKey(o.key)}
+                data-outfit-key={o.key}
+                onClick={(e) => openOutfitFrom(o.key, e.currentTarget.querySelector('img'))}
               >
                 {byLike && (
                   <span className={'rank-badge mono' + (i < 3 ? ' rank-top' : '')}>{i + 1}</span>
@@ -484,7 +546,9 @@ export default function FitsView({
           })}
         </div>
       )}
-      {shown < filtered.length && <div ref={sentinelRef} className="sentinel" />}
+      {layout === 'grid' && shown < filtered.length && (
+        <div ref={sentinelRef} className="sentinel" />
+      )}
 
       {timelapseFrames && (
         <TimelapsePlayer frames={timelapseFrames} onClose={() => setTimelapseFrames(null)} />
@@ -502,7 +566,7 @@ export default function FitsView({
           onCreateSub={onCreateSub}
           onMoveOutfit={onMoveOutfit}
           onSetHair={onSetHair}
-          onClose={() => setOpenOutfitKey(null)}
+          onClose={closeOutfit}
           onPrev={
             openFilteredIndex > 0
               ? () => setOpenOutfitKey(filtered[openFilteredIndex - 1].key)

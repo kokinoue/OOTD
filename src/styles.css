@@ -1,15 +1,135 @@
+/* カラートークン。ダーク表示は html.dark で上書きする（切り替えは src/lib/theme.ts） */
 :root {
   --bg: #fafafa;
   --surface: #ffffff;
+  --surface-muted: #f0f0ee;
+  --track: #ececea;
   --text: #161616;
   --text-sub: #8c8c8c;
+  --text-faint: #c9c9c7;
   --border: #e8e8e6;
+  --border-strong: #c8c8c6;
   --accent: #161616;
+  --on-accent: #fff;
   --danger: #c0392b;
   --radius: 14px;
   --font-sans: 'Outfit', 'Helvetica Neue', Arial, 'Apple SD Gothic Neo', 'Noto Sans KR',
     'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', Meiryo, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+
+html.dark {
+  --bg: #0e0e0e;
+  --surface: #171717;
+  --surface-muted: #232322;
+  --track: #2a2a29;
+  --text: #ececea;
+  --text-sub: #8f8f8c;
+  --text-faint: #4a4a48;
+  --border: #2a2a29;
+  --border-strong: #454543;
+  --accent: #ececea;
+  --on-accent: #161616;
+  --danger: #ef6b5d;
+  color-scheme: dark;
+}
+
+/* テーマ切り替え時は、色トークン自体を補間してなめらかに入れ替える。
+   @property で <color> として登録すると変数がアニメーション可能になり、html 1か所の transition で
+   var() を参照する全要素が追従する（各要素に transition を足す必要がない）。 */
+@property --bg {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #fafafa;
+}
+
+@property --surface {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --surface-muted {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #f0f0ee;
+}
+
+@property --track {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ececea;
+}
+
+@property --text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #161616;
+}
+
+@property --text-sub {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8c8c8c;
+}
+
+@property --text-faint {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c9c9c7;
+}
+
+@property --border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #e8e8e6;
+}
+
+@property --border-strong {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c8c8c6;
+}
+
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #161616;
+}
+
+@property --on-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #ffffff;
+}
+
+@property --danger {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #c0392b;
+}
+
+html {
+  transition:
+    --bg 0.45s ease,
+    --surface 0.45s ease,
+    --surface-muted 0.45s ease,
+    --track 0.45s ease,
+    --text 0.45s ease,
+    --text-sub 0.45s ease,
+    --text-faint 0.45s ease,
+    --border 0.45s ease,
+    --border-strong 0.45s ease,
+    --accent 0.45s ease,
+    --on-accent 0.45s ease,
+    --danger 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
 }
 
 * {
@@ -123,8 +243,51 @@ a {
   gap: 8px;
 }
 
+.header-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
 .locale-control {
   flex: 0 0 auto;
+}
+
+/* Light / Dark / Auto の切り替え（セグメント） */
+.theme-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.theme-toggle-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: var(--text-sub);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  color: var(--text);
+}
+
+.theme-toggle-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .locale-select {
@@ -157,18 +320,26 @@ a {
 
 .tab:hover {
   color: var(--text);
-  border-color: #d0d0ce;
+  border-color: var(--border-strong);
 }
 
 .tab.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .tab-count {
   font-size: 11px;
   opacity: 0.65;
+}
+
+/* タブが1行に収まりきらない中間幅では余白を詰めて折り返しを防ぐ */
+@media (max-width: 1100px) {
+  .tab {
+    padding: 8px 13px;
+    letter-spacing: 0.16em;
+  }
 }
 
 /* ---------- filter bar ---------- */
@@ -215,13 +386,13 @@ a {
 }
 
 .chip:hover:not(:disabled) {
-  border-color: #c8c8c6;
+  border-color: var(--border-strong);
 }
 
 .chip.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .chip.sm {
@@ -242,7 +413,7 @@ a {
 .chip.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .chip.primary:hover:not(:disabled) {
@@ -430,7 +601,7 @@ a {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  background: #f0f0ee;
+  background: var(--surface-muted);
 }
 
 .card-placeholder {
@@ -439,7 +610,7 @@ a {
   justify-content: center;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: #f0f0ee;
+  background: var(--surface-muted);
   color: var(--text-sub);
   font-size: 11px;
   letter-spacing: 0.2em;
@@ -457,6 +628,196 @@ a {
 
 .card-no {
   opacity: 0.7;
+}
+
+/* ---------- fits calendar ---------- */
+.view-toggle.fits-view-toggle {
+  margin-left: 0;
+}
+
+.cal {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.cal-count {
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+.cal-nav {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color 0.15s ease;
+}
+
+.cal-nav:hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+.cal-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* 7列のマス目。最初の行が曜日、以降が日付 */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cal-weekday {
+  padding-bottom: 2px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: var(--text-sub);
+}
+
+.cal-weekday.weekend {
+  color: var(--text-faint);
+}
+
+.cal-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cal-cell.blank {
+  border: 1px dashed var(--border);
+}
+
+.cal-cell.future {
+  opacity: 0.4;
+}
+
+.cal-cell.has {
+  display: block;
+  background: var(--surface-muted);
+  transition: transform 0.15s ease;
+}
+
+.cal-cell.has:hover {
+  transform: translateY(-2px);
+}
+
+.cal-cell.has:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cal-cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cal-day {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--text-sub);
+}
+
+/* 写真の上の日付は、写真の明るさに関係なく読めるよう小さな下地を敷く */
+.cal-cell.has .cal-day {
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+}
+
+.cal-cell.today {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.cal-more {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 9.5px;
+}
+
+@media (max-width: 640px) {
+  .cal-grid {
+    gap: 3px;
+  }
+
+  .cal-cell {
+    border-radius: 6px;
+  }
+
+  .cal-weekday {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  .cal-day {
+    top: 3px;
+    left: 3px;
+    font-size: 9px;
+  }
+
+  .cal-cell.has .cal-day {
+    padding: 2px 3px;
+  }
+
+  .cal-more {
+    display: none;
+  }
+}
+
+/* ---------- サムネ ↔ モーダル写真の View Transitions ---------- */
+.modal-hero {
+  view-transition-name: outfit-hero;
+}
+
+::view-transition-group(outfit-hero) {
+  animation-duration: 0.38s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* サムネ（正方形の切り抜き）と原寸写真で縦横比が違っても歪ませない */
+::view-transition-old(outfit-hero),
+::view-transition-new(outfit-hero) {
+  height: 100%;
+  object-fit: cover;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.25s;
 }
 
 /* ---------- ranking ---------- */
@@ -599,7 +960,7 @@ a {
   display: block;
   width: 100%;
   border-radius: 12px;
-  background: #f0f0ee;
+  background: var(--surface-muted);
 }
 
 .modal-caption {
@@ -767,7 +1128,7 @@ a {
   height: 142px;
   object-fit: cover;
   border-radius: 8px;
-  background: #f0f0ee;
+  background: var(--surface-muted);
 }
 
 .similar-card:hover img {
@@ -863,7 +1224,7 @@ a {
 
 .icon-btn:hover {
   color: var(--text);
-  border-color: #c8c8c6;
+  border-color: var(--border-strong);
 }
 
 /* ---------- items view ---------- */
@@ -913,7 +1274,7 @@ a {
   height: 48px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background-color: #f0f0ee;
+  background-color: var(--surface-muted);
   padding: 0;
   cursor: pointer;
   transition: transform 0.15s ease;
@@ -964,7 +1325,7 @@ a {
 
 .view-toggle-btn.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ---------- items: grid layout ---------- */
@@ -989,7 +1350,7 @@ a {
 .item-card-thumb {
   width: 100%;
   aspect-ratio: 1 / 1;
-  background-color: #f0f0ee;
+  background-color: var(--surface-muted);
   background-size: cover;
   background-position: center;
   padding: 0;
@@ -1144,7 +1505,7 @@ a {
 
 .chip-edit:hover {
   color: var(--text);
-  border-color: #c8c8c6;
+  border-color: var(--border-strong);
   background: var(--bg);
 }
 
@@ -1811,7 +2172,7 @@ a {
 }
 
 .closet-category:hover {
-  border-color: #c8c8c6;
+  border-color: var(--border-strong);
 }
 
 .closet-category.active {
@@ -1832,7 +2193,7 @@ a {
 .closet-bar {
   height: 8px;
   border-radius: 999px;
-  background: #ececea;
+  background: var(--track);
   overflow: hidden;
 }
 
@@ -2077,7 +2438,7 @@ a {
   height: 42px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background-color: #f0f0ee;
+  background-color: var(--surface-muted);
   transition: transform 0.15s ease;
 }
 
@@ -2396,7 +2757,7 @@ a {
   min-width: 0;
   overflow: hidden;
   border-radius: 999px;
-  background: #ececea;
+  background: var(--track);
 }
 
 .palette-month-bar span {
@@ -2457,7 +2818,7 @@ a {
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: #ececea;
+  background: var(--track);
 }
 
 .palette-bar-track span {
@@ -2649,7 +3010,7 @@ a {
     padding: 0 5px;
     border-radius: 999px;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-size: 10px;
     line-height: 1;
   }
@@ -2920,7 +3281,7 @@ a {
 }
 
 .g-rules li::marker {
-  color: #c9c9c7;
+  color: var(--text-faint);
 }
 
 .g-pt {
@@ -2952,7 +3313,7 @@ a {
   padding: 13px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -3131,7 +3492,7 @@ a {
   flex: none;
   object-fit: cover;
   border-radius: 8px;
-  background: #f0f0ee;
+  background: var(--surface-muted);
 }
 
 .g-slot-items {
@@ -3226,7 +3587,7 @@ a {
   padding: 8px 20px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12.5px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -3289,7 +3650,7 @@ a {
 }
 
 .g-card-front {
-  background: #f0f0ee;
+  background: var(--surface-muted);
 }
 
 .g-card-front img {
@@ -3449,7 +3810,7 @@ a {
   color: var(--text-sub);
 }
 .d-rules li::marker {
-  color: #c9c9c7;
+  color: var(--text-faint);
 }
 .d-rules b {
   color: var(--text);
@@ -3488,7 +3849,7 @@ a {
   padding: 13px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -3837,7 +4198,7 @@ a {
   flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: #e9e7e2;
+  background: var(--track);
   overflow: hidden;
 }
 .d-lp-fill {
@@ -4047,7 +4408,7 @@ a {
   padding: 9px 22px;
   border-radius: 999px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -4119,7 +4480,7 @@ a {
   padding: 12px;
   border-radius: 10px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font-size: 13px;
   font-weight: 600;
 }
@@ -5073,7 +5434,7 @@ a {
 }
 
 .scroll-top:hover {
-  border-color: #c8c8c6;
+  border-color: var(--border-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5173,7 +5534,7 @@ a {
 .plat-chip.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .plat-chip:disabled {
   opacity: 0.4;
@@ -5448,7 +5809,7 @@ a {
 .plat-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .plat-controls {
   margin-top: 10px;
