@@ -31,9 +31,10 @@ export default function FitsCalendar({ outfits, focusDate, onOpen }: Props) {
   const older = months[index + 1]
   const newer = months[index - 1]
 
+  // 「似ている出勤服」から絞り込み外のコーデを開いた場合は、今見ている月を保つ
   useEffect(() => {
-    if (focusDate) setPicked(focusDate.slice(0, 7))
-  }, [focusDate])
+    if (focusDate && months.includes(focusDate.slice(0, 7))) setPicked(focusDate.slice(0, 7))
+  }, [focusDate, months])
 
   if (!month) return null
   const cells = monthGrid(month)
