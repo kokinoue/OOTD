@@ -2,6 +2,10 @@
   "version": 1,
   "spriteHeight": 240,
   "sprites": {
+    "naef0fb3090a6": {
+      "w": 80,
+      "h": 240
+    },
     "n1883569f8f3f": {
       "w": 78,
       "h": 240
