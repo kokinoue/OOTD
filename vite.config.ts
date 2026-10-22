@@ -58,7 +58,12 @@ function dataWriteApi(): Plugin {
 // GitHub Pages のプロジェクトサイト（https://kokinoue.github.io/OOTD/）配信。
 // dev はルート配信（DX優先）、build と preview はサブパスを付ける（本番と一致させる）。
 export default defineConfig(({ command, isPreview }) => ({
-  base: command === 'build' || isPreview ? '/OOTD/' : '/',
+  base:
+    process.env.SITES_BUILD === '1'
+      ? '/'
+      : command === 'build' || isPreview
+        ? '/OOTD/'
+        : '/',
   plugins: [react(), dataWriteApi()],
   build: {
     // data チャンク（同梱JSON）はコードではないので 500kB 警告の対象から外す
