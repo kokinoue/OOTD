@@ -5,7 +5,7 @@ import { shareUrl } from '../lib/share'
 // ゲーム別OGPを持つ静的ページ（public/game/<name>/）のURLを共有する。
 // 共有シート非対応の環境ではクリップボードへのコピーで代替する。
 type Props = {
-  game: 'memory' | 'duel' | 'platform' | 'tower' | 'chari' | 'quiz'
+  game: 'memory' | 'duel' | 'platform' | 'tower' | 'chari' | 'quiz' | 'jam'
   title: string
 }
 
