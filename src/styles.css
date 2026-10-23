@@ -320,6 +320,10 @@ a {
 
 .tab:hover {
   color: var(--text);
+  border-color: #d0d0ce;
+}
+
+html.dark .tab:hover {
   border-color: var(--border-strong);
 }
 
@@ -4198,9 +4202,14 @@ a {
   flex: 1;
   height: 8px;
   border-radius: 999px;
-  background: var(--track);
+  background: #e9e7e2;
   overflow: hidden;
 }
+
+html.dark .d-lp-bar {
+  background: var(--track);
+}
+
 .d-lp-fill {
   display: block;
   height: 100%;
