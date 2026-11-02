@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import FitsView from './components/FitsView'
 import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
@@ -134,6 +134,19 @@ export default function App() {
 
   const visibleItemCount = data.items.filter((it) => !it.hidden).length
 
+  // タブは横スクロールするので、選択中のタブが画面外に隠れないよう見える位置まで寄せる。
+  const tabsRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const nav = tabsRef.current
+    const active = nav?.querySelector<HTMLElement>('.tab.active')
+    if (!nav || !active) return
+    const navRect = nav.getBoundingClientRect()
+    const tabRect = active.getBoundingClientRect()
+    if (tabRect.left < navRect.left || tabRect.right > navRect.right) {
+      nav.scrollBy({ left: tabRect.left + tabRect.width / 2 - (navRect.left + navRect.width / 2) })
+    }
+  }, [view])
+
   // ゲームプレイ中（ハブではなく個別ゲーム）は、SP でヘッダーのメニューが
   // プレイ領域を圧迫するため隠す。各ゲームは戻るボタンを持つので操作は塞がらない。
   const isPlayingGame =
@@ -177,7 +190,7 @@ export default function App() {
             </select>
           </label>
         </div>
-        <nav className="tabs" aria-label={t('ビュー切り替え')}>
+        <nav className="tabs" ref={tabsRef} aria-label={t('ビュー切り替え')}>
           <button
             className={view === 'fits' || view === 'orbit' ? 'tab active' : 'tab'}
             onClick={() => setView('fits')}
