@@ -238,9 +238,24 @@ a {
 .tabs {
   display: flex;
   flex: 1;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  min-width: 0;
   gap: 8px;
+  /* 折り返さず横スクロールさせる（折りたたみ端末を広げた中間幅などで
+     タブが2段になってヘッダーが縦に膨らむのを防ぐ） */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* 右寄せは justify-content: flex-end ではなく auto マージンで行う。
+   flex-end だとはみ出した左側にスクロールで戻れなくなるため */
+.tabs > .tab:first-child {
+  margin-left: auto;
 }
 
 .header-controls {
@@ -334,7 +349,21 @@ a {
   opacity: 0.65;
 }
 
-/* タブが1行に収まりきらない中間幅では余白を詰めて折り返しを防ぐ */
+/* ゲームプレイ中は sticky ヘッダーが盤面の上に重なってタップを奪うため、
+   通常フローに戻してスクロールで盤面に被らないようにする */
+.app.playing-game .header {
+  position: relative;
+}
+
+/* タッチ端末では幅に関わらずゲーム中のヘッダーを隠す。
+   折りたたみ端末を広げた横長・低い画面では、ヘッダーが盤面を大きく圧迫するため */
+@media (pointer: coarse) {
+  .app.playing-game .header {
+    display: none;
+  }
+}
+
+/* タブが1行に収まりきらない中間幅では余白を詰める */
 @media (max-width: 1100px) {
   .tab {
     padding: 8px 13px;
@@ -3052,12 +3081,19 @@ a {
     font-size: 17px;
   }
 
-  /* タブは2行目に落として全幅で折り返す（5タブが1行に収まらないため） */
+  /* タブは2行目に落として全幅で横スクロールさせる（全タブが1行に収まらないため）。
+     左右は画面端まで広げ、スクロールできることが分かるようにする */
   .tabs {
-    width: 100%;
+    width: auto;
     flex-basis: 100%;
-    justify-content: flex-start;
     gap: 6px;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scroll-padding-inline: 16px;
+  }
+
+  .tabs > .tab:first-child {
+    margin-left: 0;
   }
 
   .tab {
