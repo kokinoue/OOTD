@@ -7660,8 +7660,9 @@ a {
 .slot {
   display: flex;
   justify-content: center;
-  padding: 12px env(safe-area-inset-right, 0px) calc(40px + env(safe-area-inset-bottom, 0px))
-    env(safe-area-inset-left, 0px);
+  /* 左右の余白は安全域の大きい方にそろえる（片側だけ欠けがある画面でも中央がずれない） */
+  padding: 12px max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))
+    calc(40px + env(safe-area-inset-bottom, 0px));
   /* リール窓以外（見出し行・上部パネル・メッセージ・ボタン・余白）の高さの合計。
      リール窓の高さ = 画面の高さ − この値 */
   --slot-chrome: 300px;
@@ -7722,12 +7723,14 @@ a {
   text-align: center;
 }
 
-/* 筐体と情報パネル。幅が足りなければ情報パネルは下へ回る */
+/* 筐体と情報パネル。既定は縦積みで、筐体は常に左右中央に置く。
+   横に並べるのは十分に広い画面だけ（下の min-width の指定）。
+   「入るなら横に並べる」折り返しにすると、背が低くて筐体が縮んだ画面で情報パネルが
+   横へ入り込み、筐体が左端に寄ってしまう */
 .slot-stage {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   gap: 20px;
 }
 
@@ -8066,11 +8069,23 @@ a {
 /* ---- 情報パネル（顔ぶれ・データ・あそびかた） ---- */
 .slot-side {
   display: flex;
-  flex: 1 1 270px;
+  flex: none;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
   min-width: 0;
   max-width: 460px;
+}
+@media (min-width: 860px) {
+  .slot-stage {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .slot-side {
+    flex: 1 1 270px;
+    width: auto;
+  }
 }
 .slot-panel {
   padding: 14px 16px;
@@ -8268,10 +8283,29 @@ a {
 
 /* 横長で背の低い画面（折りたたみ端末を広げた状態・横向きのスマホ）:
    リールを左いっぱいの高さに取り、表示器とボタンを右へ並べる */
-@media (orientation: landscape) and (max-height: 760px) and (min-width: 600px) {
+@media (orientation: landscape) and (max-height: 760px) and (min-width: 480px) {
   .slot {
     --slot-chrome: 100px;
     padding-top: 6px;
+  }
+  /* 横型の筐体は幅を取るので、情報パネルを横に置くのはさらに広い画面だけ */
+  .slot-stage {
+    flex-direction: column;
+    align-items: center;
+  }
+  .slot-side {
+    flex: none;
+    width: 100%;
+  }
+  @media (min-width: 1040px) {
+    .slot-stage {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    .slot-side {
+      flex: 1 1 270px;
+      width: auto;
+    }
   }
   @media (pointer: fine) {
     .slot {
@@ -8302,8 +8336,10 @@ a {
   }
   .slot-canvas {
     width: auto;
-    height: max(228px, min(600px, calc(100vh - var(--slot-chrome))));
-    height: max(228px, min(600px, calc(100dvh - var(--slot-chrome))));
+    /* 高さは画面の高さから、ただし右の列（最小180px）が入る幅を残す。
+       272px = ページと筐体の左右余白 + 窓枠 + 列のすき間 + 右の列の最小幅 */
+    height: max(228px, min(600px, calc(100vh - var(--slot-chrome)), calc((100vw - 272px) * 1.3333)));
+    height: max(228px, min(600px, calc(100dvh - var(--slot-chrome)), calc((100vw - 272px) * 1.3333)));
   }
   .slot-top {
     grid-area: top;

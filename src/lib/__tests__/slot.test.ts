@@ -406,13 +406,13 @@ describe('出玉率（botで長時間回す）', () => {
     return { rate: (m.coins - bank + bet) / bet, machine: m }
   }
 
-  it('目押しができる人: 設定1でも少し勝てる(103%前後)、設定6は112%前後', () => {
+  it('目押しができる人は勝てる: 設定1で107%前後、設定6で116%前後', () => {
     const s1 = simulate(1, 400_000, playSpin, 1).rate
     const s6 = simulate(6, 400_000, playSpin, 2).rate
-    expect(s1).toBeGreaterThan(1.0)
-    expect(s1).toBeLessThan(1.06)
-    expect(s6).toBeGreaterThan(1.08)
-    expect(s6).toBeLessThan(1.15)
+    expect(s1).toBeGreaterThan(1.04)
+    expect(s1).toBeLessThan(1.1)
+    expect(s6).toBeGreaterThan(1.12)
+    expect(s6).toBeLessThan(1.19)
   })
 
   it('連打するだけだと負けるが、負けすぎない（設定3で82〜95%）', () => {

@@ -73,8 +73,9 @@ const MINI_PRIZE: Record<SymbolId, string> = {
   usual: 'FREE',
 }
 
-const SPEED = 14 // 通常の回転速度（コマ/秒）
-const SPEED_SLOW = 6.5 // ボーナス確定中は遅くして、誰でも目押しできるようにする
+const SPEED = 10 // 通常の回転速度（コマ/秒）。図柄の色と顔が追える速さ
+const SPEED_SLOW = 5 // 狙う図柄があるゲーム（ボーナス確定中・チャンス）は遅くして、誰でも目押しできるようにする
+const BLUR_SPEED = 7.5 // これより速いときは残像版の図柄で描く
 const PULL_BACK = 0.07 // 回り始めに一瞬だけ逆へ引く時間（秒）
 const SPIN_UP = 0.26 // 定速になるまでの時間（秒）
 const STOP_READY = 0.36 // レバーからこの時間はストップを受け付けない（秒）
@@ -82,6 +83,8 @@ const BOUNCE = 0.16 // 停止時の揺り戻しの時間（秒）
 const PRESS_TOLERANCE = 0.2 // 中段を通り過ぎた直後のコマも「押したコマ」として拾う幅
 const WIN_FX_MS = 2600 // 揃った図柄を明滅させる時間
 const BANNER_MS = 1700 // ボーナスの帯を出しておく時間（CSS の slot-banner アニメーションと合わせる）
+
+const RARE = new Set<SymbolId>(['new', 'blond', 'coat'])
 
 const spriteUrl = (key: string) => `${import.meta.env.BASE_URL}cutouts/${key}.webp`
 const mod = (n: number) => ((n % REEL_LEN) + REEL_LEN) % REEL_LEN
@@ -157,7 +160,14 @@ type Engine = {
   refill: () => void
 }
 
-type Result = { symbol: SymbolId | null; payout: number; replay: boolean; bonusGained: number | null }
+type Result = {
+  symbol: SymbolId | null
+  payout: number
+  replay: boolean
+  bonusGained: number | null
+  /** チャンス役（コート）を揃え損ねた */
+  missedChance: boolean
+}
 type Banner = { kind: 'big' | 'reg' | 'end'; gained: number }
 
 export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
@@ -182,6 +192,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
   const [result, setResult] = useState<Result | null>(null)
   const [banner, setBanner] = useState<Banner | null>(null)
   const [tenpai, setTenpai] = useState(false)
+  const [chance, setChance] = useState(false) // このゲームでチャンス役（コート）が成立している
   const [muted, setMuted] = useState(() => audioRef.current!.muted())
   const [reveal, setReveal] = useState(false)
 
@@ -284,10 +295,10 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
       b.width = tw
       b.height = Math.ceil(th * 1.6)
       const bg = b.getContext('2d')!
-      const passes = 30
+      const passes = 24
       bg.globalAlpha = 2.4 / passes
       for (let k = 0; k < passes; k++) {
-        bg.drawImage(c, 0, th * 0.3 + (k / (passes - 1) - 0.5) * th * 0.56)
+        bg.drawImage(c, 0, th * 0.3 + (k / (passes - 1) - 0.5) * th * 0.3)
       }
       return { sharp: c, blur: b }
     }
@@ -322,7 +333,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
         ctx.fillStyle = bg
         ctx.fillRect(x, 0, tw, H)
 
-        const blurred = reel.phase === 'spin' && reel.vel > 9
+        const fast = reel.phase === 'spin' && reel.vel > BLUR_SPEED
         const base = Math.round(reel.pos)
         for (let i = base - 2; i <= base + 2; i++) {
           const y = H / 2 + (i - reel.pos) * th - th / 2
@@ -332,7 +343,8 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
           if (!tile) continue
           const row = i - base + 1
           const isWin = winCells != null && reel.phase === 'idle' && winCells[r]?.[row] === true
-          if (blurred) {
+          // 狙い目になるレア図柄（最新・金髪・コート）は回転中もくっきり描き、流れてくるのが見えるようにする
+          if (fast && !RARE.has(sym)) {
             ctx.drawImage(tile.blur, x, y - th * 0.3)
           } else if (isWin && now < fxUntil) {
             // 当たり図柄は少し跳ねる
@@ -565,8 +577,10 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
       machineRef.current = next
       saveMachine(next)
       countTo = next.coins
-      speed = next.lamp ? SPEED_SLOW : SPEED
-      aim = next.lamp && next.pending ? ROLE_SYMBOL[next.pending] : null
+      // 狙う図柄があるゲーム: ボーナス確定中（ランプ点灯）か、このゲームで成立したチャンス役（コート）
+      const chance = r.role === 'coat'
+      aim = chance ? ROLE_SYMBOL.coat : next.lamp && next.pending ? ROLE_SYMBOL[next.pending] : null
+      speed = aim ? SPEED_SLOW : SPEED
       if (next.bonus) audio.ensureBgm()
       pendingOutcome = null
       winCells = null
@@ -588,7 +602,9 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
       setTenpai(false)
       setSpinning(true)
       setStopped([false, false, false])
+      setChance(chance)
       audio.play('lever')
+      if (chance) audio.play('chance')
       if (r.earlyLamp) {
         audio.play('lamp')
         vibrate(200)
@@ -649,11 +665,13 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
       setMachine(m)
       setSpinning(false)
       setTenpai(false)
+      setChance(false)
       setResult({
         symbol: o.symbol,
         payout: o.payout,
         replay: o.replay,
         bonusGained: o.bonusEnd ? o.bonusEnd.gained : null,
+        missedChance: aim === ROLE_SYMBOL.coat && o.lines.length === 0,
       })
       setWin(o.bonusEnd ? o.bonusEnd.gained : m.bonus ? m.bonus.gained : o.payout)
 
@@ -815,6 +833,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
       window.removeEventListener('keydown', onKey)
       audio.stopBgm()
       // 回転中に離れたゲームは無かったことにする（掛け枚数は戻さない。保存データと同じ扱い）
+      setChance(false)
       if (machineRef.current.spin) {
         const settled = { ...machineRef.current, spin: null }
         machineRef.current = settled
@@ -835,6 +854,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
     setResult(null)
     setBanner(null)
     setReveal(false)
+    setChance(false)
     audioRef.current?.play('move')
   }
 
@@ -879,6 +899,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
 
   let message: string
   if (!ready) message = t('読み込み中…')
+  else if (chance) message = t('チャンス！「{name}」を狙え', { name: t(SYMBOL_META.coat.name) })
   else if (pendingSymbol)
     message = t('ボーナス確定！「{name}」を狙え', { name: t(SYMBOL_META[pendingSymbol].name) })
   else if (machine.bonus)
@@ -892,6 +913,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
       count: result.payout,
     })
   else if (needRefill) message = t('メダル切れ。おかわりできます')
+  else if (result?.missedChance) message = t('惜しい。チャンスを逃した')
   else if (spinning) message = t('止めろ。俺を揃えろ。')
   else message = t('同じ俺を3人、揃えろ。')
 
@@ -931,7 +953,7 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
   const cabinetClass =
     'slot-cabinet' +
     (machine.bonus ? ' is-bonus' : '') +
-    (pendingSymbol ? ' is-pending' : '') +
+    (pendingSymbol || chance ? ' is-pending' : '') +
     (tenpai ? ' is-tenpai' : '')
 
   return (
@@ -1144,6 +1166,9 @@ export default function SlotGameView({ onBack, onOpenOutfit }: Props) {
                   {t(
                     '「俺」ランプが光ったらボーナス確定。リールがゆっくりになるので、赤の「最新の俺」か黄の「金髪の俺」を狙って止める。',
                   )}
+                </li>
+                <li>
+                  {t('「チャンス！」が出たら、紺の「コートの俺」を狙って止める。チャンスはその1回きり。')}
                 </li>
                 <li>{t('顔ぶれは日替わり。「最新の俺」は、いつもいちばん新しい出勤服。')}</li>
                 <li className="slot-howto-keys">
