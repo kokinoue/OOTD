@@ -5,6 +5,7 @@ import { colorBuckets, fmtDate, thumb } from '../lib/useData'
 import { regionBackgroundStyle } from '../lib/regions'
 import { overrideActions, useOverrides } from '../lib/store'
 import { READONLY } from '../lib/env'
+import { useI18n } from '../lib/i18n'
 import type { EffectiveItem } from '../types'
 
 const norm = (s: string) => s.normalize('NFKC').toLowerCase()
@@ -23,6 +24,7 @@ type Props = {
 }
 
 export default function ItemsView({ data, filters, setFilters, onShowFits }: Props) {
+  const { t } = useI18n()
   const ov = useOverrides()
   // 検索・カテゴリ・色・並び順は URL（ItemsFilters）を単一の真実とする。
   // 画面遷移してブラウザバックしても popstate 経由で復元される。
@@ -89,7 +91,7 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
 
   const changeCategory = (it: EffectiveItem, value: string) => {
     if (value === '__new__') {
-      const input = window.prompt('新しいカテゴリ名（例: jacket）', it.category)
+      const input = window.prompt(t('新しいカテゴリ名（例: jacket）'), it.category)
       if (input?.trim()) overrideActions.setCategory(it.id, input)
     } else {
       overrideActions.setCategory(it.id, value)
@@ -118,39 +120,39 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
           className="select sm"
           value={it.category}
           onChange={(e) => changeCategory(it, e.target.value)}
-          title="カテゴリを変更"
+          title={t('カテゴリを変更')}
         >
           {allCategories.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
           ))}
-          <option value="__new__">＋新しいカテゴリ…</option>
+          <option value="__new__">{t('＋新しいカテゴリ…')}</option>
         </select>
         <select
           className="select sm"
           value={colorSelectValue(it)}
           onChange={(e) => overrideActions.setColor(it.id, e.target.value)}
-          title="色を補正（自動判定の修正）"
+          title={t('色を補正（自動判定の修正）')}
         >
-          <option value="auto">色: 自動</option>
-          <option value="none">色なし</option>
+          <option value="auto">{t('色: 自動')}</option>
+          <option value="none">{t('色なし')}</option>
           {colorBuckets.map((b) => (
             <option key={b.name} value={b.name}>
-              {b.label}
+              {t(b.label)}
             </option>
           ))}
         </select>
-        <button className="icon-btn" onClick={() => setEditingId(it.id)} title="名前を変更">
+        <button className="icon-btn" onClick={() => setEditingId(it.id)} title={t('名前を変更')}>
           ✎
         </button>
-        <button className="icon-btn" onClick={() => setMergingItem(it)} title="別のアイテムに統合">
+        <button className="icon-btn" onClick={() => setMergingItem(it)} title={t('別のアイテムに統合')}>
           ⇒
         </button>
         <button
           className="icon-btn"
           onClick={() => overrideActions.toggleHidden(it.id)}
-          title={it.hidden ? '一覧に表示する' : '一覧から非表示にする'}
+          title={t(it.hidden ? '一覧に表示する' : '一覧から非表示にする')}
         >
           {it.hidden ? '◌' : '−'}
         </button>
@@ -165,8 +167,8 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
       <span
         className="color-dot"
         style={{ background: meta.swatch }}
-        title={`色: ${meta.label}`}
-        aria-label={`色: ${meta.label}`}
+        title={t('色: {label}', { label: t(meta.label) })}
+        aria-label={t('色: {label}', { label: t(meta.label) })}
       />
     )
   }
@@ -200,7 +202,7 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
     try {
       overrideActions.importAll(JSON.parse(await file.text()))
     } catch {
-      window.alert('読み込めませんでした。エクスポートしたJSONを指定してください。')
+      window.alert(t('読み込めませんでした。エクスポートしたJSONを指定してください。'))
     }
   }
 
@@ -211,14 +213,14 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
           <input
             className="search jp"
             type="search"
-            placeholder="アイテム・ブランド名で検索"
+            placeholder={t('アイテム・ブランド名で検索')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-            <option value="count">着用回数順</option>
-            <option value="recent">最近着た順</option>
-            <option value="name">名前順</option>
+            <option value="count">{t('着用回数順')}</option>
+            <option value="recent">{t('最近着た順')}</option>
+            <option value="name">{t('名前順')}</option>
           </select>
           <label className="toggle jp">
             <input
@@ -226,15 +228,15 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
               checked={showHidden}
               onChange={(e) => setShowHidden(e.target.checked)}
             />
-            非表示も見る
+            {t('非表示も見る')}
           </label>
-          <div className="view-toggle" role="group" aria-label="表示の切り替え">
+          <div className="view-toggle" role="group" aria-label={t('表示の切り替え')}>
             <button
               type="button"
               className={layout === 'list' ? 'view-toggle-btn active' : 'view-toggle-btn'}
               onClick={() => setLayout('list')}
               aria-pressed={layout === 'list'}
-              title="リスト表示"
+              title={t('リスト表示')}
             >
               <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
                 <rect x="1" y="2" width="3" height="3" rx="0.5" />
@@ -250,7 +252,7 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
               className={layout === 'grid' ? 'view-toggle-btn active' : 'view-toggle-btn'}
               onClick={() => setLayout('grid')}
               aria-pressed={layout === 'grid'}
-              title="グリッド表示"
+              title={t('グリッド表示')}
             >
               <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
                 <rect x="1" y="1" width="5.5" height="5.5" rx="1" />
@@ -284,7 +286,7 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
               className={color === 'all' ? 'chip active' : 'chip'}
               onClick={() => setColor('all')}
             >
-              色すべて
+              {t('色すべて')}
             </button>
             {colorBuckets
               .filter((b) => colorCounts.has(b.name))
@@ -293,10 +295,10 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
                   key={b.name}
                   className={color === b.name ? 'chip color-chip active' : 'chip color-chip'}
                   onClick={() => setColor(color === b.name ? 'all' : b.name)}
-                  title={b.label}
+                  title={t(b.label)}
                 >
                   <span className="color-dot" style={{ background: b.swatch }} aria-hidden="true" />
-                  {b.label} <span className="chip-count mono">{colorCounts.get(b.name)}</span>
+                  {t(b.label)} <span className="chip-count mono">{colorCounts.get(b.name)}</span>
                 </button>
               ))}
           </div>
@@ -317,8 +319,8 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
                       className="item-card-thumb"
                       style={regionBackgroundStyle(it.category, thumb(it.rep.url, 320))}
                       onClick={() => onShowFits(it.id)}
-                      title="このアイテムのコーデを見る"
-                      aria-label={`${it.label} の最新着用`}
+                      title={t('このアイテムのコーデを見る')}
+                      aria-label={t('{label} の最新着用', { label: it.label })}
                     />
                   ) : (
                     <span className="item-card-thumb empty" />
@@ -330,17 +332,17 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
                       <button
                         className="item-card-label"
                         onClick={() => onShowFits(it.id)}
-                        title="このアイテムのコーデを見る"
+                        title={t('このアイテムのコーデを見る')}
                       >
                         {it.label}
                       </button>
                     )}
                     <div className="item-card-foot">
                       {colorDot(it)}
-                      <span className="item-meta mono">{it.count}回</span>
+                      <span className="item-meta mono">{it.count}{t('回')}</span>
                       <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
                       {it.mergedFrom.length > 0 && (
-                        <span className="merged-note jp" title="統合済みのアイテム">
+                        <span className="merged-note jp" title={t('統合済みのアイテム')}>
                           +{it.mergedFrom.length}
                         </span>
                       )}
@@ -359,8 +361,8 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
                       className="item-thumb"
                       style={regionBackgroundStyle(it.category, thumb(it.rep.url, 320))}
                       onClick={() => onShowFits(it.id)}
-                      title="このアイテムのコーデを見る"
-                      aria-label={`${it.label} の最新着用`}
+                      title={t('このアイテムのコーデを見る')}
+                      aria-label={t('{label} の最新着用', { label: it.label })}
                     />
                   ) : (
                     <span className="item-thumb empty" />
@@ -371,18 +373,18 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
                     <button
                       className="item-label"
                       onClick={() => onShowFits(it.id)}
-                      title="このアイテムのコーデを見る"
+                      title={t('このアイテムのコーデを見る')}
                     >
                       {it.label}
                     </button>
                   )}
                   {it.mergedFrom.length > 0 && (
-                    <span className="merged-note jp" title="統合済みのアイテム">
-                      +{it.mergedFrom.length}件統合
+                    <span className="merged-note jp" title={t('統合済みのアイテム')}>
+                      +{it.mergedFrom.length}{t('件統合')}
                     </span>
                   )}
                   {colorDot(it)}
-                  <span className="item-meta mono">{it.count}回</span>
+                  <span className="item-meta mono">{it.count}{t('回')}</span>
                   <span className="item-meta mono dim">{fmtDate(it.lastDate)}</span>
                   {renderActions(it)}
                 </li>
@@ -392,7 +394,7 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
         </section>
       ))}
 
-      {visible.length === 0 && <p className="empty jp">条件に合うアイテムがありません</p>}
+      {visible.length === 0 && <p className="empty jp">{t('条件に合うアイテムがありません')}</p>}
 
       {data.merged.length > 0 && (
         <section className="item-section">
@@ -413,7 +415,7 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
                       className="chip sm"
                       onClick={() => overrideActions.unmerge(m.fromId)}
                     >
-                      <span className="jp">解除</span>
+                      <span className="jp">{t('解除')}</span>
                     </button>
                   </span>
                 )}
@@ -426,10 +428,10 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
       {!READONLY && (
         <div className="tools jp">
           <button className="chip" onClick={exportOverrides}>
-            編集内容をエクスポート
+            {t('編集内容をエクスポート')}
           </button>
           <button className="chip" onClick={() => fileRef.current?.click()}>
-            インポート
+            {t('インポート')}
           </button>
           <input
             ref={fileRef}
@@ -445,27 +447,27 @@ export default function ItemsView({ data, filters, setFilters, onShowFits }: Pro
           <button
             className="chip danger"
             onClick={() => {
-              if (window.confirm('名前変更・統合・カテゴリ変更・非表示をすべてリセットします。よろしいですか？')) {
+              if (window.confirm(t('名前変更・統合・カテゴリ変更・非表示をすべてリセットします。よろしいですか？'))) {
                 overrideActions.reset()
               }
             }}
           >
-            リセット
+            {t('リセット')}
           </button>
           <button
             className="chip primary"
             onClick={async () => {
-              setBakeMsg('保存中…')
+              setBakeMsg(t('保存中…'))
               const ok = await overrideActions.bake()
-              setBakeMsg(ok ? '公開用データに焼き込みました' : '保存に失敗しました')
+              setBakeMsg(ok ? t('公開用データに焼き込みました') : t('保存に失敗しました'))
               setTimeout(() => setBakeMsg(''), 4000)
             }}
-            title="保留中の自動保存を待たず、いますぐ overrides.json に書き込む"
+            title={t('保留中の自動保存を待たず、いますぐ overrides.json に書き込む')}
           >
-            いますぐ保存
+            {t('いますぐ保存')}
           </button>
           <span className="tools-note">
-            {bakeMsg || '編集すると自動で overrides.json に保存されます（公開ビルドに反映）'}
+            {bakeMsg || t('編集すると自動で overrides.json に保存されます（公開ビルドに反映）')}
           </span>
         </div>
       )}
@@ -490,6 +492,7 @@ function MergeDialog({
   data: Data
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const [q, setQ] = useState('')
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
@@ -516,19 +519,19 @@ function MergeDialog({
       <article className="modal-body">
         <header className="modal-head">
           <h2 className="modal-title jp">
-            「{source.label}」を統合する先を選ぶ
+            {t('「{label}」を統合する先を選ぶ', { label: source.label })}
           </h2>
-          <button className="icon-btn" onClick={onClose} aria-label="閉じる">
+          <button className="icon-btn" onClick={onClose} aria-label={t('閉じる')}>
             ✕
           </button>
         </header>
         <p className="merge-help jp">
-          統合すると、このアイテムの着用コーデは統合先のアイテムとして数えられます（あとで解除できます）。
+          {t('統合すると、このアイテムの着用コーデは統合先のアイテムとして数えられます（あとで解除できます）。')}
         </p>
         <input
           className="search jp"
           type="search"
-          placeholder="統合先を検索"
+          placeholder={t('統合先を検索')}
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -545,7 +548,7 @@ function MergeDialog({
               >
                 <span className="chip-cat mono">{it.category}</span>
                 {it.label}
-                <span className="item-meta mono dim">{it.count}回</span>
+                <span className="item-meta mono dim">{it.count}{t('回')}</span>
               </button>
             </li>
           ))}

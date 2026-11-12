@@ -1,8 +1,9 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import FitsView from './components/FitsView'
 import GameHubView from './components/GameHubView'
 import ItemsView from './components/ItemsView'
 import ScrollToTopButton from './components/ScrollToTopButton'
+import ThemeToggle from './components/ThemeToggle'
 import { useOverrides } from './lib/store'
 
 // 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
@@ -18,11 +19,13 @@ const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 const TowerGameView = lazy(() => import('./components/TowerGameView'))
 const ChariGameView = lazy(() => import('./components/ChariGameView'))
 const QuizGameView = lazy(() => import('./components/QuizGameView'))
+const SlotGameView = lazy(() => import('./components/SlotGameView'))
 const JamGameView = lazy(() => import('./components/JamGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
 import { fmtDate, meta, outfits, useData } from './lib/useData'
+import { isLocale, LOCALE_OPTIONS, useI18n } from './lib/i18n'
 
 export type View =
   | 'fits'
@@ -39,6 +42,7 @@ export type View =
   | 'tower'
   | 'chari'
   | 'quiz'
+  | 'slot'
   | 'jam'
 
 export type Filters = {
@@ -87,34 +91,71 @@ export const defaultItemsFilters: ItemsFilters = {
 }
 
 export default function App() {
+  const { locale, setLocale, t } = useI18n()
   const ov = useOverrides()
   const { splits, assign, createSub, moveOutfit, saveState } = useSplits()
   const { hair, setHair, saveState: hairSaveState } = useHair()
   const data = useData(ov, splits)
-  const [{ view, filters, itemsFilters }, navigate] = useHashRoute()
+  const [{ view, filters, itemsFilters, outfitKey }, navigate] = useHashRoute()
 
-  const setView = (v: View) => navigate({ view: v, filters, itemsFilters })
+  const setView = (v: View) => navigate({ view: v, filters, itemsFilters, outfitKey: null })
   const setFilters = (f: Filters) =>
-    navigate({ view: 'fits', filters: f, itemsFilters }, { replace: true })
+    navigate({ view: 'fits', filters: f, itemsFilters, outfitKey: null }, { replace: true })
   const setItemsFilters = (f: ItemsFilters) =>
-    navigate({ view: 'items', filters, itemsFilters: f }, { replace: true })
+    navigate({ view: 'items', filters, itemsFilters: f, outfitKey: null }, { replace: true })
+  const setOpenOutfitKey = (key: string | null) =>
+    navigate({ view: 'fits', filters, itemsFilters, outfitKey: key }, { replace: true })
 
   const showFitsForItem = (itemId: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId, itemIds: [] }, itemsFilters })
+    navigate({
+      view: 'fits',
+      filters: { ...defaultFilters, itemId, itemIds: [] },
+      itemsFilters,
+      outfitKey: null,
+    })
     window.scrollTo({ top: 0 })
   }
 
   const showFitsForItems = (itemIds: string[]) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, itemId: null, itemIds }, itemsFilters })
+    navigate({
+      view: 'fits',
+      filters: { ...defaultFilters, itemId: null, itemIds },
+      itemsFilters,
+      outfitKey: null,
+    })
     window.scrollTo({ top: 0 })
   }
 
   const showFitsForDate = (date: string) => {
-    navigate({ view: 'fits', filters: { ...defaultFilters, from: date, to: date }, itemsFilters })
+    navigate({
+      view: 'fits',
+      filters: { ...defaultFilters, from: date, to: date },
+      itemsFilters,
+      outfitKey: null,
+    })
+    window.scrollTo({ top: 0 })
+  }
+
+  // ゲームからコーデ詳細へ。履歴に積むので、ブラウザの「戻る」でゲームに帰れる
+  const showOutfit = (key: string) => {
+    navigate({ view: 'fits', filters: defaultFilters, itemsFilters, outfitKey: key })
     window.scrollTo({ top: 0 })
   }
 
   const visibleItemCount = data.items.filter((it) => !it.hidden).length
+
+  // タブは横スクロールするので、選択中のタブが画面外に隠れないよう見える位置まで寄せる。
+  const tabsRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const nav = tabsRef.current
+    const active = nav?.querySelector<HTMLElement>('.tab.active')
+    if (!nav || !active) return
+    const navRect = nav.getBoundingClientRect()
+    const tabRect = active.getBoundingClientRect()
+    if (tabRect.left < navRect.left || tabRect.right > navRect.right) {
+      nav.scrollBy({ left: tabRect.left + tabRect.width / 2 - (navRect.left + navRect.width / 2) })
+    }
+  }, [view])
 
   // ゲームプレイ中（ハブではなく個別ゲーム）は、SP でヘッダーのメニューが
   // プレイ領域を圧迫するため隠す。各ゲームは戻るボタンを持つので操作は塞がらない。
@@ -125,6 +166,7 @@ export default function App() {
     view === 'tower' ||
     view === 'chari' ||
     view === 'quiz' ||
+    view === 'slot' ||
     view === 'jam'
 
   return (
@@ -133,14 +175,34 @@ export default function App() {
         <button
           className="brand"
           onClick={() => {
-            navigate({ view: 'fits', filters: defaultFilters, itemsFilters })
+            navigate({ view: 'fits', filters: defaultFilters, itemsFilters, outfitKey: null })
             window.scrollTo({ top: 0 })
           }}
         >
-          <span className="brand-mark jp">出勤服</span>
+          <span className="brand-mark jp">{t('出勤服')}</span>
           <span className="brand-sub">DAILY FITS ARCHIVE</span>
         </button>
-        <nav className="tabs" aria-label="ビュー切り替え">
+        <div className="header-controls">
+          <ThemeToggle />
+          <label className="locale-control">
+            <span className="sr-only">{t('表示言語')}</span>
+            <select
+              className="locale-select mono"
+              value={locale}
+              onChange={(event) => {
+                if (isLocale(event.target.value)) setLocale(event.target.value)
+              }}
+              aria-label={t('表示言語')}
+            >
+              {LOCALE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <nav className="tabs" ref={tabsRef} aria-label={t('ビュー切り替え')}>
           <button
             className={view === 'fits' || view === 'orbit' ? 'tab active' : 'tab'}
             onClick={() => setView('fits')}
@@ -157,25 +219,25 @@ export default function App() {
             className={view === 'closet' ? 'tab active' : 'tab'}
             onClick={() => setView('closet')}
           >
-            稼働率
+            {t('稼働率')}
           </button>
           <button
             className={view === 'palette' ? 'tab active' : 'tab'}
             onClick={() => setView('palette')}
           >
-            色
+            {t('色')}
           </button>
           <button
             className={view === 'weather' ? 'tab active' : 'tab'}
             onClick={() => setView('weather')}
           >
-            衣替え
+            {t('衣替え')}
           </button>
           <button
             className={view === 'today' ? 'tab active' : 'tab'}
             onClick={() => setView('today')}
           >
-            今日の服
+            {t('今日の服')}
           </button>
           <button
             className={
@@ -186,13 +248,14 @@ export default function App() {
               view === 'tower' ||
               view === 'chari' ||
               view === 'quiz' ||
+              view === 'slot' ||
               view === 'jam'
                 ? 'tab active'
                 : 'tab'
             }
             onClick={() => setView('game')}
           >
-            ゲーム
+            {t('ゲーム')}
           </button>
         </nav>
       </header>
@@ -202,6 +265,8 @@ export default function App() {
           data={data}
           filters={filters}
           setFilters={setFilters}
+          openOutfitKey={outfitKey}
+          setOpenOutfitKey={setOpenOutfitKey}
           splits={splits}
           hair={hair}
           onAssign={assign}
@@ -220,7 +285,7 @@ export default function App() {
         />
       )}
       {view === 'game' && <GameHubView onSelect={setView} />}
-      <Suspense fallback={<div className="view-loading jp">読み込み中…</div>}>
+      <Suspense fallback={<div className="view-loading jp">{t('読み込み中…')}</div>}>
         {view === 'closet' && (
           <ClosetDashboardView
             data={data}
@@ -256,21 +321,22 @@ export default function App() {
         {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
         {view === 'chari' && <ChariGameView data={data} onBack={() => setView('game')} />}
         {view === 'quiz' && <QuizGameView data={data} onBack={() => setView('game')} />}
+        {view === 'slot' && <SlotGameView onBack={() => setView('game')} onOpenOutfit={showOutfit} />}
         {view === 'jam' && <JamGameView onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (
         <div className="save-error jp">
-          データを保存できませんでした。`pnpm dev` のサーバーで開いているか確認してください
+          {t('データを保存できませんでした。`pnpm dev` のサーバーで開いているか確認してください')}
         </div>
       )}
 
       <footer className="footer jp">
-        データ元:{' '}
+        {t('データ元:')}{' '}
         <a href={meta.magazineUrl} target="_blank" rel="noreferrer">
-          note マガジン「出勤服」
+          {t('note マガジン「出勤服」')}
         </a>{' '}
-        · {fmtDate(meta.scrapedAt.slice(0, 10))} 取得
+        · {fmtDate(meta.scrapedAt.slice(0, 10))} {t('取得')}
       </footer>
 
       <ScrollToTopButton />

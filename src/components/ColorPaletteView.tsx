@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { colorBuckets, outfits } from '../lib/useData'
 import type { EffectiveItem } from '../types'
+import { useI18n } from '../lib/i18n'
 
 type ColorCount = { name: string; label: string; swatch: string; count: number }
 
@@ -64,6 +65,7 @@ const toColorCounts = (counts: Map<string, number>): ColorCount[] =>
 const pct = (count: number, total: number) => `${total ? Math.round((count / total) * 100) : 0}%`
 
 export default function ColorPaletteView({ data, onShowFits }: Props) {
+  const { t } = useI18n()
   const [activeColor, setActiveColor] = useState<string>('all')
 
   const analysis = useMemo(() => {
@@ -204,43 +206,43 @@ export default function ColorPaletteView({ data, onShowFits }: Props) {
             className={activeColor === 'all' ? 'chip active' : 'chip'}
             onClick={() => setActiveColor('all')}
           >
-            色すべて
+            {t('色すべて')}
           </button>
           {analysis.colorCounts.map((color) => (
             <button
               key={color.name}
               className={activeColor === color.name ? 'chip color-chip active' : 'chip color-chip'}
               onClick={() => setActiveColor(activeColor === color.name ? 'all' : color.name)}
-              title={color.label}
+              title={t(color.label)}
             >
               <span className="color-dot" style={{ background: color.swatch }} aria-hidden="true" />
-              {color.label} <span className="chip-count mono">{color.count}</span>
+              {t(color.label)} <span className="chip-count mono">{color.count}</span>
             </button>
           ))}
         </div>
         <div className="filter-row status-row">
           <span className="result-count jp">
-            {selectedColor ? selectedColor.label : '全色'} ·{' '}
+            {selectedColor ? t(selectedColor.label) : t('全色')} ·{' '}
             <span className="mono">{analysis.coloredOutfits}</span> colored fits
           </span>
         </div>
       </div>
 
       <section className="palette-hero">
-        <Metric label="色ありコーデ" value={String(analysis.coloredOutfits)} sub={`${outfits.length} fits`} />
+        <Metric label={t('色ありコーデ')} value={String(analysis.coloredOutfits)} sub={`${outfits.length} fits`} />
         <Metric
-          label="主色"
-          value={analysis.topColor?.label ?? '-'}
+          label={t('主色')}
+          value={analysis.topColor ? t(analysis.topColor.label) : '-'}
           sub={analysis.topColor ? `${analysis.topColor.count} fits` : 'no color'}
           swatch={analysis.topColor?.swatch}
         />
         <Metric
-          label="定番ペア"
-          value={analysis.topPair ? `${analysis.topPair.a.label}+${analysis.topPair.b.label}` : '-'}
+          label={t('定番ペア')}
+          value={analysis.topPair ? `${t(analysis.topPair.a.label)}+${t(analysis.topPair.b.label)}` : '-'}
           sub={analysis.topPair ? `${analysis.topPair.count} fits` : 'no pair'}
         />
         <Metric
-          label="平均色数"
+          label={t('平均色数')}
           value={averageColors(analysis.years)}
           sub="per colored fit"
         />
@@ -259,7 +261,7 @@ export default function ColorPaletteView({ data, onShowFits }: Props) {
                   <span
                     key={color.name}
                     style={{ width: pct(color.count, month.colored), background: color.swatch }}
-                    title={`${color.label}: ${color.count}`}
+                    title={`${t(color.label)}: ${color.count}`}
                   />
                 ))}
               </div>
@@ -286,14 +288,14 @@ export default function ColorPaletteView({ data, onShowFits }: Props) {
                     key={color.name}
                     className="palette-year-swatch"
                     style={{ background: color.swatch }}
-                    title={`${color.label}: ${color.count}`}
+                    title={`${t(color.label)}: ${color.count}`}
                   />
                 ))}
               </div>
               <div className="palette-year-bars">
                 {year.colors.slice(0, 5).map((color) => (
                   <div key={color.name} className="palette-year-bar">
-                    <span className="jp">{color.label}</span>
+                    <span className="jp">{t(color.label)}</span>
                     <span className="palette-bar-track">
                       <span style={{ width: pct(color.count, year.colored), background: color.swatch }} />
                     </span>
@@ -320,7 +322,7 @@ export default function ColorPaletteView({ data, onShowFits }: Props) {
                   <span style={{ background: pair.b.swatch }} />
                 </span>
                 <span className="palette-pair-name jp">
-                  {pair.a.label} + {pair.b.label}
+                  {t(pair.a.label)} + {t(pair.b.label)}
                 </span>
                 <span className="mono">{pair.count}</span>
               </li>

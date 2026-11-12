@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Box, Vec2, World, type Body } from 'planck'
 import cutoutsJson from '../data/cutouts.json'
 import GameShareButton from './GameShareButton'
+import { useI18n } from '../lib/i18n'
 import type { CutoutsFile } from '../lib/platform'
 import {
   DENSITY,
@@ -113,6 +114,7 @@ function randomKey(prev?: string): string {
 }
 
 export default function TowerGameView({ onBack }: Props) {
+  const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [score, setScore] = useState(0)
   const [best, setBest] = useState(loadBest)
@@ -382,8 +384,11 @@ export default function TowerGameView({ onBack }: Props) {
   const shareResultOnX = () => {
     const page = score >= 1 && score <= 50 ? `game/tower/r/${score}/` : 'game/tower/'
     const url = `${location.origin}${import.meta.env.BASE_URL}${page}`
-    const record = score > 0 && score >= best ? '（自己ベスト更新！）' : ''
-    const text = `出勤服アーカイブの「タワー」で ${score}体 積み上げました！${record} #出勤服アーカイブ`
+    const record = score > 0 && score >= best ? t('自己ベスト更新！') : ''
+    const text = t('出勤服アーカイブの「タワー」で {score}体 積み上げました！{record} #出勤服アーカイブ', {
+      score,
+      record,
+    })
     const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
     window.open(intentUrl, '_blank', 'noopener,noreferrer')
   }
@@ -401,11 +406,11 @@ export default function TowerGameView({ onBack }: Props) {
       <div className="tower-inner">
         <div className="tower-head">
           <button className="tower-back jp" onClick={onBack}>
-            ← ゲーム
+            ← {t('ゲーム')}
           </button>
-          <h2 className="tower-title jp">タワー</h2>
+          <h2 className="tower-title jp">{t('タワー')}</h2>
           <span className="tower-stats mono">
-            {score} <small>体</small> / BEST {Math.max(best, score)}
+            {score} <small>{t('体')}</small> / BEST {Math.max(best, score)}
           </span>
           <GameShareButton game="tower" title="タワー" />
         </div>
@@ -414,17 +419,17 @@ export default function TowerGameView({ onBack }: Props) {
           {over && (
             <div className="tower-overlay">
               <div className="tower-result jp">
-                <b className="mono">{score} 体</b>
-                <span>{score > 0 && score >= best ? '自己ベスト更新！' : `BEST ${best} 体`}</span>
+                <b className="mono">{score}{t('体')}</b>
+                <span>{score > 0 && score >= best ? t('自己ベスト更新！') : `BEST ${best}${t('体')}`}</span>
                 <span className="tower-result-actions">
                   <button className="tower-btn primary jp" onClick={retry}>
-                    もういちど
+                    {t('もういちど')}
                   </button>
                   <button className="tower-btn jp" onClick={shareResultOnX}>
-                    Xでポスト
+                    {t('Xでポスト')}
                   </button>
                   <button className="tower-btn jp" onClick={onBack}>
-                    もどる
+                    {t('もどる')}
                   </button>
                 </span>
               </div>
@@ -433,10 +438,10 @@ export default function TowerGameView({ onBack }: Props) {
         </div>
         <div className="tower-foot jp">
           <span className="tower-caption mono">{caption}</span>
-          <span className="tower-hint">ドラッグで移動 / タップで回転 / はなすと落下</span>
+          <span className="tower-hint">{t('ドラッグで移動 / タップで回転 / はなすと落下')}</span>
           {nextKey && (
             <span className="tower-next">
-              つぎ <img src={spriteUrl(nextKey)} alt="次の出勤服" />
+              {t('つぎ')} <img src={spriteUrl(nextKey)} alt={t('次の出勤服')} />
             </span>
           )}
         </div>

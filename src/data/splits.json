@@ -210,7 +210,8 @@
           "key": "red",
           "label": "赤",
           "outfits": [
-            "n24f1e0463946"
+            "n24f1e0463946",
+            "n86e88188b8ad"
           ]
         }
       ]
@@ -798,7 +799,11 @@
             "n15ca03f57685",
             "n1fc627cadc3b",
             "nb24377a692b1",
-            "nf250bee5a372"
+            "nf250bee5a372",
+            "n8b4073248033",
+            "n72962749fba3",
+            "nc6580c101748",
+            "nd6266ff54a9a"
           ]
         },
         {
@@ -811,7 +816,8 @@
             "n317d5cdb3885",
             "ndb4aca34f015",
             "n282c25a38535",
-            "n9624e856acba"
+            "n9624e856acba",
+            "n6c9384d61b9d"
           ]
         },
         {
@@ -827,7 +833,9 @@
             "na265225a2b77",
             "nc2e65a0ef1fd",
             "n6b36339c3482",
-            "n4f95c05f6ab1"
+            "n4f95c05f6ab1",
+            "n52ca535858d1",
+            "nc74a7c8aacbc"
           ]
         },
         {
@@ -842,7 +850,15 @@
             "n9dd59811d913",
             "ne0ca5bcbc40c",
             "ne2417b4d1f6b",
-            "n1e1be159a322"
+            "n1e1be159a322",
+            "n0e6267edb94c"
+          ]
+        },
+        {
+          "key": "u-パープル",
+          "label": "パープル",
+          "outfits": [
+            "n5b083b1badd8"
           ]
         }
       ]
@@ -1926,7 +1942,8 @@
           "label": "24ss · amachi. · コットン",
           "outfits": [
             "n774b987b395e",
-            "n8efb31dbef0a"
+            "n8efb31dbef0a",
+            "n52ca535858d1"
           ]
         },
         {
@@ -2014,7 +2031,8 @@
           "outfits": [
             "n4009632251a5",
             "nbfa4bf72fb0d",
-            "ne12e2c8f4696"
+            "ne12e2c8f4696",
+            "n86e88188b8ad"
           ]
         }
       ]
@@ -2248,6 +2266,12 @@
     },
     "sweat|19701980sfruitoftheloom": {
       "ne6e7829fe8f8": "sweat|80s#u-italy-サッカー"
+    },
+    "shorts|currentage": {
+      "n8f37967e043a": "pants|currentage"
+    },
+    "shorts|80sbananarepublic": {
+      "n52ca535858d1": "pants|80sbananarepublic"
     }
   }
 }

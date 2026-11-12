@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Data } from '../lib/useData'
 import { fmtDate, outfits, thumb } from '../lib/useData'
 import { SKY_LABELS, SKY_ORDER, type Sky, skyOfDay, weather } from '../lib/weather'
+import { useI18n } from '../lib/i18n'
 
 type Props = {
   data: Data
@@ -48,6 +49,7 @@ function seasonalDefaultTemp(): number {
 }
 
 export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
+  const { t } = useI18n()
   const seasonal = useMemo(seasonalDefaultTemp, [])
   const [temp, setTemp] = useState(seasonal)
   // 天気フィルタ（null = すべて）
@@ -114,16 +116,16 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
   return (
     <main className="today">
       <div className="today-head">
-        <h2 className="today-title jp">気温で選ぶ、今日の一着</h2>
+        <h2 className="today-title jp">{t('気温で選ぶ、今日の一着')}</h2>
         <p className="today-lead jp">
-          気温を合わせると、過去に<strong>同じくらいの陽気</strong>だった日の出勤服が並びます。
+          {t('気温を合わせると、過去に同じくらいの陽気だった日の出勤服が並びます。')}
         </p>
       </div>
 
       <div className="today-control">
         <div className="today-temp">
           <span className="today-temp-value mono">{temp}</span>
-          <span className="today-temp-unit jp">℃ の日</span>
+          <span className="today-temp-unit jp">{t('℃ の日')}</span>
         </div>
         <input
           className="today-slider"
@@ -132,7 +134,7 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
           max={38}
           step={1}
           value={temp}
-          aria-label="気温"
+          aria-label={t('気温')}
           onChange={(e) => setTemp(Number(e.target.value))}
         />
         <div className="today-presets">
@@ -149,20 +151,20 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
           <button
             className={temp === seasonal ? 'chip sm active' : 'chip sm'}
             onClick={() => setTemp(seasonal)}
-            title="例年の今日ごろの平均気温に合わせる"
+            title={t('例年の今日ごろの平均気温に合わせる')}
           >
-            <span className="jp">今日の陽気</span>
+            <span className="jp">{t('今日の陽気')}</span>
             <span className="mono">{seasonal}℃</span>
           </button>
         </div>
 
         <div className="today-weather">
-          <span className="today-weather-label jp">天気</span>
+          <span className="today-weather-label jp">{t('天気')}</span>
           <button
             className={sky == null ? 'chip sm active' : 'chip sm'}
             onClick={() => setSky(null)}
           >
-            <span className="jp">すべて</span>
+            <span className="jp">{t('すべて')}</span>
             <span className="chip-count mono">{tempMatches.length}</span>
           </button>
           {SKY_ORDER.filter((s) => skyCounts[s] > 0).map((s) => (
@@ -171,7 +173,7 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
               className={sky === s ? 'chip sm active' : 'chip sm'}
               onClick={() => setSky(sky === s ? null : s)}
             >
-              <span className="jp">{SKY_LABELS[s]}</span>
+              <span className="jp">{t(SKY_LABELS[s])}</span>
               <span className="chip-count mono">{skyCounts[s]}</span>
             </button>
           ))}
@@ -179,26 +181,26 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
       </div>
 
       <p className="today-summary jp">
-        平均 <span className="mono">{temp}</span>℃ 前後（±{BAND}℃）
-        {sky != null && <>・{SKY_LABELS[sky]}</>}の日は{' '}
-        <strong className="mono">{matches.length}</strong> 件
+        {t('平均 {temp}℃ 前後（±{band}℃）', { temp, band: BAND })}
+        {sky != null && <> · {t(SKY_LABELS[sky])}</>}{t('の日は')}
+        <strong className="mono">{matches.length}</strong>{t('件')}
         {matches.length > 0 && (
           <>
-            {' '}· 平均 <span className="mono">♡ {avgLike}</span>
+            {' '}· {t('平均')} <span className="mono">♡ {avgLike}</span>
           </>
         )}
       </p>
 
       {staples.length > 0 && (
         <section className="today-staples">
-          <h3 className="today-section-title jp">この陽気の定番アイテム</h3>
+          <h3 className="today-section-title jp">{t('この陽気の定番アイテム')}</h3>
           <div className="today-staple-chips">
             {staples.map(({ item, count }) => (
               <button
                 key={item.id}
                 className="chip item-chip"
                 onClick={() => onShowFits(item.id)}
-                title={`${item.label} のコーデを見る`}
+                title={t('{label} のコーデを見る', { label: item.label })}
               >
                 <span className="chip-cat mono">{item.category}</span>
                 {item.label}
@@ -210,7 +212,7 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
       )}
 
       {matches.length === 0 ? (
-        <p className="empty jp">条件に合う日が記録にありません。気温や天気を変えてみてください</p>
+        <p className="empty jp">{t('条件に合う日が記録にありません。気温や天気を変えてみてください')}</p>
       ) : (
         <div className="grid">
           {matches.slice(0, MAX_CARDS).map(({ o, mean }) => (
@@ -231,7 +233,10 @@ export default function TodayPickView({ data, onShowFits, onShowDate }: Props) {
       )}
       {matches.length > MAX_CARDS && (
         <p className="today-more jp">
-          近い順に {MAX_CARDS} 件を表示しています（全 {matches.length} 件）
+          {t('近い順に {shown} 件を表示しています（全 {total} 件）', {
+            shown: MAX_CARDS,
+            total: matches.length,
+          })}
         </p>
       )}
     </main>

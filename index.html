@@ -11,6 +11,18 @@
     />
     <!-- モバイルブラウザのUI（アドレスバー等）を背景色になじませる -->
     <meta name="theme-color" content="#fafafa" />
+    <!-- 初回描画前にテーマを確定させ、ライト→ダークのちらつきを防ぐ（判定は src/lib/theme.ts と同じ） -->
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem('ootd-theme')
+          const dark =
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch {}
+      })()
+    </script>
     <!-- ホーム画面に追加したときのアプリ風表示 -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />

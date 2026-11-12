@@ -33,6 +33,7 @@ import {
   type Season,
   type Side,
 } from '../lib/duel'
+import { useI18n } from '../lib/i18n'
 
 // 髪まわりタグ（帽子・髪色）はカード名の素材に使う。manual が auto を上書き。
 const hairFile = hairJson as HairFile
@@ -284,8 +285,9 @@ function buildPool(data: Data): MonsterTemplate[] {
 // カード描画
 // ---------------------------------------------------------------------------
 function LevelStars({ level }: { level: number }) {
+  const { t } = useI18n()
   return (
-    <span className="d-stars" aria-label={`レベル${level}`}>
+    <span className="d-stars" aria-label={t('レベル{level}', { level })}>
       {'★'.repeat(level)}
     </span>
   )
@@ -314,10 +316,11 @@ function CardView({
   disabled?: boolean
   compact?: boolean
 }) {
+  const { t } = useI18n()
   const cls = `d-card d-card-${size}${orientation === 'defense' ? ' def' : ''}${onClick ? ' clickable' : ''} ${className}`
   if (faceDown) {
     return (
-      <button type="button" className={cls + ' back'} onClick={onClick} disabled={disabled || !onClick} aria-label="伏せカード">
+      <button type="button" className={cls + ' back'} onClick={onClick} disabled={disabled || !onClick} aria-label={t('伏せカード')}>
         <span className="d-card-back-motif" />
       </button>
     )
@@ -326,10 +329,10 @@ function CardView({
     const kindCls = card.kind === 'spell' ? 'spell' : 'trap'
     return (
       <button type="button" className={`${cls} st ${kindCls}`} onClick={onClick} disabled={disabled || !onClick}>
-        <span className="d-card-name jp">{card.name}</span>
-        <span className="d-st-kind jp">{card.kind === 'spell' ? '魔法' : '罠'}</span>
+        <span className="d-card-name jp">{t(card.name)}</span>
+        <span className="d-st-kind jp">{t(card.kind === 'spell' ? '魔法' : '罠')}</span>
         <span className="d-st-icon">{card.kind === 'spell' ? '✦' : '✧'}</span>
-        {!compact && <span className="d-st-text jp">{card.text}</span>}
+        {!compact && <span className="d-st-text jp">{t(card.text)}</span>}
       </button>
     )
   }
@@ -346,22 +349,22 @@ function CardView({
     >
       <span className="d-card-top">
         <span className="d-card-name jp">{card.name}</span>
-        <span className="d-attr jp" title={SEASON_LABEL[sea] + '属性'}>
-          {SEASON_LABEL[sea]}
+        <span className="d-attr jp" title={t('{season}属性', { season: t(SEASON_LABEL[sea]) })}>
+          {t(SEASON_LABEL[sea])}
         </span>
       </span>
       {!compact && <LevelStars level={card.level} />}
       <span className="d-card-art">
         <img src={thumb(card.img, size === 'lg' ? 360 : 200)} alt="" loading="lazy" decoding="async" />
         {compact && (
-          <span className="d-ability-mini jp" title={`【${abil.name}】${abil.text}`}>
-            {abil.name[0]}
+          <span className="d-ability-mini jp" title={`【${t(abil.name)}】${t(abil.text)}`}>
+            {t(abil.name)[0]}
           </span>
         )}
       </span>
       {!compact && (
         <span className="d-card-race jp">
-          【{card.race}／{SEASON_LABEL[sea]}】<span className="d-ability jp">{abil.name}</span>
+          【{t(card.race)}／{t(SEASON_LABEL[sea])}】<span className="d-ability jp">{t(abil.name)}</span>
         </span>
       )}
       {compact ? (
@@ -396,6 +399,7 @@ function CardView({
 // メイン
 // ---------------------------------------------------------------------------
 export default function DuelGameView({ data, onBack }: { data: Data; onBack: () => void }) {
+  const { t } = useI18n()
   const pool = useMemo(() => buildPool(data), [data])
   const [phase, setPhase] = useState<Phase>('setup')
   const [deckMonsters, setDeckMonsters] = useState<MonsterTemplate[]>(() => buildAutoDeck(pool))
@@ -647,74 +651,75 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
         <div className="d-setup-card">
           <div className="game-nav">
             <button className="game-back jp" onClick={onBack}>
-              ← ゲームを選ぶ
+              ← {t('ゲームを選ぶ')}
             </button>
             <GameShareButton game="duel" title="デュエル" />
             <button
               className="d-sound mono"
               onClick={() => setMuted(audioRef.current!.toggle())}
-              aria-label={muted ? 'サウンドをオン' : 'サウンドをオフ'}
+              aria-label={t(muted ? 'サウンドをオン' : 'サウンドをオフ')}
               aria-pressed={!muted}
             >
-              {muted ? '音 OFF' : '音 ON'}
+              {t(muted ? '音 OFF' : '音 ON')}
             </button>
           </div>
-          <h2 className="d-setup-title jp">出勤服デュエル</h2>
+          <h2 className="d-setup-title jp">{t('出勤服デュエル')}</h2>
           <p className="d-setup-lead jp">
-            出勤服1着が1体のモンスター。<b>スキ数の人気順でレベル（★）と攻撃力</b>、<b>着用回数＝守備力</b>、<b>季節＝属性</b>。
-            40枚デッキを引き合い、ライフ <span className="mono">8000</span> を先に削りきったほうが勝ち。
+            {t('出勤服1着が1体のモンスター。スキ数の人気順でレベル（★）と攻撃力、着用回数＝守備力、季節＝属性。40枚デッキを引き合い、ライフ 8000 を先に削りきったほうが勝ち。')}
           </p>
           <ul className="d-rules jp">
-            <li>毎ターン1ドロー → 召喚 → バトル（先攻1ターン目はドロー・バトルなし）</li>
-            <li>レベル5・6は1体、7・8は2体を<b>リリース</b>して召喚（アドバンス召喚）</li>
-            <li>攻撃表示は殴り合い、守備表示は守り。<b>表示形式は1ターン1回変更できる</b></li>
-            <li>
-              季節は巡る — <b>春→夏→秋→冬→春</b> の向きに相性○（攻撃力 <span className="mono">+500</span>）
-            </li>
-            <li>
-              種族ごとに固有アビリティ — 戦衣<b>【貫通】</b>・織衣<b>【連携】</b>・脚装<b>【疾走】</b>・踏破<b>【重装】</b>・装具<b>【道連れ】</b>
-            </li>
-            <li>魔法・罠も{SPELL_TRAP_COUNT}枚（ご褒美コーデ／大掃除／ゲリラ豪雨／虫食い ほか）</li>
+            <li>{t('毎ターン1ドロー → 召喚 → バトル（先攻1ターン目はドロー・バトルなし）')}</li>
+            <li>{t('レベル5・6は1体、7・8は2体をリリースして召喚（アドバンス召喚）')}</li>
+            <li>{t('攻撃表示は殴り合い、守備表示は守り。表示形式は1ターン1回変更できる')}</li>
+            <li>{t('季節は巡る — 春→夏→秋→冬→春 の向きに相性○（攻撃力 +500）')}</li>
+            <li>{t('種族ごとに固有アビリティ — 戦衣【貫通】・織衣【連携】・脚装【疾走】・踏破【重装】・装具【道連れ】')}</li>
+            <li>{t('魔法・罠も{count}枚（ご褒美コーデ／大掃除／ゲリラ豪雨／虫食い ほか）', { count: SPELL_TRAP_COUNT })}</li>
           </ul>
 
           <div className="d-deck-stat">
-            <span className="jp">あなたのデッキ <span className="mono">40</span> 枚</span>
+            <span className="jp">{t('あなたのデッキ {count} 枚', { count: 40 })}</span>
             <span className="d-deck-seasons">
               {SEASONS.map((s) => (
                 <span key={s} className="d-seasontag" style={{ '--sea': SEASON_COLOR[s] } as CSSProperties}>
-                  {SEASON_LABEL[s]} <span className="mono">{sCount[s] ?? 0}</span>
+                  {t(SEASON_LABEL[s])} <span className="mono">{sCount[s] ?? 0}</span>
                 </span>
               ))}
             </span>
             <span className="jp d-deck-sub">
-              平均ATK <span className="mono">{avgAtk}</span> ・ 大型 <span className="mono">{bombs}</span> ・ 魔法罠{' '}
-              <span className="mono">{SPELL_TRAP_COUNT}</span>
+              {t('平均ATK {atk} ・ 大型 {large} ・ 魔法罠 {effects}', {
+                atk: avgAtk,
+                large: bombs,
+                effects: SPELL_TRAP_COUNT,
+              })}
             </span>
           </div>
 
           {(stats.wins > 0 || stats.losses > 0) && (
             <div className="d-record jp">
               <span>
-                通算 <span className="mono">{stats.wins}</span>勝<span className="mono">{stats.losses}</span>敗 ・ 最高連勝{' '}
-                <span className="mono">{stats.best}</span>
+                {t('通算 {wins}勝{losses}敗 ・ 最高連勝 {best}', {
+                  wins: stats.wins,
+                  losses: stats.losses,
+                  best: stats.best,
+                })}
               </span>
               {stats.streak > 0 && (
                 <span className="d-streak">
-                  連勝中 <span className="mono">{stats.streak}</span> — 相手が強化されている
+                  {t('連勝中 {streak} — 相手が強化されている', { streak: stats.streak })}
                 </span>
               )}
             </div>
           )}
 
           <button className="d-start jp" onClick={startDuel}>
-            決闘開始
+            {t('決闘開始')}
           </button>
           <div className="d-setup-actions">
             <button className="chip jp" onClick={() => setPhase('deck')}>
-              デッキを見る・編集
+              {t('デッキを見る・編集')}
             </button>
             <button className="chip jp" onClick={rerollDeck}>
-              おまかせで引き直す
+              {t('おまかせで引き直す')}
             </button>
           </div>
         </div>
@@ -728,21 +733,23 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       <main className="d-deckedit">
         <div className="d-deckedit-head">
           <div>
-            <h2 className="d-setup-title jp">デッキ編集</h2>
+            <h2 className="d-setup-title jp">{t('デッキ編集')}</h2>
             <p className="jp d-deck-sub">
-              モンスター <span className="mono">{deckMonsters.length}</span> 枚 ＋ 魔法・罠 <span className="mono">{SPELL_TRAP_COUNT}</span>{' '}
-              枚（固定）。気に入らないカードは「引き直す」で交換。
+              {t('モンスター {monsters} 枚 ＋ 魔法・罠 {effects} 枚（固定）。気に入らないカードは「引き直す」で交換。', {
+                monsters: deckMonsters.length,
+                effects: SPELL_TRAP_COUNT,
+              })}
             </p>
           </div>
           <div className="d-deckedit-actions">
             <button className="chip jp" onClick={rerollDeck}>
-              全部おまかせ
+              {t('全部おまかせ')}
             </button>
             <button className="d-start sm jp" onClick={startDuel}>
-              この40枚で対戦
+              {t('この40枚で対戦')}
             </button>
             <button className="chip jp" onClick={() => setPhase('setup')}>
-              戻る
+              {t('戻る')}
             </button>
           </div>
         </div>
@@ -751,7 +758,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             <div className="d-deck-cell" key={m.outfitKey + i}>
               <CardView card={{ ...m, uid: 'edit' + i }} size="sm" onClick={() => setInspect({ card: { ...m, uid: 'edit' + i }, side: 0, zone: null })} />
               <button className="d-reroll jp" onClick={() => rerollCard(i)}>
-                引き直す
+                {t('引き直す')}
               </button>
             </div>
           ))}
@@ -913,10 +920,10 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       <button
         className="d-sound d-sound-float mono"
         onClick={() => setMuted(audioRef.current!.toggle())}
-        aria-label={muted ? 'サウンドをオン' : 'サウンドをオフ'}
+        aria-label={t(muted ? 'サウンドをオン' : 'サウンドをオフ')}
         aria-pressed={!muted}
       >
-        {muted ? '音 OFF' : '音 ON'}
+        {t(muted ? '音 OFF' : '音 ON')}
       </button>
       {intro && (
         <div className="d-duel-intro" aria-hidden>
@@ -928,7 +935,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       {/* ターン/フェイズの大バナー */}
       {banner && (
         <div className={'d-banner ' + banner.tone} key={banner.id}>
-          <span className="jp">{banner.text}</span>
+          <span className="jp">{t(banner.text)}</span>
         </div>
       )}
       {/* 大型召喚カットイン */}
@@ -939,8 +946,8 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             <span className="d-cutin-art" style={{ '--sea': SEASON_COLOR[cutin.card.season] } as CSSProperties}>
               <img src={thumb(cutin.card.img, 360)} alt="" />
             </span>
-            <span className="d-cutin-label jp">{cutin.side === 0 ? 'アドバンス召喚！' : 'CPのアドバンス召喚'}</span>
-            <span className="d-cutin-name jp">{cutin.card.name}</span>
+            <span className="d-cutin-label jp">{t(cutin.side === 0 ? 'アドバンス召喚！' : 'CPのアドバンス召喚')}</span>
+            <span className="d-cutin-name jp">{t(cutin.card.name)}</span>
             <span className="d-cutin-stats mono">
               ★{cutin.card.level} ／ ATK {cutin.card.atk}
             </span>
@@ -979,8 +986,12 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             </div>
             <span className={'d-lp-num mono' + (lowCpu ? ' low' : '')}>{cpuLp}</span>
           </div>
-          {stats.streak > 0 && <span className="d-streak-mini jp mono">強化Lv{Math.min(8, stats.streak)}</span>}
-          <span className="d-counts jp mono">手{cpu.hand.length}・山{cpu.deck.length}・墓{cpu.graveyard.length}</span>
+          {stats.streak > 0 && <span className="d-streak-mini jp mono">{t('強化Lv{level}', { level: Math.min(8, stats.streak) })}</span>}
+          <span className="d-counts jp mono">{t('手{hand}・山{deck}・墓{grave}', {
+            hand: cpu.hand.length,
+            deck: cpu.deck.length,
+            grave: cpu.graveyard.length,
+          })}</span>
         </div>
         {/* 相手の手札（裏） */}
         <div className="d-enemy-hand" aria-hidden>
@@ -1033,14 +1044,14 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
           {game.winner === null ? (
             <>
               <span className={'d-turn-who' + (game.turn === 0 ? ' you' : '')}>
-                {game.turn === 0 ? 'あなたのターン' : 'CPのターン'}
+                {t(game.turn === 0 ? 'あなたのターン' : 'CPのターン')}
               </span>
-              <span className="d-turn-phase">{inMain ? 'メインフェイズ' : 'バトルフェイズ'} ・ T{game.turnNo}</span>
-              {stats.streak > 0 && <span className="d-streak-mini jp mono">連勝{stats.streak}</span>}
-              {busy && <span className="d-thinking jp">CPが思考中…</span>}
+              <span className="d-turn-phase">{t(inMain ? 'メインフェイズ' : 'バトルフェイズ')} ・ T{game.turnNo}</span>
+              {stats.streak > 0 && <span className="d-streak-mini jp mono">{t('連勝{streak}', { streak: stats.streak })}</span>}
+              {busy && <span className="d-thinking jp">{t('CPが思考中…')}</span>}
             </>
           ) : (
-            <span className="d-turn-who you">{game.winner === 0 ? 'あなたの勝ち！' : 'CPの勝ち…'}</span>
+            <span className="d-turn-who you">{t(game.winner === 0 ? 'あなたの勝ち！' : 'CPの勝ち…')}</span>
           )}
         </div>
 
@@ -1049,15 +1060,15 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             <span className="jp d-flash-line">
               <b>{flash.attacker}</b>
               {flash.result === 'direct' ? (
-                <> がダイレクトアタック</>
+                <>{t('がダイレクトアタック')}</>
               ) : flash.result === 'negate' || flash.result === 'bounce' ? (
-                <> の攻撃は{flash.trap ? `「${flash.trap}」で` : ''}防がれた</>
+                <> {t('の攻撃は')}{flash.trap ? `“${t(flash.trap)}” ` : ''}{t('防がれた')}</>
               ) : (
                 <>
                   {' '}
                   <span className="mono">{flash.atkValue}</span>
-                  {flash.matchup === 1 && <span className="d-good">相性○</span>}
-                  {flash.matchup === -1 && <span className="d-bad">相性×</span>}
+                  {flash.matchup === 1 && <span className="d-good">{t('相性○')}</span>}
+                  {flash.matchup === -1 && <span className="d-bad">{t('相性×')}</span>}
                   {' → '}
                   <b>{flash.target}</b> <span className="mono">{flash.defValue}</span>
                 </>
@@ -1065,28 +1076,31 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             </span>
             {flash.damage > 0 && (
               <span className="d-flash-dmg jp">
-                {flash.damageTo === 0 ? 'あなた' : 'CP'} に <span className="mono">{flash.damage}</span> ダメージ
+                {t('{target} に {damage} ダメージ', {
+                  target: t(flash.damageTo === 0 ? 'あなた' : 'CP'),
+                  damage: flash.damage,
+                })}
               </span>
             )}
             {flash.abilityNotes?.map((n, i) => (
               <span key={i} className="d-flash-abil jp">
-                {n}
+                {t(n)}
               </span>
             ))}
-            {(flash.result === 'destroy-target' || flash.result === 'both') && <span className="d-flash-tag jp">破壊！</span>}
-            {flash.result === 'recoil' && <span className="d-flash-tag jp">守備に阻まれた</span>}
+            {(flash.result === 'destroy-target' || flash.result === 'both') && <span className="d-flash-tag jp">{t('破壊！')}</span>}
+            {flash.result === 'recoil' && <span className="d-flash-tag jp">{t('守備に阻まれた')}</span>}
           </div>
         )}
 
         {!flash && myTurn && (
           <div className="d-hint jp">
-            {ui.kind === 'tribute' && `リリースするモンスターを ${ui.chosen.length}/${ui.need} 体えらぶ`}
-            {ui.kind === 'spellTarget' && '対象の自分モンスターをえらぶ'}
-            {ui.kind === 'layeringSeason' && '変更する季節をえらぶ'}
-            {ui.kind === 'attackFrom' && (enemyHasMonster ? '攻撃する相手をえらぶ' : 'ダイレクトアタックできる')}
-            {ui.kind === 'idle' && inMain && '手札をタップして召喚／発動。場のカードはタップで詳細'}
-            {ui.kind === 'idle' && inBattle && '自分の攻撃表示モンスターをタップ'}
-            {ui.kind === 'handMenu' && '行動をえらぶ'}
+            {ui.kind === 'tribute' && t('リリースするモンスターを {chosen}/{need} 体えらぶ', { chosen: ui.chosen.length, need: ui.need })}
+            {ui.kind === 'spellTarget' && t('対象の自分モンスターをえらぶ')}
+            {ui.kind === 'layeringSeason' && t('変更する季節をえらぶ')}
+            {ui.kind === 'attackFrom' && t(enemyHasMonster ? '攻撃する相手をえらぶ' : 'ダイレクトアタックできる')}
+            {ui.kind === 'idle' && inMain && t('手札をタップして召喚／発動。場のカードはタップで詳細')}
+            {ui.kind === 'idle' && inBattle && t('自分の攻撃表示モンスターをタップ')}
+            {ui.kind === 'handMenu' && t('行動をえらぶ')}
           </div>
         )}
 
@@ -1095,27 +1109,27 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
           <div className="d-phasebar">
             {ui.kind === 'attackFrom' && !enemyHasMonster && (
               <button className="d-act jp" onClick={directAttack}>
-                ダイレクトアタック！
+                {t('ダイレクトアタック！')}
               </button>
             )}
             {ui.kind === 'attackFrom' && (
               <button className="chip jp" onClick={() => setUi({ kind: 'idle' })}>
-                攻撃やめる
+                {t('攻撃やめる')}
               </button>
             )}
             {ui.kind === 'idle' && inMain && game.turnNo > 1 && (
               <button className="d-act jp" onClick={toBattle}>
-                バトルへ
+                {t('バトルへ')}
               </button>
             )}
             {ui.kind === 'idle' && (
-              <button className="chip jp d-auto" onClick={() => void autoPlay()} title="AIが次の一手を代わりに実行">
-                おまかせ行動
+              <button className="chip jp d-auto" onClick={() => void autoPlay()} title={t('AIが次の一手を代わりに実行')}>
+                {t('おまかせ行動')}
               </button>
             )}
             {ui.kind === 'idle' && (
               <button className="chip jp" onClick={endTurn}>
-                ターン終了
+                {t('ターン終了')}
               </button>
             )}
           </div>
@@ -1160,7 +1174,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                     className={'d-onfield' + (lungeHere ? ' lunge-up' : '')}
                   />
                 )}
-                {slot?.hasAttacked && <span className="d-tapped jp">攻撃済</span>}
+                {slot?.hasAttacked && <span className="d-tapped jp">{t('攻撃済')}</span>}
               </div>
             )
           })}
@@ -1173,14 +1187,17 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
           ))}
         </div>
         <div className="d-side-head">
-          <span className="d-side-name jp">あなた</span>
+          <span className="d-side-name jp">{t('あなた')}</span>
           <div className="d-lp">
             <div className="d-lp-bar">
               <span className={'d-lp-fill you' + (lowYou ? ' low' : '')} style={{ width: lpPct(you.lp) + '%' }} />
             </div>
             <span className={'d-lp-num mono' + (lowYou ? ' low' : '')}>{youLp}</span>
           </div>
-          <span className="d-counts jp mono">山{you.deck.length}・墓{you.graveyard.length}</span>
+          <span className="d-counts jp mono">{t('山{deck}・墓{grave}', {
+            deck: you.deck.length,
+            grave: you.graveyard.length,
+          })}</span>
         </div>
       </section>
 
@@ -1196,7 +1213,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
               className={'d-hand-card' + (ui.kind === 'handMenu' && ui.handIndex === i ? ' picked' : '')}
             />
           ))}
-          {you.hand.length === 0 && <span className="d-hand-empty jp">手札なし</span>}
+          {you.hand.length === 0 && <span className="d-hand-empty jp">{t('手札なし')}</span>}
         </div>
       </section>
 
@@ -1209,7 +1226,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
             </div>
             {isMonster(menuCard) && (
               <div className="d-menu-note jp">
-                【{ABILITY_INFO[menuCard.ability].name}】{ABILITY_INFO[menuCard.ability].text}
+                【{t(ABILITY_INFO[menuCard.ability].name)}】{t(ABILITY_INFO[menuCard.ability].text)}
               </div>
             )}
             {isMonster(menuCard) ? (
@@ -1218,14 +1235,14 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                 const ok = canSummon(game, 0, ui.handIndex)
                 return (
                   <>
-                    {need > 0 && <div className="d-menu-note jp">レベル{menuCard.level}：{need}体リリースが必要</div>}
+                    {need > 0 && <div className="d-menu-note jp">{t('レベル{level}：{need}体リリースが必要', { level: menuCard.level, need })}</div>}
                     <button className="d-menu-act jp" disabled={!ok} onClick={() => doSummon(ui.handIndex, 'attack', false)}>
-                      攻撃表示で召喚
+                      {t('攻撃表示で召喚')}
                     </button>
                     <button className="d-menu-act jp" disabled={!ok} onClick={() => doSummon(ui.handIndex, 'defense', true)}>
-                      裏側守備でセット
+                      {t('裏側守備でセット')}
                     </button>
-                    {!ok && <div className="d-menu-note warn jp">{game.normalSummonUsed ? 'このターンは召喚済み' : '場・リリースが足りない'}</div>}
+                    {!ok && <div className="d-menu-note warn jp">{t(game.normalSummonUsed ? 'このターンは召喚済み' : '場・リリースが足りない')}</div>}
                   </>
                 )
               })()
@@ -1235,7 +1252,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                 if (menuCard.id === 'closet') {
                   return (
                     <button className="d-menu-act jp" onClick={() => { act({ type: 'spell', side: 0, handIndex: ui.handIndex }); closeMenu() }}>
-                      発動（2枚ドロー）
+                      {t('発動（2枚ドロー）')}
                     </button>
                   )
                 }
@@ -1248,9 +1265,9 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                         disabled={targets === 0}
                         onClick={() => { act({ type: 'spell', side: 0, handIndex: ui.handIndex }); closeMenu() }}
                       >
-                        発動（伏せ{targets}枚を破壊）
+                        {t('発動（伏せ{count}枚を破壊）', { count: targets })}
                       </button>
-                      {targets === 0 && <div className="d-menu-note warn jp">相手の伏せカードがない</div>}
+                      {targets === 0 && <div className="d-menu-note warn jp">{t('相手の伏せカードがない')}</div>}
                     </>
                   )
                 }
@@ -1262,9 +1279,9 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                       disabled={!hasMonster}
                       onClick={() => setUi({ kind: 'spellTarget', handIndex: ui.handIndex, effect })}
                     >
-                      発動（自分モンスターを対象）
+                      {t('発動（自分モンスターを対象）')}
                     </button>
-                    {!hasMonster && <div className="d-menu-note warn jp">対象モンスターがいない</div>}
+                    {!hasMonster && <div className="d-menu-note warn jp">{t('対象モンスターがいない')}</div>}
                   </>
                 )
               })()
@@ -1274,15 +1291,15 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                 return (
                   <>
                     <button className="d-menu-act jp" disabled={!freeBack} onClick={() => { act({ type: 'setTrap', side: 0, handIndex: ui.handIndex }); closeMenu() }}>
-                      裏側にセット
+                      {t('裏側にセット')}
                     </button>
-                    {!freeBack && <div className="d-menu-note warn jp">伏せるゾーンがない</div>}
+                    {!freeBack && <div className="d-menu-note warn jp">{t('伏せるゾーンがない')}</div>}
                   </>
                 )
               })()
             )}
             <button className="d-menu-cancel jp" onClick={closeMenu}>
-              やめる
+              {t('やめる')}
             </button>
           </div>
         </div>
@@ -1292,13 +1309,13 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       {ui.kind === 'tribute' && (
         <div className="d-confirm-bar">
           <span className="jp">
-            リリース <span className="mono">{ui.chosen.length}/{ui.need}</span>
+            {t('リリース')} <span className="mono">{ui.chosen.length}/{ui.need}</span>
           </span>
           <button className="d-act jp sm" disabled={ui.chosen.length !== ui.need} onClick={confirmTribute}>
-            この生贄で召喚
+            {t('この生贄で召喚')}
           </button>
           <button className="chip jp" onClick={closeMenu}>
-            やめる
+            {t('やめる')}
           </button>
         </div>
       )}
@@ -1307,7 +1324,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       {ui.kind === 'layeringSeason' && (
         <div className="d-modal-back" onClick={() => setUi({ kind: 'idle' })}>
           <div className="d-menu" onClick={(e) => e.stopPropagation()}>
-            <div className="d-menu-title jp">重ね着 — 属性を変える</div>
+            <div className="d-menu-title jp">{t('重ね着 — 属性を変える')}</div>
             <div className="d-season-pick">
               {SEASONS.map((s) => (
                 <button
@@ -1319,7 +1336,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                     setUi({ kind: 'idle' })
                   }}
                 >
-                  {SEASON_LABEL[s]}
+                  {t(SEASON_LABEL[s])}
                 </button>
               ))}
             </div>
@@ -1345,7 +1362,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
       {/* ログ */}
       <div className="d-logbar">
         <button className="d-log-toggle jp" onClick={() => setShowLog((v) => !v)}>
-          ログ {showLog ? '▲' : '▼'}
+          {t('ログ')} {showLog ? '▲' : '▼'}
         </button>
         {game.log.length > 0 && <span className="d-log-last jp">{game.log[game.log.length - 1].text}</span>}
       </div>
@@ -1372,29 +1389,29 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
                 ))}
               </div>
             )}
-            <h2 className="d-setup-title jp">{game.winner === 0 ? '勝利！' : '敗北…'}</h2>
+            <h2 className="d-setup-title jp">{t(game.winner === 0 ? '勝利！' : '敗北…')}</h2>
             <p className="jp d-result-lead">
               {game.winner === 0
                 ? stats.streak >= 2
-                  ? `${stats.streak}連勝中！ 次の相手はさらに強い。`
-                  : 'デッキを率いてCPを下した。次の相手は少し強くなる。'
-                : 'CPに敗れ、連勝が途切れた。デッキを組み直して再挑戦。'}
+                  ? t('{streak}連勝中！ 次の相手はさらに強い。', { streak: stats.streak })
+                  : t('デッキを率いてCPを下した。次の相手は少し強くなる。')
+                : t('CPに敗れ、連勝が途切れた。デッキを組み直して再挑戦。')}
             </p>
             <div className="d-result-stats jp mono">
-              <span>ターン {game.turnNo}</span>
-              <span>与ダメ {8000 - cpu.lp}</span>
-              <span>残LP {Math.max(0, you.lp)}</span>
-              <span>最高連勝 {stats.best}</span>
+              <span>{t('ターン {turn}', { turn: game.turnNo })}</span>
+              <span>{t('与ダメ {damage}', { damage: 8000 - cpu.lp })}</span>
+              <span>{t('残LP {lp}', { lp: Math.max(0, you.lp) })}</span>
+              <span>{t('最高連勝 {best}', { best: stats.best })}</span>
             </div>
             <button className="d-start jp" onClick={startDuel}>
-              {game.winner === 0 ? `次の相手へ（連勝${stats.streak}）` : 'リベンジ'}
+              {game.winner === 0 ? t('次の相手へ（連勝{streak}）', { streak: stats.streak }) : t('リベンジ')}
             </button>
             <div className="d-setup-actions">
               <button className="chip jp" onClick={() => setPhase('deck')}>
-                デッキ編集
+                {t('デッキ編集')}
               </button>
               <button className="chip jp" onClick={() => setPhase('setup')}>
-                トップへ
+                {t('トップへ')}
               </button>
             </div>
           </div>
@@ -1408,6 +1425,7 @@ export default function DuelGameView({ data, onBack }: { data: Data; onBack: () 
 // 種族別の着弾エフェクト
 // ---------------------------------------------------------------------------
 function DuelImpactOverlay({ flash }: { flash: BattleFlash }) {
+  const { t } = useI18n()
   const ability = flash.attackerAbility ?? 'revenge'
   const destructive =
     flash.result === 'destroy-target' ||
@@ -1430,7 +1448,7 @@ function DuelImpactOverlay({ flash }: { flash: BattleFlash }) {
         ))}
       </span>
       <span className="d-impact-glyph jp">
-        {blocked ? 'BLOCK' : destructive ? ABILITY_INFO[ability].name.toUpperCase() : 'CLASH'}
+        {blocked ? 'BLOCK' : destructive ? t(ABILITY_INFO[ability].name).toUpperCase() : 'CLASH'}
       </span>
     </div>
   )
@@ -1440,6 +1458,7 @@ function DuelImpactOverlay({ flash }: { flash: BattleFlash }) {
 // 戦闘のVSカットイン
 // ---------------------------------------------------------------------------
 function ClashOverlay({ flash }: { flash: BattleFlash }) {
+  const { t } = useI18n()
   const youAttacking = flash.attackerSide === 0
   const resultText =
     flash.result === 'destroy-target'
@@ -1453,7 +1472,7 @@ function ClashOverlay({ flash }: { flash: BattleFlash }) {
             : flash.result === 'direct'
               ? 'ダイレクトアタック！'
               : flash.result === 'negate' || flash.result === 'bounce'
-                ? `罠「${flash.trap ?? ''}」発動！`
+                ? t('罠「{trap}」発動！', { trap: t(flash.trap ?? '') })
                 : ''
   return (
     <div className="d-clash" aria-hidden>
@@ -1478,11 +1497,11 @@ function ClashOverlay({ flash }: { flash: BattleFlash }) {
               <span className="d-clash-num mono def">{flash.defValue}</span>
             </>
           ) : (
-            <span className="d-clash-direct jp">{flash.result === 'negate' || flash.result === 'bounce' ? '罠発動' : '直接攻撃'}</span>
+            <span className="d-clash-direct jp">{t(flash.result === 'negate' || flash.result === 'bounce' ? '罠発動' : '直接攻撃')}</span>
           )}
         </div>
       </div>
-      {resultText && <div className="d-clash-result jp">{resultText}</div>}
+      {resultText && <div className="d-clash-result jp">{t(resultText)}</div>}
     </div>
   )
 }
@@ -1503,6 +1522,7 @@ function InspectModal({
   onFlip?: () => void
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const { card } = inspect
   return (
     <div className="d-modal-back" onClick={onClose}>
@@ -1514,32 +1534,33 @@ function InspectModal({
           {isMonster(card) ? (
             <>
               <div className="d-inspect-abil jp">
-                <b>【{ABILITY_INFO[card.ability].name}】</b>
-                {ABILITY_INFO[card.ability].text}
+                <b>【{t(ABILITY_INFO[card.ability].name)}】</b>
+                {t(ABILITY_INFO[card.ability].text)}
               </div>
               <div className="d-inspect-meta jp">
-                <span>{card.date} 着用 ・ スキ {card.likes}</span>
+                <span>{t('{date} 着用 ・ スキ {likes}', { date: card.date, likes: card.likes })}</span>
                 <span className="d-inspect-title">「{card.title}」</span>
               </div>
               {slot && (
                 <div className="d-inspect-meta jp">
                   <span>
-                    現在: {slot.faceDown ? '裏側守備' : slot.orientation === 'attack' ? '攻撃表示' : '守備表示'}
-                    {slot.atkBuff !== 0 && ` ／ ATK補正 ${slot.atkBuff > 0 ? '+' : ''}${slot.atkBuff}`}
+                    {t('現在:')} {t(slot.faceDown ? '裏側守備' : slot.orientation === 'attack' ? '攻撃表示' : '守備表示')}
+                    {slot.atkBuff !== 0 &&
+                      ` ／ ${t('ATK補正')} ${slot.atkBuff > 0 ? '+' : ''}${slot.atkBuff}`}
                   </span>
                 </div>
               )}
             </>
           ) : (
-            <div className="d-inspect-abil jp">{card.text}</div>
+            <div className="d-inspect-abil jp">{t(card.text)}</div>
           )}
           {canFlip && slot && (
             <button className="d-menu-act jp" onClick={onFlip}>
-              {slot.faceDown ? '反転して攻撃表示に' : slot.orientation === 'attack' ? '守備表示に変更' : '攻撃表示に変更'}
+              {t(slot.faceDown ? '反転して攻撃表示に' : slot.orientation === 'attack' ? '守備表示に変更' : '攻撃表示に変更')}
             </button>
           )}
           <button className="d-menu-cancel jp" onClick={onClose}>
-            とじる
+            {t('とじる')}
           </button>
         </div>
       </div>

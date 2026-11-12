@@ -3,6 +3,46 @@ import type { Outfit } from '../types'
 export const ORBIT_RADIUS = 5.6
 export const ORBIT_ANGLE_STEP = 0.47
 export const ORBIT_Y_STEP = 0.34
+export const ORBIT_BASE_FOV = 42
+export const ORBIT_BASE_CAMERA_RADIUS = 12.6
+
+export type OrbitFraming = {
+  /** 0 = 横長（PC）、1 = 縦長（スマホ）。中間比率では両者を補間する */
+  portrait: number
+  fov: number
+  cameraRadius: number
+  /** 被写体を画面中央より上へ持ち上げるワールド距離。下の詳細カードを避ける */
+  focusLift: number
+  /** 選択中以外の服にかける不透明度の係数 */
+  ambientOpacity: number
+  /** 選択リングの不透明度 */
+  haloOpacity: number
+}
+
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
+const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount
+
+/**
+ * 縦長の画面では水平視野が潰れ、選択中の1体だけが画面を埋めて軌道が読めなくなる。
+ * 画面比からカメラを引く量と視野角を決め、前後の日の連なりが見える構図へ寄せる。
+ * あわせて周囲の服と選択リングを弱め、タイトルや詳細カードに重なる情報量を落とす。
+ */
+export function orbitFraming(width: number, height: number): OrbitFraming {
+  const aspect = Math.max(1, width) / Math.max(1, height)
+  const portrait = clamp01((0.95 - aspect) / 0.4)
+  const fov = lerp(ORBIT_BASE_FOV, 48, portrait)
+  const cameraRadius = lerp(ORBIT_BASE_CAMERA_RADIUS, 14.2, portrait)
+  const focusDistance = cameraRadius - ORBIT_RADIUS
+  const visibleWorldHeight = 2 * focusDistance * Math.tan((fov * Math.PI) / 360)
+  return {
+    portrait,
+    fov,
+    cameraRadius,
+    focusLift: visibleWorldHeight * 0.025 * portrait,
+    ambientOpacity: lerp(1, 0.55, portrait),
+    haloOpacity: lerp(0.72, 0.34, portrait),
+  }
+}
 
 export type OrbitEntry = {
   outfit: Outfit

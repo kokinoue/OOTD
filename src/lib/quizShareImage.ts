@@ -1,6 +1,7 @@
 import { TRAITS, TRAIT_LABEL, type Scores, type QuizType } from './quiz'
 import type { CutoutsFile } from './platform'
 import cutoutsJson from '../data/cutouts.json'
+import { translate, type Locale } from './i18n'
 
 // 性格診断のストーリー用シェア画像（1080x1920）を Canvas 2D で生成する。
 // note CDN 上の服写真は CORS でキャンバスが汚染されるため、絵は同一オリジンの
@@ -50,6 +51,7 @@ export type StoryImageParams = {
   type: QuizType
   scores: Scores
   outfitKey: string
+  locale?: Locale
 }
 
 function spriteUrl(key: string): string {
@@ -95,7 +97,7 @@ function wrapText(
   maxWidth: number,
   lineHeight: number,
 ): number {
-  const chars = [...text]
+  const chars = text.includes(' ') ? text.split(/(\s+)/) : [...text]
   let line = ''
   let cursorY = y
   for (const ch of chars) {
@@ -116,7 +118,8 @@ function wrapText(
 }
 
 export async function generateStoryImage(params: StoryImageParams): Promise<Blob> {
-  const { type, scores, outfitKey } = params
+  const { type, scores, outfitKey, locale = 'ja' } = params
+  const t = (message: string) => translate(locale, message)
   const canvas = document.createElement('canvas')
   canvas.width = W
   canvas.height = H
@@ -131,9 +134,9 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   ctx.textAlign = 'center'
   ctx.fillStyle = SUB
   ctx.font = `600 30px ${FONT_SANS}`
-  ctx.fillText('性格診断', W / 2, 130)
+  ctx.fillText(t('性格診断'), W / 2, 130)
   ctx.font = `400 24px 'JetBrains Mono', Menlo, monospace`
-  ctx.fillText('PERSONALITY TEST — 出勤服アーカイブ', W / 2, 172)
+  ctx.fillText(`PERSONALITY TEST — ${t('出勤服アーカイブ')}`, W / 2, 172)
 
   // 中央: 4文字コード + タイプ名 + タグライン
   ctx.fillStyle = INK
@@ -170,17 +173,17 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   roundRect(ctx, BARS_PAD - 40, layout.barsTop - BARS_CARD_TOP_INSET, barsW + 80, BARS_H, 28)
   ctx.fill()
 
-  TRAITS.forEach((t, i) => {
+  TRAITS.forEach((trait, i) => {
     const rowY = layout.barsTop + i * BARS_ROW_H + 24
-    const label = TRAIT_LABEL[t]
-    const ratio = barRatio(scores[t])
+    const label = TRAIT_LABEL[trait]
+    const ratio = barRatio(scores[trait])
 
     ctx.font = `500 26px ${FONT_SANS}`
     ctx.fillStyle = SUB
     ctx.textAlign = 'left'
-    ctx.fillText(label.neg, BARS_PAD, rowY)
+    ctx.fillText(t(label.neg), BARS_PAD, rowY)
     ctx.textAlign = 'right'
-    ctx.fillText(label.pos, BARS_PAD + barsW, rowY)
+    ctx.fillText(t(label.pos), BARS_PAD + barsW, rowY)
 
     const barY = rowY + 16
     const barH = 10
@@ -201,7 +204,7 @@ export async function generateStoryImage(params: StoryImageParams): Promise<Blob
   ctx.textAlign = 'center'
   ctx.fillStyle = INK
   ctx.font = `700 ${FOOTER_HEADING_SIZE}px ${FONT_SANS}`
-  ctx.fillText('あなたのkokiはこれ！', W / 2, FOOTER_HEADING_Y)
+  ctx.fillText(t('あなたのkokiはこれ！'), W / 2, FOOTER_HEADING_Y)
   ctx.fillStyle = SUB
   ctx.font = `400 26px 'JetBrains Mono', Menlo, monospace`
   ctx.fillText('kokinoue.github.io/OOTD', W / 2, H - 88)

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import cutoutsJson from '../data/cutouts.json'
 import {
   DEFAULT_RIDER_TRAITS,
+  GAME_TIME_SCALE,
   UNDERPASS_STREET_LIFT,
   commuteClockAt,
   crossingStateAt,
@@ -32,6 +33,7 @@ import {
 import type { CutoutsFile } from '../lib/platform'
 import { fmtDate, outfits, type Data } from '../lib/useData'
 import GameShareButton from './GameShareButton'
+import { translate, useI18n } from '../lib/i18n'
 
 // チャリ通: 自動で進む自転車をジャンプで操るエンドレスラン。
 // ロジックは lib/chari.ts、ここではCanvas描画・入力・HUD・音を扱う。
@@ -175,6 +177,9 @@ const setpieceLabel = {
   longUnderpass: '🚇 ロング地下道',
   parkRun: '🌳 公園パルクール',
 } as const
+
+const canvasT = (message: string) =>
+  translate(document.documentElement.lang === 'en' ? 'en' : 'ja', message)
 
 const weatherIcon = {
   clear: '☀',
@@ -948,9 +953,9 @@ function drawRoadAndItems(
     ctx.fillRect(signX - 7, upperY - 17, 116, 24)
     ctx.fillRect(signX - 7, lowerY - 17, 168, 24)
     ctx.fillStyle = '#dcebf0'
-    ctx.fillText('↑ 地上 SAFE', signX, upperY)
+    ctx.fillText(canvasT('↑ 地上 SAFE'), signX, upperY)
     ctx.fillStyle = '#ffd45f'
-    ctx.fillText('↓ 地下 COIN / RISK', signX, lowerY)
+    ctx.fillText(canvasT('↓ 地下 COIN / RISK'), signX, lowerY)
   }
 }
 
@@ -1167,6 +1172,7 @@ function drawBike(
 }
 
 export default function ChariGameView({ data, onBack }: Props) {
+  const { t } = useI18n()
   void data
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const screenRef = useRef<HTMLDivElement>(null)
@@ -1237,9 +1243,10 @@ export default function ChariGameView({ data, onBack }: Props) {
     if (!canvas || !screen) return
     const ctx = canvas.getContext('2d', { alpha: false })!
     const isMobileLayout = window.matchMedia('(max-width: 760px)').matches
-    // 論理解像度自体が表示幅より大きいため、Retinaの倍率をそのまま掛けると
-    // スマホでは必要量の約3倍を毎フレーム塗ることになる。
-    const dpr = Math.min(isMobileLayout ? 1.25 : 1.5, window.devicePixelRatio || 1)
+    // 論理解像度自体が表示幅より大きいため、Retinaの倍率をそのまま掛けない。
+    // 特にスマホは960px幅を縮小表示するので1倍でも十分な密度があり、
+    // これ以上は見た目より毎フレームの塗りつぶし負荷の方が大きくなる。
+    const dpr = Math.min(isMobileLayout ? 1 : 1.25, window.devicePixelRatio || 1)
     const viewHeight = isMobileLayout ? MOBILE_VIEW_H : VIEW_H
     const baseSceneOffsetY = isMobileLayout ? MOBILE_SCENE_Y : 0
     canvas.width = VIEW_W * dpr
@@ -1347,6 +1354,7 @@ export default function ChariGameView({ data, onBack }: Props) {
     const jumpDown = (e: PointerEvent) => {
       if (run.status !== 'playing') return
       if ((e.target as Element | null)?.closest('button')) return
+      e.preventDefault()
       screen.setPointerCapture(e.pointerId)
       audioRef.current?.unlock()
       jumpQueueRef.current = Math.min(2, jumpQueueRef.current + 1)
@@ -1355,11 +1363,17 @@ export default function ChariGameView({ data, onBack }: Props) {
     const jumpUp = () => {
       inputRef.current.jumpHeld = false
     }
+    const preventGameContextMenu = (e: Event) => {
+      if ((e.target as Element | null)?.closest('button')) return
+      e.preventDefault()
+    }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     screen.addEventListener('pointerdown', jumpDown)
     screen.addEventListener('pointerup', jumpUp)
     screen.addEventListener('pointercancel', jumpUp)
+    screen.addEventListener('contextmenu', preventGameContextMenu)
+    screen.addEventListener('selectstart', preventGameContextMenu)
 
     const frame = (now: number) => {
       if (disposed) return
@@ -1370,7 +1384,7 @@ export default function ChariGameView({ data, onBack }: Props) {
         run.traits = traitsRef.current
         inputRef.current.jumpPressed = jumpQueueRef.current > 0
         if (jumpQueueRef.current > 0) jumpQueueRef.current--
-        step(run, inputRef.current, rawDt * slow)
+        step(run, inputRef.current, rawDt * slow * GAME_TIME_SCALE)
         inputRef.current.jumpPressed = false
         for (const e of run.events) {
           audioRef.current?.play(e.kind)
@@ -1444,29 +1458,32 @@ export default function ChariGameView({ data, onBack }: Props) {
         const weatherTransition = weatherTransitionAt(run.distance, run.seed)
         const commute = commuteClockAt(run.elapsed, run.seed)
         if (zoneRef.current) {
-          zoneRef.current.textContent = `${zoneIcon[zone]} ${zoneLabel[zone]}`
+          zoneRef.current.textContent = `${zoneIcon[zone]} ${t(zoneLabel[zone])}`
           zoneRef.current.dataset.zone = zone
         }
         if (weatherRef.current) {
           const sheltered = isUnderpassAt(run)
           const effect =
             sheltered
-              ? '地下道・天候無効'
+              ? t('地下道・天候無効')
               : weather === 'wind'
               ? (run.seed & 1) === 0
-                ? '追い風・大加速'
-                : '向かい風・大減速'
-              : weatherEffectLabel[weather]
+                ? t('追い風・大加速')
+                : t('向かい風・大減速')
+              : t(weatherEffectLabel[weather])
           weatherRef.current.textContent = sheltered
             ? `🚇 ${effect}`
             : weatherTransition.progress < 1 && weatherTransition.from !== weatherTransition.to
               ? `${weatherIcon[weatherTransition.from]}→${weatherIcon[weatherTransition.to]} ` +
-                `${weatherLabel[weatherTransition.from]}→${weatherLabel[weatherTransition.to]}・変化中`
-              : `${weatherIcon[weather]} ${weatherLabel[weather]}・${effect}`
+                t('{from}→{to}・変化中', {
+                  from: t(weatherLabel[weatherTransition.from]),
+                  to: t(weatherLabel[weatherTransition.to]),
+                })
+              : `${weatherIcon[weather]} ${t(weatherLabel[weather])} · ${effect}`
           weatherRef.current.dataset.weather = sheltered ? 'clear' : weather
         }
         if (timeRef.current) {
-          timeRef.current.textContent = `◷ ${commute.label} ${commutePhaseLabel[commute.phase]}`
+          timeRef.current.textContent = `◷ ${commute.label} ${t(commutePhaseLabel[commute.phase])}`
           timeRef.current.dataset.phase = commute.phase
         }
         if (noticeRef.current) {
@@ -1475,9 +1492,13 @@ export default function ChariGameView({ data, onBack }: Props) {
           const show = setpiece != null || next.distance <= 1500
           noticeRef.current.textContent =
             setpiece != null
-              ? `SET PIECE · ${setpieceLabel[setpiece]}`
+              ? `SET PIECE · ${t(setpieceLabel[setpiece])}`
               : show
-                ? `この先 ${zoneIcon[next.zone]} ${zoneLabel[next.zone]} ${Math.ceil(next.distance / 30)}m`
+                ? t('この先 {icon} {zone} {meters}m', {
+                    icon: zoneIcon[next.zone],
+                    zone: t(zoneLabel[next.zone]),
+                    meters: Math.ceil(next.distance / 30),
+                  })
                 : ''
           noticeRef.current.classList.toggle('is-visible', show)
         }
@@ -1496,10 +1517,12 @@ export default function ChariGameView({ data, onBack }: Props) {
       screen.removeEventListener('pointerdown', jumpDown)
       screen.removeEventListener('pointerup', jumpUp)
       screen.removeEventListener('pointercancel', jumpUp)
+      screen.removeEventListener('contextmenu', preventGameContextMenu)
+      screen.removeEventListener('selectstart', preventGameContextMenu)
       inputRef.current = { jumpPressed: false, jumpHeld: false }
       jumpQueueRef.current = 0
     }
-  }, [onBack, resetTick])
+  }, [onBack, resetTick, t])
 
   const retry = () => {
     changeOutfitRef.current()
@@ -1509,8 +1532,12 @@ export default function ChariGameView({ data, onBack }: Props) {
   const shareResultOnX = () => {
     if (!result) return
     const url = `${location.origin}${import.meta.env.BASE_URL}game/chari/`
-    const record = result.score >= result.best ? '（自己ベスト更新！）' : ''
-    const text = `出勤服アーカイブの「チャリ通」で ${result.meters}m 走りました！ SCORE ${result.score}${record} #出勤服アーカイブ`
+    const record = result.score >= result.best ? t('自己ベスト更新！') : ''
+    const text = t('出勤服アーカイブの「チャリ通」で {meters}m 走りました！ SCORE {score}{record} #出勤服アーカイブ', {
+      meters: result.meters,
+      score: result.score,
+      record,
+    })
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
       '_blank',
@@ -1521,57 +1548,57 @@ export default function ChariGameView({ data, onBack }: Props) {
     <main className="chari">
       <div className="chari-inner">
         <div className="chari-head">
-          <button className="chari-back jp" onClick={onBack}>← ゲーム</button>
-          <h2 className="chari-title jp">チャリ通</h2>
+          <button className="chari-back jp" onClick={onBack}>← {t('ゲーム')}</button>
+          <h2 className="chari-title jp">{t('チャリ通')}</h2>
           <span className="chari-stats mono">
             <span ref={meterRef}>0</span>m · COIN <span ref={coinRef}>0</span> · SCORE{' '}
             <span ref={scoreRef}>0</span> · BEST <span ref={bestRef}>{loadBest()}</span>
             <span ref={comboRef} />
           </span>
-          <button className="chari-change jp" onClick={changeOutfit}>着替え</button>
+          <button className="chari-change jp" onClick={changeOutfit}>{t('着替え')}</button>
           <button
             className="chari-sound mono"
             onClick={() => setMuted(audioRef.current?.toggle() ?? muted)}
-            aria-label={muted ? 'サウンドをオン' : 'サウンドをオフ'}
+            aria-label={t(muted ? 'サウンドをオン' : 'サウンドをオフ')}
           >
-            {muted ? '音 OFF' : '音 ON'}
+            {t(muted ? '音 OFF' : '音 ON')}
           </button>
           <GameShareButton game="chari" title="チャリ通" />
         </div>
         <div ref={screenRef} className="chari-screen">
-          <canvas ref={canvasRef} className="chari-canvas" aria-label="チャリ通のゲーム画面" />
-          <div className="chari-environment" aria-label="現在の地域と天候">
+          <canvas ref={canvasRef} className="chari-canvas" aria-label={t('チャリ通のゲーム画面')} />
+          <div className="chari-environment" aria-label={t('現在の地域と天候')}>
             <span ref={zoneRef} className="chari-zone-badge jp" data-zone="residential">
-              🏘 住宅街
+              🏘 {t('住宅街')}
             </span>
             <span ref={weatherRef} className="chari-weather-badge jp" data-weather="clear">
-              ☀ 晴れ・安定
+              ☀ {t('晴れ')} · {t('安定')}
             </span>
             <span ref={timeRef} className="chari-time-badge mono" data-phase="early">
-              ◷ 07:20 早朝
+              ◷ 07:20 {t('早朝')}
             </span>
           </div>
           <div ref={noticeRef} className="chari-course-notice jp" aria-live="polite" />
-          <div className="chari-outfit-power jp" aria-label="現在の服効果">
-            <b>服効果</b>
+          <div className="chari-outfit-power jp" aria-label={t('現在の服効果')}>
+            <b>{t('服効果')}</b>
             <div className="chari-outfit-effects">
               {traits.effects.map((effect, index) => (
-                <span key={`${effect}-${index}`}>{effectLabel(effect)}</span>
+                <span key={`${effect}-${index}`}>{t(effectLabel(effect))}</span>
               ))}
             </div>
           </div>
           <button
             className="chari-change-mobile jp"
             onClick={changeOutfit}
-            aria-label="着替える"
+            aria-label={t('着替える')}
           >
             <span aria-hidden="true">👕</span>
-            <b>着替え</b>
+            <b>{t('着替え')}</b>
           </button>
           {result && (
             <div className="chari-overlay">
               <div className="chari-result jp">
-                <small>{result.score >= result.best ? '自己ベスト更新！' : '通勤終了'}</small>
+                <small>{t(result.score >= result.best ? '自己ベスト更新！' : '通勤終了')}</small>
                 <b className="mono">{result.meters} m</b>
                 <span className="mono">COIN {result.coins} · SCORE {result.score} · BEST {result.best}</span>
                 <span className="mono">MAX COMBO {result.combo}</span>
@@ -1579,9 +1606,9 @@ export default function ChariGameView({ data, onBack }: Props) {
                   NEAR MISS {result.nearMisses} · PERFECT {result.perfectLandings}
                 </span>
                 <span className="chari-result-actions">
-                  <button className="chari-btn primary jp" onClick={retry}>もういちど</button>
-                  <button className="chari-btn jp" onClick={shareResultOnX}>Xでポスト</button>
-                  <button className="chari-btn jp" onClick={onBack}>もどる</button>
+                  <button className="chari-btn primary jp" onClick={retry}>{t('もういちど')}</button>
+                  <button className="chari-btn jp" onClick={shareResultOnX}>{t('Xでポスト')}</button>
+                  <button className="chari-btn jp" onClick={onBack}>{t('もどる')}</button>
                 </span>
               </div>
             </div>
@@ -1591,8 +1618,8 @@ export default function ChariGameView({ data, onBack }: Props) {
           <span className="chari-caption mono">{caption}</span>
           <span className="jp">
             {touch
-              ? '画面タップでジャンプ（長押し・空中でもう1回）'
-              : 'Space / Z / ↑ ジャンプ · C 着替え · R やりなおし · ESC もどる'}
+              ? t('画面タップでジャンプ（長押し・空中でもう1回）')
+              : t('Space / Z / ↑ ジャンプ · C 着替え · R やりなおし · ESC もどる')}
           </span>
         </div>
       </div>
