@@ -19,6 +19,7 @@ const PlatformGameView = lazy(() => import('./components/PlatformGameView'))
 const TowerGameView = lazy(() => import('./components/TowerGameView'))
 const ChariGameView = lazy(() => import('./components/ChariGameView'))
 const QuizGameView = lazy(() => import('./components/QuizGameView'))
+const SlotGameView = lazy(() => import('./components/SlotGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -40,6 +41,7 @@ export type View =
   | 'tower'
   | 'chari'
   | 'quiz'
+  | 'slot'
 
 export type Filters = {
   from: string
@@ -132,6 +134,12 @@ export default function App() {
     window.scrollTo({ top: 0 })
   }
 
+  // ゲームからコーデ詳細へ。履歴に積むので、ブラウザの「戻る」でゲームに帰れる
+  const showOutfit = (key: string) => {
+    navigate({ view: 'fits', filters: defaultFilters, itemsFilters, outfitKey: key })
+    window.scrollTo({ top: 0 })
+  }
+
   const visibleItemCount = data.items.filter((it) => !it.hidden).length
 
   // タブは横スクロールするので、選択中のタブが画面外に隠れないよう見える位置まで寄せる。
@@ -155,7 +163,8 @@ export default function App() {
     view === 'platform' ||
     view === 'tower' ||
     view === 'chari' ||
-    view === 'quiz'
+    view === 'quiz' ||
+    view === 'slot'
 
   return (
     <div className={isPlayingGame ? 'app playing-game' : 'app'}>
@@ -235,7 +244,8 @@ export default function App() {
               view === 'platform' ||
               view === 'tower' ||
               view === 'chari' ||
-              view === 'quiz'
+              view === 'quiz' ||
+              view === 'slot'
                 ? 'tab active'
                 : 'tab'
             }
@@ -307,6 +317,7 @@ export default function App() {
         {view === 'tower' && <TowerGameView onBack={() => setView('game')} />}
         {view === 'chari' && <ChariGameView data={data} onBack={() => setView('game')} />}
         {view === 'quiz' && <QuizGameView data={data} onBack={() => setView('game')} />}
+        {view === 'slot' && <SlotGameView onBack={() => setView('game')} onOpenOutfit={showOutfit} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (

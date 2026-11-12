@@ -1,4 +1,4 @@
-// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz}.png (1200x630) を生成する。
+// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz,slot}.png (1200x630) を生成する。
 // 素材はローカルの public/cutouts/*.webp（透過切り抜き）のみ。ネットワーク不要。
 // 各ゲームの実際の配色（カード裏の濃紺・季節色・Canvasのクリーム地など）を再現する。
 import { readFile } from 'node:fs/promises'
@@ -256,9 +256,85 @@ async function quiz() {
   await save('quiz', '#f1eee3', layers, title)
 }
 
-await memory()
-await duel()
-await platform()
-await tower()
-await chari()
-await quiz()
+// ---- 俺スロ: 暗い筐体のリール窓。中段に同じ俺が3人揃っている ----------------
+async function slot() {
+  const CELL_W = 190
+  const CELL_H = 250
+  const GAP = 16
+  const startX = Math.round((W - (CELL_W * 3 + GAP * 2)) / 2)
+  const midY = 180 // 中段の上端
+  const plate = (color, deep) =>
+    Buffer.from(`<svg width="${CELL_W}" height="${CELL_H}" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="p" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="${deep}"/>
+      </linearGradient></defs>
+      <rect x="10" y="8" width="${CELL_W - 20}" height="${CELL_H - 16}" rx="24" fill="url(#p)"/>
+      <rect x="13" y="11" width="${CELL_W - 26}" height="${CELL_H - 22}" rx="21" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+    </svg>`)
+  const RED = ['#ea5a3c', '#c53a22']
+  // 上段・下段はリールごとに違う色（＝揃っていない）
+  const others = [
+    [['#4c8fd0', '#3470ae'], ['#58ad7c', '#3d8c5f']],
+    [['#f0bb33', '#d6961a'], ['#a8a394', '#858072']],
+    [['#58ad7c', '#3d8c5f'], ['#46568c', '#2b3763']],
+  ]
+  const hero = await sprite(PICKS[0], 218)
+  const layers = [
+    {
+      input: svg(`
+        <rect x="${startX - 22}" y="0" width="${CELL_W * 3 + GAP * 2 + 44}" height="${H}" fill="#0d0d10"/>
+        ${[0, 1, 2]
+          .map((r) => `<rect x="${startX + r * (CELL_W + GAP)}" y="0" width="${CELL_W}" height="${H}" fill="#f1eee3"/>`)
+          .join('')}
+      `),
+      left: 0,
+      top: 0,
+    },
+  ]
+  for (let r = 0; r < 3; r++) {
+    const left = startX + r * (CELL_W + GAP)
+    const rows = [
+      { top: midY - CELL_H, colors: others[r][0], sp: await sprite(PICKS[1 + r * 2], 218) },
+      { top: midY, colors: RED, sp: hero },
+      { top: midY + CELL_H, colors: others[r][1], sp: await sprite(PICKS[2 + r * 2], 218) },
+    ]
+    for (const row of rows) {
+      const cell = await sharp(plate(...row.colors))
+        .composite([at(row.sp, CELL_W / 2, CELL_H / 2 + 4)])
+        .png()
+        .toBuffer()
+      // 画面外にはみ出す上下段は、見える範囲だけ切り出して貼る
+      const cut = Math.max(0, -row.top)
+      const height = Math.min(CELL_H - cut, H - Math.max(0, row.top))
+      const visible = await sharp(cell).extract({ left: 0, top: cut, width: CELL_W, height }).toBuffer()
+      layers.push({ input: visible, left, top: Math.max(0, row.top) })
+    }
+  }
+  // 上下段を沈めて中段を際立たせ、左右に中段の目印を置く
+  layers.push({
+    input: svg(`
+      <rect x="${startX - 22}" y="0" width="${CELL_W * 3 + GAP * 2 + 44}" height="${midY}" fill="rgba(13,13,16,0.62)"/>
+      <rect x="${startX - 22}" y="${midY + CELL_H}" width="${CELL_W * 3 + GAP * 2 + 44}" height="${H - midY - CELL_H}" fill="rgba(13,13,16,0.62)"/>
+      <path d="M ${startX - 58} ${midY + CELL_H / 2 - 20} l 30 20 l -30 20 Z" fill="#ea5a3c"/>
+      <path d="M ${startX + CELL_W * 3 + GAP * 2 + 58} ${midY + CELL_H / 2 - 20} l -30 20 l 30 20 Z" fill="#ea5a3c"/>
+      <circle cx="150" cy="150" r="74" fill="#ffd557"/>
+      <circle cx="150" cy="150" r="74" fill="none" stroke="#fff1bf" stroke-width="6"/>
+      <text x="150" y="182" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="88" font-weight="700" fill="#7a2a00">俺</text>
+    `),
+    left: 0,
+    top: 0,
+  })
+  const title = svg(`
+    <text x="60" y="${H - 78}" font-family="Helvetica, Arial, sans-serif" font-size="68" font-weight="600" fill="#fff" letter-spacing="8">俺スロ</text>
+    <text x="62" y="${H - 34}" font-family="Menlo, monospace" font-size="23" fill="#fff" opacity="0.85" letter-spacing="3">SLOT MACHINE</text>
+  `)
+  await save('slot', '#1b1b1f', layers, title)
+}
+
+// 引数でゲーム名を渡すと、そのゲームの画像だけ作り直す（例: node scripts/make-game-og.mjs slot）。
+// 引数なしなら全部。くり抜きが増えると選ばれる素材が変わるので、既存の画像を動かしたくないときは名前を指定する
+const GAMES = { memory, duel, platform, tower, chari, quiz, slot }
+const only = process.argv.slice(2)
+for (const [name, make] of Object.entries(GAMES)) {
+  if (only.length === 0 || only.includes(name)) await make()
+}

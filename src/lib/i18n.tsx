@@ -828,6 +828,59 @@ export const EN: Record<string, string> = {
     'Bike endlessly along the morning commute. Jump and double-jump over gaps and roadworks in this score attack.',
   '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！':
     'Answer eight questions to discover one of 16 personalities—and the workday outfit that fits you best.',
+
+  // Slot
+  '俺スロ': 'ME SLOTS',
+  '同じ俺を3人揃えるスロット。日替わりで並ぶ6人の俺から「最新の俺」を目押しで揃えてBIGを狙う。内部抽選とリール制御つき。':
+    'A slot machine where you line up three of me. Six outfits rotate daily—time your stops to land three “Latest me” for the BIG bonus. Runs on a real flag lottery and reel control.',
+  '最新の俺': 'Latest me',
+  '金髪の俺': 'Blond me',
+  'コートの俺': 'Coat me',
+  '帽子の俺': 'Hat me',
+  'Tシャツの俺': 'T-shirt me',
+  'いつもの俺': 'Everyday me',
+  'BIG（{pay}枚×{games}回）': 'BIG ({pay} × {games} games)',
+  'REG（{pay}枚×{games}回）': 'REG ({pay} × {games} games)',
+  '{pay}枚×{games}回': '{pay} coins × {games} games',
+  '{count}枚': '{count} coins',
+  '{count}枚 獲得': 'Won {count} coins',
+  '{name}が揃った！ +{count}枚': 'Three of {name}! +{count} coins',
+  '{reel}リールを止める': 'Stop the {reel} reel',
+  '左': 'left',
+  '中': 'center',
+  '右': 'right',
+  'あそびかた': 'HOW TO PLAY',
+  'おかわり +{count}': 'REFILL +{count}',
+  'このコーデを見る': 'View this outfit',
+  'キーボード: Space で回す／止める、← ↓ → で左・中・右を止める。':
+    'Keyboard: Space to spin or stop; ← ↓ → stop the left, center, and right reels.',
+  'データ': 'DATA',
+  'ボーナスゲーム 残り{count}回': 'Bonus games: {count} left',
+  'ボーナス確定！「{name}」を狙え': 'Bonus locked in! Aim for “{name}”',
+  'ボーナス終了。{count}枚 獲得': 'Bonus over. You won {count} coins.',
+  'メダルを借りる': 'Borrow coins',
+  'メダル切れ。おかわりできます': 'Out of coins. Grab a refill.',
+  'リプレイ': 'Replay',
+  'リプレイ。もう1回、ただで回せる': 'Replay—your next spin is free.',
+  'リール。回転中にタップすると、そのリールが止まります': 'Reels. Tap a spinning reel to stop it.',
+  '今日の顔ぶれ': "TODAY'S LINEUP",
+  '俺、揃う。': 'All me. All lined up.',
+  '台を変える': 'Switch machine',
+  '同じ俺を3人、揃えろ。': 'Line up three of the same me.',
+  '図柄にできるくり抜き画像が足りません。': 'Not enough cutout images to build the reels.',
+  '左から順に止まる': 'Stops left to right',
+  '差枚': 'NET',
+  '差枚の推移': 'Net coins over time',
+  '止めろ。俺を揃えろ。': 'Stop the reels. Line me up.',
+  '総回転': 'SPINS',
+  '設定{n}': 'Setting {n}',
+  '設定を見る': 'Reveal setting',
+  '顔ぶれは日替わり。「最新の俺」は、いつもいちばん新しい出勤服。':
+    'The lineup changes daily. “Latest me” is always the newest workday outfit.',
+  'STARTで回して、STOPを3回。同じ俺が3人揃えば当たり。':
+    'Press START, then STOP three times. Three of the same me on a line wins.',
+  '「俺」ランプが光ったらボーナス確定。リールがゆっくりになるので、赤の「最新の俺」か黄の「金髪の俺」を狙って止める。':
+    'When the 俺 lamp lights up, a bonus is locked in. The reels slow down, so time your stops on the red “Latest me” or the yellow “Blond me.”',
 }
 
 const interpolate = (message: string, variables: Variables = {}) =>
