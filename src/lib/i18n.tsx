@@ -874,6 +874,10 @@ export const EN: Record<string, string> = {
   '止めろ。俺を揃えろ。': 'Stop the reels. Line me up.',
   '総回転': 'SPINS',
   '設定{n}': 'Setting {n}',
+  'チャンス！「{name}」を狙え': 'Chance! Aim for “{name}”',
+  '惜しい。チャンスを逃した': 'So close. The chance slipped away.',
+  '「チャンス！」が出たら、紺の「コートの俺」を狙って止める。チャンスはその1回きり。':
+    'When “Chance!” appears, time your stops on the navy “Coat me.” You only get that one spin.',
   '設定を見る': 'Reveal setting',
   '顔ぶれは日替わり。「最新の俺」は、いつもいちばん新しい出勤服。':
     'The lineup changes daily. “Latest me” is always the newest workday outfit.',
