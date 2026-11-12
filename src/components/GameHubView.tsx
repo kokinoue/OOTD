@@ -1,7 +1,7 @@
 import type { View } from '../App'
 import { useI18n } from '../lib/i18n'
 
-// 「ゲーム」タブの着地ページ。ここで神経衰弱／デュエルを選んでから各ゲームへ遷移する。
+// 「ゲーム」タブの着地ページ。ここでゲームを選んでから各ゲームへ遷移する。
 type Props = {
   onSelect: (view: View) => void
 }
@@ -42,6 +42,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     title: '性格診断',
     tag: 'PERSONALITY TEST',
     lead: '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
+  },
+  {
+    view: 'slot',
+    title: '俺スロ',
+    tag: 'SLOT MACHINE',
+    lead: '同じ俺を3人揃えるスロット。日替わりで並ぶ6人の俺から「最新の俺」を目押しで揃えてBIGを狙う。内部抽選とリール制御つき。',
   },
 ]
 

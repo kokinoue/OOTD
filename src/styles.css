@@ -7652,3 +7652,725 @@ a {
     border-color: rgba(255, 255, 255, 0.48);
   }
 }
+
+/* ===================== 俺スロ（スロット） =====================
+   筐体はテーマに関わらず暗色の「機械」として描く。大きさは画面の幅と高さの両方から決め、
+   リール窓＋ボタンが常に1画面に収まるようにする（縦長の iPhone でも、折りたたみ端末を
+   広げた横長・低い画面でも、スクロールなしで遊べる）。 */
+.slot {
+  display: flex;
+  justify-content: center;
+  padding: 12px env(safe-area-inset-right, 0px) calc(40px + env(safe-area-inset-bottom, 0px))
+    env(safe-area-inset-left, 0px);
+  /* リール窓以外（見出し行・上部パネル・メッセージ・ボタン・余白）の高さの合計。
+     リール窓の高さ = 画面の高さ − この値 */
+  --slot-chrome: 300px;
+}
+/* マウス環境ではサイトのヘッダーが残るので、そのぶんを足す */
+@media (pointer: fine) {
+  .slot {
+    --slot-chrome: 384px;
+  }
+}
+.slot-inner {
+  width: 100%;
+  max-width: 900px;
+}
+.slot-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 30px;
+  margin: 4px 0 10px;
+}
+.slot-back {
+  padding: 4px 0;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.slot-back:hover {
+  color: var(--text);
+}
+.slot-title {
+  margin: 0 auto 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.slot-sound {
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-sub);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.slot-sound:hover {
+  border-color: var(--text-sub);
+  color: var(--text);
+}
+.slot-head .game-share-btn {
+  padding: 4px 0;
+  white-space: nowrap;
+}
+.slot-empty {
+  padding: 48px 0;
+  color: var(--text-sub);
+  text-align: center;
+}
+
+/* 筐体と情報パネル。幅が足りなければ情報パネルは下へ回る */
+.slot-stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+}
+
+.slot-cabinet {
+  position: relative;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  /* 幅いっぱい・上限460px・「高さから逆算した幅」のうち最小。40px は左右の内側余白と窓枠 */
+  width: min(100%, 460px, calc((100vh - var(--slot-chrome)) * 0.75 + 40px));
+  width: min(100%, 460px, calc((100dvh - var(--slot-chrome)) * 0.75 + 40px));
+  min-width: min(100%, 232px);
+  padding: 12px 14px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #2c2c33 0%, #1a1a1e 46%, #121215 100%);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: #f1eee3;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  transition: box-shadow 0.4s ease;
+}
+.slot-cabinet button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.slot-cabinet.is-bonus {
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.28),
+    0 0 0 2px #f0bb33,
+    0 0 44px rgba(240, 187, 51, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ---- 上部パネル: 告知ランプと表示器 ---- */
+.slot-top {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.slot-lamp {
+  display: grid;
+  flex: 0 0 46px;
+  place-items: center;
+  height: 46px;
+  border: 2px solid #09090b;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 30%, #4d4632, #1c1a13 72%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  color: #62583a;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.slot-lamp.on {
+  border-color: #fff1bf;
+  background: radial-gradient(circle at 40% 34%, #fffce6, #ffd557 46%, #f08c00 100%);
+  color: #7a2a00;
+  animation: slot-lamp 0.85s ease-in-out infinite;
+}
+@keyframes slot-lamp {
+  0%,
+  100% {
+    box-shadow: 0 0 16px 3px rgba(255, 190, 40, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 30px 10px rgba(255, 200, 60, 0.95);
+  }
+}
+.slot-led {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 3px 8px 4px;
+  border: 1px solid #303036;
+  border-radius: 10px;
+  background: #09090b;
+}
+.slot-led small {
+  color: #8d8a80;
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+}
+.slot-led b {
+  color: #ffb648;
+  font-size: 19px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-shadow: 0 0 9px rgba(255, 160, 40, 0.6);
+  white-space: nowrap;
+}
+.slot-cabinet.is-bonus .slot-led-game b {
+  color: #ff7a5c;
+  text-shadow: 0 0 9px rgba(255, 110, 80, 0.7);
+}
+
+/* ---- リール窓 ---- */
+.slot-window {
+  position: relative;
+  padding: 6px;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #cfcbbc 0%, #7d7a6f 38%, #3a3935 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 2px 0 rgba(255, 255, 255, 0.06);
+}
+/* 中段の目印 */
+.slot-window::before,
+.slot-window::after {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  content: '';
+  transform: translateY(-50%);
+}
+.slot-window::before {
+  left: 0;
+  border-left-color: #ea5a3c;
+}
+.slot-window::after {
+  right: 0;
+  border-right-color: #ea5a3c;
+}
+.slot-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  background: #0d0d10;
+  cursor: pointer;
+}
+.slot-cabinet.is-pending .slot-window,
+.slot-cabinet.is-tenpai .slot-window {
+  animation: slot-hot 0.7s ease-in-out infinite;
+}
+@keyframes slot-hot {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+      0 0 0 0 rgba(255, 196, 60, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+      0 0 22px 3px rgba(255, 196, 60, 0.75);
+  }
+}
+
+/* ボーナス開始／終了の帯。揃った出目を隠し続けないよう、短く出て消える */
+.slot-banner {
+  position: absolute;
+  inset: 6px;
+  /* 紙吹雪（.slot-fx）より手前に出す */
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(13, 13, 16, 0.74);
+  color: #fff;
+  text-align: center;
+  pointer-events: none;
+  animation: slot-banner 1.7s ease both;
+}
+@keyframes slot-banner {
+  0% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  14%,
+  80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+.slot-banner-tag {
+  color: #ffd557;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-shadow: 0 0 18px rgba(255, 190, 40, 0.8);
+}
+.slot-banner.reg .slot-banner-tag {
+  color: #9fd0ff;
+  text-shadow: 0 0 18px rgba(90, 160, 255, 0.8);
+}
+.slot-banner b {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+}
+.slot-banner span:last-child {
+  color: #d9d5c7;
+  font-size: 12px;
+}
+
+.slot-message {
+  min-height: 20px;
+  margin: 8px 0;
+  color: #d9d5c7;
+  font-size: 12.5px;
+  line-height: 20px;
+  text-align: center;
+}
+.slot-cabinet.is-pending .slot-message {
+  color: #ffd557;
+  font-weight: 600;
+}
+
+/* ---- ボタン ---- */
+.slot-stops {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 6px;
+}
+.slot-stop {
+  height: 44px;
+  border: 1px solid #45454c;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #3b3b42, #232327);
+  box-shadow: 0 3px 0 #08080a;
+  color: #77746b;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.slot-stop.live {
+  border-color: #fffaf0;
+  background: linear-gradient(180deg, #fff8e3, #e6dbbb);
+  box-shadow:
+    0 3px 0 #8f8566,
+    0 0 16px rgba(255, 214, 120, 0.5);
+  color: #1b1b1f;
+}
+.slot-stop.live:active {
+  box-shadow: 0 1px 0 #8f8566;
+  transform: translateY(2px);
+}
+.slot-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 56px;
+  margin-top: 9px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f46b4e, #cf3f25);
+  box-shadow:
+    0 4px 0 #86220f,
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+.slot-main b {
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+  text-indent: 0.2em;
+}
+.slot-main small {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  opacity: 0.88;
+}
+.slot-main.stop {
+  background: linear-gradient(180deg, #fff8e3, #e2d6b2);
+  box-shadow:
+    0 4px 0 #8f8566,
+    inset 0 1px 0 #fff;
+  color: #1b1b1f;
+}
+.slot-main.refill {
+  background: linear-gradient(180deg, #f7cd55, #d99a1c);
+  box-shadow:
+    0 4px 0 #86590a,
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  color: #3b2600;
+}
+.slot-main:active {
+  box-shadow: 0 1px 0 #3d3a30;
+  transform: translateY(3px);
+}
+.slot-main:disabled {
+  opacity: 0.5;
+}
+.slot-stop:focus-visible,
+.slot-main:focus-visible {
+  outline: 2px solid #9fd0ff;
+  outline-offset: 2px;
+}
+
+/* 図柄と配当の早見表。横長レイアウトのときだけ出す */
+.slot-mini {
+  display: none;
+}
+
+.slot-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* ---- 情報パネル（顔ぶれ・データ・あそびかた） ---- */
+.slot-side {
+  display: flex;
+  flex: 1 1 270px;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  max-width: 460px;
+}
+.slot-panel {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.slot-panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.slot-panel-title small {
+  color: var(--text-sub);
+  font-size: 11px;
+  font-weight: 400;
+}
+.slot-pays {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.slot-pay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 6px 4px 4px;
+  border-radius: 10px;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+.slot-pay:hover {
+  background: var(--surface-muted);
+}
+.slot-pay-plate {
+  display: flex;
+  flex: 0 0 34px;
+  align-items: flex-end;
+  justify-content: center;
+  height: 46px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--c), var(--d));
+  overflow: hidden;
+}
+.slot-pay-plate img {
+  width: auto;
+  height: 43px;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
+.slot-pay-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+.slot-pay-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.slot-pay-meta {
+  color: var(--text-sub);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.slot-pay-prize {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  text-align: right;
+}
+.slot-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.slot-stats div {
+  min-width: 0;
+}
+.slot-stats dt {
+  color: var(--text-sub);
+  font-size: 10.5px;
+}
+.slot-stats dd {
+  margin: 0;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+.slot-stats dd.minus {
+  color: var(--danger);
+}
+.slot-stats dd.plus {
+  color: #2f8f5b;
+}
+.slot-graph {
+  display: block;
+  width: 100%;
+  height: 64px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+.slot-graph-zero {
+  stroke: var(--border-strong);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.slot-graph-line {
+  fill: none;
+  stroke: var(--text);
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.slot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.slot-actions .chip:disabled {
+  opacity: 0.45;
+}
+.slot-howto ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.8;
+}
+/* タッチ端末ではキーボードの説明を出さない */
+@media (pointer: coarse) {
+  .slot-howto-keys {
+    display: none;
+  }
+}
+
+/* 背の低い縦画面（折りたたみ端末を閉じた状態など）: ボタンを薄くしてリールに高さを回す */
+@media (max-height: 640px) and (orientation: portrait) {
+  .slot {
+    --slot-chrome: 268px;
+    padding-top: 6px;
+  }
+  .slot-head {
+    margin: 0 0 6px;
+  }
+  .slot-top {
+    margin-bottom: 7px;
+  }
+  .slot-lamp {
+    flex-basis: 40px;
+    height: 40px;
+    font-size: 17px;
+  }
+  .slot-led b {
+    font-size: 16px;
+  }
+  .slot-message {
+    margin: 5px 0;
+  }
+  .slot-stop {
+    height: 38px;
+  }
+  .slot-main {
+    height: 50px;
+    margin-top: 7px;
+  }
+}
+
+/* 幅の狭い筐体: 表示器の文字を詰める */
+@media (max-width: 360px) {
+  .slot-led {
+    padding: 3px 6px 4px;
+  }
+  .slot-led b {
+    font-size: 16px;
+    letter-spacing: 0;
+  }
+  .slot-title {
+    font-size: 17px;
+  }
+}
+
+/* 横長で背の低い画面（折りたたみ端末を広げた状態・横向きのスマホ）:
+   リールを左いっぱいの高さに取り、表示器とボタンを右へ並べる */
+@media (orientation: landscape) and (max-height: 760px) and (min-width: 600px) {
+  .slot {
+    --slot-chrome: 100px;
+    padding-top: 6px;
+  }
+  @media (pointer: fine) {
+    .slot {
+      --slot-chrome: 184px;
+    }
+  }
+  .slot-head {
+    margin: 0 0 6px;
+  }
+  .slot-cabinet {
+    display: grid;
+    grid-template-areas:
+      'window top'
+      'window message'
+      'window mini'
+      'window deck';
+    grid-template-columns: auto minmax(180px, 240px);
+    grid-template-rows: auto auto 1fr auto;
+    column-gap: 14px;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    padding: 12px;
+  }
+  .slot-window {
+    grid-area: window;
+    align-self: start;
+  }
+  .slot-canvas {
+    width: auto;
+    height: max(228px, min(600px, calc(100vh - var(--slot-chrome))));
+    height: max(228px, min(600px, calc(100dvh - var(--slot-chrome))));
+  }
+  .slot-top {
+    grid-area: top;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+  /* ランプ＋CREDIT で1行、WIN と GAME で1行 */
+  .slot-led {
+    flex-basis: 40%;
+  }
+  .slot-message {
+    grid-area: message;
+    margin: 10px 0 6px;
+  }
+  .slot-mini {
+    grid-area: mini;
+    align-self: center;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .slot-mini li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: #d9d5c7;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .slot-mini-plate {
+    display: flex;
+    flex: 0 0 24px;
+    align-items: flex-end;
+    justify-content: center;
+    height: 34px;
+    border-radius: 6px;
+    background: linear-gradient(180deg, var(--c), var(--d));
+    overflow: hidden;
+  }
+  .slot-mini-plate img {
+    width: auto;
+    height: 31px;
+  }
+  /* 早見表を置ける高さがあるときだけ出す */
+  @media (min-height: 470px) {
+    .slot-mini {
+      display: grid;
+    }
+  }
+  .slot-deck {
+    grid-area: deck;
+  }
+  .slot-stops {
+    padding: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-lamp.on,
+  .slot-cabinet.is-pending .slot-window,
+  .slot-cabinet.is-tenpai .slot-window {
+    animation: none;
+  }
+  .slot-lamp.on {
+    box-shadow: 0 0 22px 6px rgba(255, 196, 60, 0.85);
+  }
+}
