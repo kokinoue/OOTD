@@ -38,7 +38,12 @@ export type Data = {
 
 /** 編集（個体分割 / rename / category / merge / hidden）を適用した表示用データを作る */
 export function useData(ov: Overrides, splits: SplitsFile): Data {
-  return useMemo(() => {
+  return useMemo(() => buildData(ov, splits), [ov, splits])
+}
+
+/** useData の中身（Reactに依存しない純関数。テストやゲームのbot検証から直接呼べる） */
+export function buildData(ov: Overrides, splits: SplitsFile): Data {
+  {
     // 個体分割: baseItemId -> (outfitKey -> subItemId)、subItemId -> サブラベル
     const splitAssign = new Map<string, Map<string, string>>()
     const subLabels = new Map<string, string>()
@@ -159,7 +164,7 @@ export function useData(ov: Overrides, splits: SplitsFile): Data {
       categories,
       merged,
     }
-  }, [ov, splits])
+  }
 }
 
 export const fmtDate = (d: string) => d.replaceAll('-', '.')
