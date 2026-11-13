@@ -55,6 +55,12 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     tag: 'SLOT MACHINE',
     lead: '同じ俺を3人揃えるスロット。日替わりで並ぶ6人の俺から「最新の俺」を目押しで揃えてBIGを狙う。内部抽選とリール制御つき。',
   },
+  {
+    view: 'jam',
+    title: '満員クローゼット',
+    tag: 'SLIDE PUZZLE',
+    lead: 'ぎゅうぎゅうのクローゼットから「今日の一着」をスライドさせて取り出す。デイリー1問と、腕試しのフリープレイ。',
+  },
 ]
 
 export default function GameHubView({ onSelect }: Props) {
