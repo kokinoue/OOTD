@@ -20,6 +20,7 @@ export type SlotSound =
   | 'bigwin'
   | 'coin'
   | 'tenpai'
+  | 'chance'
   | 'lamp'
   | 'bonus'
   | 'bonusEnd'
@@ -129,6 +130,11 @@ export function createSlotAudio() {
         for (let i = 0; i < 6; i++) {
           tone(440 * 2 ** (i / 12), 0.07, { type: 'sawtooth', volume: 0.022, delay: i * 0.07 })
         }
+        break
+      case 'chance':
+        // チャンス役の予告: 短く2回、上がる
+        tone(988, 0.08, { type: 'triangle', volume: 0.08 })
+        tone(1319, 0.16, { type: 'triangle', volume: 0.08, delay: 0.09 })
         break
       case 'lamp':
         // 告知ランプ: 下から一気に駆け上がって、高い和音が残る

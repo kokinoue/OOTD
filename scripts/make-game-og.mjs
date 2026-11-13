@@ -1,4 +1,4 @@
-// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz,slot,jam}.png (1200x630) を生成する。
+// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz,slot,jam,shiki}.png (1200x630) を生成する。
 // 素材はローカルの public/cutouts/*.webp（透過切り抜き）のみ。ネットワーク不要。
 // 各ゲームの実際の配色（カード裏の濃紺・季節色・Canvasのクリーム地など）を再現する。
 import { readFile } from 'node:fs/promises'
@@ -396,19 +396,73 @@ async function slot() {
   await save('slot', '#1b1b1f', layers, title)
 }
 
+// ---- 四季通勤: 春夏秋冬の街に、その季節に実際に着た服の切り抜きを立たせる ----
+async function shiki() {
+  const outfits = JSON.parse(await readFile(path.join(ROOT, 'src/data/outfits.json'), 'utf8'))
+  // 季節ごとに、その月に着た服から立ち姿の切り抜きを1体選ぶ（決定的）
+  const pickFor = (month) =>
+    outfits
+      .filter((o) => Number(o.date.slice(5, 7)) === month && keys.includes(o.key))
+      .sort((a, b) => (a.key < b.key ? -1 : 1))[0].key
+  const seasons = [
+    { key: pickFor(4), sky: ['#f6d9e4', '#fdf1ea'], ground: '#9bcb68', tree: '#f7bfd2', dot: '#ffffff', kind: 'petal' },
+    { key: pickFor(7), sky: ['#4f97e6', '#cfe8fb'], ground: '#6aab52', tree: '#58a04a', dot: '#ffffff', kind: 'cloud' },
+    { key: pickFor(11), sky: ['#f0a875', '#fbe2c4'], ground: '#b6a85e', tree: '#d9743a', dot: '#e3b23c', kind: 'petal' },
+    { key: pickFor(1), sky: ['#8f9db2', '#dfe6ec'], ground: '#e9eef0', tree: '#8a7460', dot: '#ffffff', kind: 'snow' },
+  ]
+  const PW = W / seasons.length
+  const groundY = 470
+  const rnd = (n) => {
+    const x = Math.sin(n * 127.1 + 311.7) * 43758.5453
+    return x - Math.floor(x)
+  }
+  const scene = svg(
+    seasons
+      .map((s, i) => {
+        const x0 = i * PW
+        const dots = Array.from({ length: 26 }, (_, k) => {
+          const x = x0 + rnd(i * 100 + k) * PW
+          const y = 30 + rnd(i * 200 + k) * (groundY - 60)
+          return s.kind === 'cloud'
+            ? ''
+            : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${s.kind === 'snow' ? 4 : 3.2}" fill="${s.dot}" opacity="0.85"/>`
+        }).join('')
+        const cloud =
+          s.kind === 'cloud'
+            ? `<g fill="#ffffff" opacity="0.92"><circle cx="${x0 + 200}" cy="120" r="42"/><circle cx="${x0 + 240}" cy="138" r="34"/><circle cx="${x0 + 162}" cy="140" r="30"/><rect x="${x0 + 150}" y="140" width="110" height="30" rx="15"/></g>`
+            : ''
+        const bare = s.kind === 'snow'
+        const crown = bare
+          ? `<path d="M ${x0 + 62} 330 L ${x0 + 40} 270 M ${x0 + 62} 330 L ${x0 + 88} 262 M ${x0 + 62} 345 L ${x0 + 62} 255" stroke="${s.tree}" stroke-width="7" stroke-linecap="round"/>`
+          : `<g fill="${s.tree}"><circle cx="${x0 + 62}" cy="290" r="52"/><circle cx="${x0 + 28}" cy="318" r="34"/><circle cx="${x0 + 98}" cy="316" r="36"/></g>`
+        return `
+          <defs><linearGradient id="sk${i}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="${s.sky[0]}"/><stop offset="1" stop-color="${s.sky[1]}"/>
+          </linearGradient></defs>
+          <rect x="${x0}" y="0" width="${PW}" height="${groundY}" fill="url(#sk${i})"/>
+          <rect x="${x0 + 150}" y="${groundY - 190}" width="110" height="190" fill="#9fb0c2" opacity="0.55"/>
+          <rect x="${x0 + 215}" y="${groundY - 120}" width="85" height="120" fill="#e8d9bf" opacity="0.7"/>
+          ${cloud}
+          <rect x="${x0 + 56}" y="330" width="12" height="${groundY - 330}" fill="#6b4f3a"/>
+          ${crown}
+          ${dots}
+          <rect x="${x0}" y="${groundY}" width="${PW}" height="34" fill="#d8d3c6"/>
+          <rect x="${x0}" y="${groundY + 34}" width="${PW}" height="${H - groundY - 34}" fill="${s.ground}"/>`
+      })
+      .join(''),
+  )
+  const layers = [{ input: scene, left: 0, top: 0 }]
+  for (const [i, s] of seasons.entries()) {
+    const sp = await sprite(s.key, 290)
+    layers.push(at(sp, i * PW + PW * 0.56, groundY + 20 - sp.h / 2))
+  }
+  await save('shiki', '#cfe6fb', layers, darkTitle('四季通勤', 'WARDROBE STRATEGY'))
+}
+
 // 引数でゲーム名を渡すと、そのゲームの画像だけ作り直す（例: node scripts/make-game-og.mjs slot）。
 // 引数なしなら全部。くり抜きが増えると選ばれる素材が変わるので、既存の画像を動かしたくないときは名前を指定する
-const GAMES = { memory, duel, platform, tower, chari, quiz, slot }
+const GAMES = { memory, duel, platform, tower, chari, quiz, slot, jam, shiki }
 const only = process.argv.slice(2)
 for (const [name, make] of Object.entries(GAMES)) {
   if (only.length === 0 || only.includes(name)) await make()
 }
-
-await memory()
-await duel()
-await platform()
-await tower()
-await chari()
-await quiz()
-await slot()
-await jam()

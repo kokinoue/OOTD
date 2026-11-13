@@ -7930,8 +7930,9 @@ a {
 .slot {
   display: flex;
   justify-content: center;
-  padding: 12px env(safe-area-inset-right, 0px) calc(40px + env(safe-area-inset-bottom, 0px))
-    env(safe-area-inset-left, 0px);
+  /* 左右の余白は安全域の大きい方にそろえる（片側だけ欠けがある画面でも中央がずれない） */
+  padding: 12px max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))
+    calc(40px + env(safe-area-inset-bottom, 0px));
   /* リール窓以外（見出し行・上部パネル・メッセージ・ボタン・余白）の高さの合計。
      リール窓の高さ = 画面の高さ − この値 */
   --slot-chrome: 300px;
@@ -7992,12 +7993,14 @@ a {
   text-align: center;
 }
 
-/* 筐体と情報パネル。幅が足りなければ情報パネルは下へ回る */
+/* 筐体と情報パネル。既定は縦積みで、筐体は常に左右中央に置く。
+   横に並べるのは十分に広い画面だけ（下の min-width の指定）。
+   「入るなら横に並べる」折り返しにすると、背が低くて筐体が縮んだ画面で情報パネルが
+   横へ入り込み、筐体が左端に寄ってしまう */
 .slot-stage {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   gap: 20px;
 }
 
@@ -8336,11 +8339,23 @@ a {
 /* ---- 情報パネル（顔ぶれ・データ・あそびかた） ---- */
 .slot-side {
   display: flex;
-  flex: 1 1 270px;
+  flex: none;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
   min-width: 0;
   max-width: 460px;
+}
+@media (min-width: 860px) {
+  .slot-stage {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .slot-side {
+    flex: 1 1 270px;
+    width: auto;
+  }
 }
 .slot-panel {
   padding: 14px 16px;
@@ -8538,10 +8553,29 @@ a {
 
 /* 横長で背の低い画面（折りたたみ端末を広げた状態・横向きのスマホ）:
    リールを左いっぱいの高さに取り、表示器とボタンを右へ並べる */
-@media (orientation: landscape) and (max-height: 760px) and (min-width: 600px) {
+@media (orientation: landscape) and (max-height: 760px) and (min-width: 480px) {
   .slot {
     --slot-chrome: 100px;
     padding-top: 6px;
+  }
+  /* 横型の筐体は幅を取るので、情報パネルを横に置くのはさらに広い画面だけ */
+  .slot-stage {
+    flex-direction: column;
+    align-items: center;
+  }
+  .slot-side {
+    flex: none;
+    width: 100%;
+  }
+  @media (min-width: 1040px) {
+    .slot-stage {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    .slot-side {
+      flex: 1 1 270px;
+      width: auto;
+    }
   }
   @media (pointer: fine) {
     .slot {
@@ -8572,8 +8606,10 @@ a {
   }
   .slot-canvas {
     width: auto;
-    height: max(228px, min(600px, calc(100vh - var(--slot-chrome))));
-    height: max(228px, min(600px, calc(100dvh - var(--slot-chrome))));
+    /* 高さは画面の高さから、ただし右の列（最小180px）が入る幅を残す。
+       272px = ページと筐体の左右余白 + 窓枠 + 列のすき間 + 右の列の最小幅 */
+    height: max(228px, min(600px, calc(100vh - var(--slot-chrome)), calc((100vw - 272px) * 1.3333)));
+    height: max(228px, min(600px, calc(100dvh - var(--slot-chrome)), calc((100vw - 272px) * 1.3333)));
   }
   .slot-top {
     grid-area: top;
@@ -8642,5 +8678,1085 @@ a {
   }
   .slot-lamp.on {
     box-shadow: 0 0 22px 6px rgba(255, 196, 60, 0.85);
+  }
+}
+
+/* ===================== 四季通勤 ===================== */
+.shiki {
+  --shiki-cold: #3f7fe0;
+  --shiki-hot: #e0603a;
+  --shiki-ok: #2f9a6a;
+  --shiki-risk: #c98a12;
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 40px;
+}
+html.dark .shiki {
+  --shiki-cold: #78a8f5;
+  --shiki-hot: #f08a66;
+  --shiki-ok: #5fc796;
+  --shiki-risk: #e6b450;
+}
+.shiki-inner {
+  width: min(1040px, 100%);
+}
+.shiki-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 10px 0;
+}
+.shiki-back {
+  font-size: 12.5px;
+  color: var(--text-sub);
+  padding: 4px 0;
+  white-space: nowrap;
+}
+.shiki-back:hover,
+.shiki-sound:hover {
+  color: var(--text);
+}
+.shiki-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.shiki-head-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.shiki-sound {
+  font-size: 11.5px;
+  color: var(--text-sub);
+  padding: 4px 0;
+}
+.shiki-icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -0.12em;
+}
+
+/* --- 3Dの街 --- */
+.shiki-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-height: 54vh;
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(#9cc4ee, #dcecf8 62%, #9fbf86 62%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+  color: #fff;
+}
+.shiki-webgl {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.shiki-stage.flat.season-summer {
+  background: linear-gradient(#4f97e6, #cfe8fb 62%, #6aab52 62%);
+}
+.shiki-stage.flat.season-autumn {
+  background: linear-gradient(#e9a878, #f7dcc0 62%, #b6a85e 62%);
+}
+.shiki-stage.flat.season-winter {
+  background: linear-gradient(#9aa7b8, #dfe5ea 62%, #bfbc9c 62%);
+}
+.shiki-flat-hero {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  height: 52%;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.25));
+}
+.shiki-hud {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.shiki-chip,
+.shiki-now,
+.shiki-hp,
+.shiki-reveal {
+  background: rgba(14, 17, 26, 0.56);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.shiki-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.shiki-chip b {
+  font-size: 13px;
+  font-weight: 600;
+}
+.shiki-chip.score {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 600;
+}
+.shiki-progress {
+  display: inline-flex;
+  gap: 7px;
+}
+.shiki-progress-season {
+  display: inline-flex;
+  gap: 2px;
+}
+.shiki-progress i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.32);
+}
+.shiki-progress i.done {
+  background: #fff;
+}
+.shiki-progress i.now {
+  background: #ffd98a;
+  box-shadow: 0 0 0 2px rgba(255, 217, 138, 0.35);
+}
+.shiki-hp {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+}
+.shiki-hp-track {
+  width: 110px;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+.shiki-hp-track i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: #7ee2a8;
+  transition: width 0.6s ease, background 0.3s ease;
+}
+.shiki-hp.warn .shiki-hp-track i {
+  background: #f3c552;
+}
+.shiki-hp.danger .shiki-hp-track i {
+  background: #f27b62;
+}
+.shiki-hp-v {
+  min-width: 2.2em;
+  text-align: right;
+  font-weight: 600;
+}
+.shiki-now {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 14px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-size: 11px;
+}
+.shiki-now-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  opacity: 0.92;
+}
+.shiki-now-item b {
+  font-size: 15px;
+  font-weight: 600;
+}
+.shiki-now-item.wet {
+  color: #a9d3ff;
+}
+.shiki-reveal {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 22px 12px;
+  border-radius: 18px;
+  text-align: center;
+  transition: background 0.3s ease;
+}
+.shiki-reveal-k,
+.shiki-reveal-band {
+  font-size: 11px;
+  opacity: 0.85;
+}
+.shiki-reveal-v {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.shiki-reveal.hot {
+  background: rgba(196, 70, 36, 0.72);
+}
+.shiki-reveal.cold {
+  background: rgba(40, 96, 190, 0.72);
+}
+.shiki-stage-title {
+  position: absolute;
+  left: 28px;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.shiki-stage-title .mono {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  opacity: 0.9;
+}
+.shiki-stage-title strong {
+  font-size: clamp(30px, 5vw, 52px);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+}
+.shiki-stage-title .jp:last-child {
+  font-size: 13px;
+}
+
+/* --- 下のパネル --- */
+.shiki-panel {
+  margin-top: 16px;
+}
+.shiki-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.shiki-section-head h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.shiki-section-head p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--text-sub);
+}
+.shiki-lead {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.shiki-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.shiki-hint.warn {
+  color: var(--danger);
+}
+
+.shiki-forecast {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.shiki-fc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 11.5px;
+  min-width: 0;
+}
+.shiki-fc.today {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.shiki-fc.past {
+  opacity: 0.38;
+}
+.shiki-fc-day {
+  font-size: 11px;
+  color: var(--text-sub);
+  margin-bottom: 2px;
+}
+.shiki-fc-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 6px;
+}
+.shiki-fc-row > * {
+  white-space: nowrap;
+}
+.shiki-fc-k {
+  color: var(--text-sub);
+}
+.shiki-fc-rain {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--text-sub);
+}
+.shiki-fc-rain.wet {
+  color: var(--shiki-cold);
+  font-weight: 600;
+}
+.shiki-fc-fits {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--border);
+  font-size: 10.5px;
+  color: var(--shiki-ok);
+}
+.shiki-fc-fits.none {
+  color: var(--danger);
+}
+
+.shiki-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+.shiki-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  text-align: left;
+  min-width: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+.shiki-card:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.shiki-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1.5px var(--accent), 0 12px 28px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+}
+.shiki-card:disabled {
+  cursor: not-allowed;
+}
+.shiki-card:disabled:not(.locked) {
+  opacity: 0.4;
+}
+.shiki-card.locked .shiki-card-figure img,
+.shiki-card.locked .shiki-band {
+  opacity: 0.32;
+  filter: grayscale(1);
+}
+.shiki-card-figure {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 150px;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+.shiki-card-figure img {
+  height: 94%;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.16));
+  user-select: none;
+}
+.shiki-card-tags {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  gap: 4px;
+}
+.shiki-tag,
+.shiki-card-note,
+.shiki-card-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.shiki-card-note {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+}
+.shiki-card-lock {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+}
+.shiki-band {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.shiki-band-track {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+}
+.shiki-band-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: var(--text);
+  opacity: 0.78;
+}
+.shiki-band-pm {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  min-width: 3px;
+  border-left: 1.5px solid var(--shiki-hot);
+  border-right: 1.5px solid var(--shiki-hot);
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--shiki-hot) 55%, transparent) 0 2px,
+    transparent 2px 5px
+  );
+}
+.shiki-band-am {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--shiki-cold);
+}
+.shiki-band-am::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--shiki-cold);
+}
+.shiki-band-label {
+  font-size: 10.5px;
+  color: var(--text-sub);
+}
+.shiki-verdict {
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.shiki-verdict.v-safe {
+  color: var(--shiki-ok);
+}
+.shiki-verdict.v-risk {
+  color: var(--shiki-risk);
+}
+.shiki-verdict.v-cold {
+  color: var(--shiki-cold);
+}
+.shiki-verdict.v-hot {
+  color: var(--shiki-hot);
+}
+.shiki-verdict-rain {
+  color: var(--shiki-cold);
+  font-weight: 400;
+}
+
+.shiki-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.shiki-actions.morning {
+  position: sticky;
+  bottom: 0;
+  align-items: flex-end;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 22%);
+  z-index: 2;
+}
+.shiki-actions.wrap {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.shiki-count {
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.shiki-btn {
+  padding: 11px 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+}
+.shiki-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.shiki-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.shiki-btn.wide {
+  width: 100%;
+}
+.shiki-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.shiki-detail {
+  min-width: 0;
+}
+.shiki-detail-note {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-sub);
+}
+.shiki-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+.shiki-items li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11.5px;
+}
+.shiki-items li .mono:first-child {
+  font-size: 10px;
+  color: var(--text-sub);
+}
+.shiki-items li.fresh {
+  border-color: var(--shiki-ok);
+}
+.shiki-items li.match {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.shiki-items li.match .mono:first-child {
+  color: inherit;
+  opacity: 0.7;
+}
+.shiki-items.small li {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+.shiki-item-rest {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--text-sub);
+}
+
+/* --- 夜の答え合わせ --- */
+.shiki-night-temps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 8px;
+  font-size: 12.5px;
+}
+.shiki-night-temps b {
+  font-size: 16px;
+  color: var(--text);
+}
+.shiki-event {
+  padding: 1px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text);
+}
+.shiki-night-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 14px;
+}
+.shiki-night-you,
+.shiki-night-koki {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.shiki-night-you .shiki-band-track {
+  height: 10px;
+}
+.shiki-night-miss {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.shiki-night-miss .cold {
+  color: var(--shiki-cold);
+}
+.shiki-night-miss .hot {
+  color: var(--shiki-hot);
+}
+.shiki-night-miss .wet {
+  color: var(--shiki-risk);
+}
+.shiki-night-miss .ok {
+  color: var(--shiki-ok);
+}
+.shiki-points {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+}
+.shiki-points div {
+  display: flex;
+  justify-content: space-between;
+}
+.shiki-points dd {
+  margin: 0;
+}
+.shiki-points .zero {
+  color: var(--text-faint);
+}
+.shiki-points .total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+}
+.shiki-points .hp {
+  color: var(--shiki-ok);
+}
+.shiki-points .hp.minus {
+  color: var(--danger);
+}
+.shiki-koki-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--text-sub);
+}
+.shiki-koki-body {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+}
+.shiki-koki-body img {
+  width: 132px;
+  height: 132px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--surface-muted);
+}
+.shiki-koki-sync {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.shiki-koki-feel {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+
+/* --- 習慣 --- */
+.shiki-perks,
+.shiki-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.shiki-perk,
+.shiki-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  text-align: left;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.shiki-perk:hover,
+.shiki-mode:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+}
+.shiki-perk-name,
+.shiki-mode-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.shiki-perk-text,
+.shiki-mode-text {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-sub);
+}
+.shiki-mode-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  color: var(--text-sub);
+}
+.shiki-mode.daily {
+  border-color: var(--accent);
+}
+.shiki-howto {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 18px;
+  counter-reset: shiki;
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--text-sub);
+}
+.shiki-howto li {
+  counter-increment: shiki;
+}
+.shiki-howto b {
+  display: block;
+  color: var(--text);
+  font-size: 12.5px;
+}
+.shiki-howto b::before {
+  content: counter(shiki) '  ';
+  font-family: var(--font-mono);
+  color: var(--text-sub);
+}
+
+/* --- 年間レポート --- */
+.shiki-report-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.shiki-rank {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1;
+}
+.shiki-rank.rank-D {
+  background: var(--surface-muted);
+  color: var(--text-sub);
+}
+.shiki-report-kicker {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-sub);
+}
+.shiki-report-score {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.shiki-report-score small {
+  margin-left: 4px;
+  font-size: 14px;
+  font-weight: 400;
+}
+.shiki-report-best {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--shiki-ok);
+}
+.shiki-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.shiki-stats div {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.shiki-stats dt {
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.shiki-stats dd {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+.shiki-stats small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-sub);
+}
+.shiki-season-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.shiki-season-bars div {
+  display: grid;
+  grid-template-columns: 2.4em 1fr 4.5em;
+  align-items: center;
+  gap: 10px;
+}
+.shiki-season-bars .mono {
+  text-align: right;
+}
+.shiki-season-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--track);
+  overflow: hidden;
+}
+.shiki-season-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--text);
+}
+.shiki-report-perks,
+.shiki-year-legend {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.shiki-report-h {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.shiki-year {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  scroll-snap-type: x proximity;
+}
+.shiki-year-day {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 8px 7px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 10px;
+  color: var(--text-sub);
+  scroll-snap-align: start;
+}
+.shiki-year-day.exact {
+  border-color: var(--accent);
+}
+.shiki-year-pair {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 78px;
+}
+.shiki-year-pair img {
+  height: 100%;
+  width: auto;
+}
+.shiki-year-pair img.real {
+  opacity: 0.55;
+}
+.shiki-year-day.exact .shiki-year-pair img.real {
+  opacity: 1;
+}
+.shiki-year-day .ok {
+  color: var(--shiki-ok);
+}
+.shiki-year-day .pts {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+@media (max-width: 860px) {
+  .shiki-stage {
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+  }
+  .shiki-forecast {
+    grid-template-columns: repeat(6, 104px);
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .shiki-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .shiki-grid.rack {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding: 6px 2px 8px;
+    margin: 0 -2px;
+  }
+  .shiki-grid.rack .shiki-card {
+    flex: none;
+    width: 132px;
+    scroll-snap-align: start;
+  }
+  .shiki-night-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* スマホでは出勤ボタンだけを画面下に固定し、アイテムの内訳はその下に流す
+     （内訳ごと固定すると、ラックの服が隠れて選べなくなる） */
+  .shiki-actions.morning {
+    display: contents;
+  }
+  .shiki-actions.morning .shiki-btn {
+    order: 1;
+    position: sticky;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    z-index: 2;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  }
+  .shiki-actions.morning .shiki-detail,
+  .shiki-actions.morning > .shiki-detail-note {
+    order: 2;
+  }
+  .shiki-progress {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .shiki-title {
+    font-size: 18px;
+  }
+  .shiki-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .shiki-card-figure {
+    height: 124px;
+  }
+  .shiki-hud {
+    inset: 8px 8px auto;
+  }
+  .shiki-now {
+    left: 8px;
+    bottom: 8px;
+    gap: 10px;
+    padding: 6px 10px;
+  }
+  .shiki-now-item b {
+    font-size: 13px;
+  }
+  .shiki-hp {
+    right: 8px;
+    bottom: auto;
+    top: 46px;
+    padding: 5px 10px;
+  }
+  .shiki-hp-track {
+    width: 70px;
+  }
+  /* 幅が狭いと体調バーが右上の2段目に来るので、気温の表示はその下へ逃がす */
+  .shiki-reveal {
+    top: 34%;
+    padding: 6px 16px 8px;
+  }
+  .shiki-reveal-v {
+    font-size: 30px;
+  }
+  .shiki-koki-body img {
+    width: 96px;
+    height: 96px;
+  }
+}
+/* 横向きのスマホなど高さがない画面では、街を低くして下の予報とラックが見えるようにする */
+@media (max-height: 480px) {
+  .shiki-stage {
+    max-height: 46vh;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shiki-card,
+  .shiki-btn,
+  .shiki-perk,
+  .shiki-mode {
+    transition: none;
   }
 }

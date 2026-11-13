@@ -8,6 +8,12 @@ type Props = {
 
 const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
   {
+    view: 'shiki',
+    title: '四季通勤',
+    tag: 'WARDROBE STRATEGY',
+    lead: 'ほんとうにあった毎日を、当時の東京の気温のまま7着で着回す。3Dの街で春夏秋冬を生き抜き、夜は本物のkokiと答え合わせ。',
+  },
+  {
     view: 'memory',
     title: '神経衰弱',
     tag: 'CONCENTRATION',

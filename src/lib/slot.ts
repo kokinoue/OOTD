@@ -42,7 +42,7 @@ const SYMBOL_ROLE: Record<SymbolId, Role> = {
 }
 
 /** 通常時の払い出し枚数（BIG/REG はボーナス突入、replay は再遊技なので 0） */
-export const PAYOUT: Record<Role, number> = { big: 0, reg: 0, coat: 15, cap: 8, tee: 2, replay: 0 }
+export const PAYOUT: Record<Role, number> = { big: 0, reg: 0, coat: 10, cap: 8, tee: 2, replay: 0 }
 
 export const BET = 3 // 通常時の1ゲームの掛け枚数
 export const BONUS_PAY = 15 // ボーナスゲーム1回の払い出し
@@ -292,7 +292,7 @@ export const SMALL_ODDS: Record<'replay' | 'tee' | 'cap' | 'coat', number> = {
   replay: 8978, // 1/7.3
   tee: 8192, // 1/8
   cap: 2731, // 1/24
-  coat: 683, // 1/96
+  coat: 1820, // 1/36。狙わないと揃わない「チャンス役」。成立はレバー時に知らせる
 }
 
 /**
