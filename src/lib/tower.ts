@@ -105,3 +105,23 @@ export function saveBest(score: number): void {
     // localStorage が使えない環境では何もしない
   }
 }
+
+/** 最高到達高さ（m）の localStorage キー。演出用（ベストラインの表示）でスコアとは別に持つ */
+export const BEST_HEIGHT_KEY = 'tower.bestHeight'
+
+export function loadBestHeight(): number {
+  try {
+    const n = Number(localStorage.getItem(BEST_HEIGHT_KEY) ?? '0')
+    return Number.isFinite(n) && n > 0 ? n : 0
+  } catch {
+    return 0
+  }
+}
+
+export function saveBestHeight(meters: number): void {
+  try {
+    if (meters > loadBestHeight()) localStorage.setItem(BEST_HEIGHT_KEY, meters.toFixed(2))
+  } catch {
+    // localStorage が使えない環境では何もしない
+  }
+}

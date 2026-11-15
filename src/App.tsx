@@ -22,6 +22,7 @@ const QuizGameView = lazy(() => import('./components/QuizGameView'))
 const SlotGameView = lazy(() => import('./components/SlotGameView'))
 const JamGameView = lazy(() => import('./components/JamGameView'))
 const ShikiGameView = lazy(() => import('./components/ShikiGameView'))
+const KisekaeGameView = lazy(() => import('./components/KisekaeGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -46,6 +47,7 @@ export type View =
   | 'slot'
   | 'jam'
   | 'shiki'
+  | 'kisekae'
 
 export type Filters = {
   from: string
@@ -170,7 +172,8 @@ export default function App() {
     view === 'quiz' ||
     view === 'slot' ||
     view === 'jam' ||
-    view === 'shiki'
+    view === 'shiki' ||
+    view === 'kisekae'
 
   return (
     <div className={isPlayingGame ? 'app playing-game' : 'app'}>
@@ -253,7 +256,8 @@ export default function App() {
               view === 'quiz' ||
               view === 'slot' ||
               view === 'jam' ||
-              view === 'shiki'
+              view === 'shiki' ||
+              view === 'kisekae'
                 ? 'tab active'
                 : 'tab'
             }
@@ -328,6 +332,7 @@ export default function App() {
         {view === 'slot' && <SlotGameView onBack={() => setView('game')} onOpenOutfit={showOutfit} />}
         {view === 'jam' && <JamGameView onBack={() => setView('game')} />}
         {view === 'shiki' && <ShikiGameView data={data} onBack={() => setView('game')} />}
+        {view === 'kisekae' && <KisekaeGameView data={data} onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (

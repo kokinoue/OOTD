@@ -6111,6 +6111,7 @@ a {
 }
 .tower-screen {
   position: relative;
+  container-type: inline-size; /* リザルトの記念写真を画面の高さ（= 幅 × 1.5）に合わせて縮める */
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -6190,6 +6191,144 @@ a {
 .tower-next img {
   height: 40px;
   width: auto;
+}
+
+/* --- タワーの演出（スコアの跳ね・サウンド切替・リザルトの記念写真） --- */
+.tower-score-num {
+  display: inline-block;
+  font-weight: inherit;
+  animation: tower-score-pop 0.32s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes tower-score-pop {
+  from {
+    transform: translateY(2px) scale(1.5);
+  }
+}
+.tower-sound {
+  position: relative;
+  align-self: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1;
+}
+.tower-sound:hover {
+  border-color: var(--text-sub);
+  color: var(--text);
+}
+/* オフのときは斜線を引く */
+.tower-sound[aria-pressed='false']::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 50%;
+  border-top: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+.tower-back,
+.tower-title,
+.tower-stats,
+.tower-btn {
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .tower-head {
+    gap: 8px;
+  }
+  .tower-result {
+    padding: 22px 16px;
+  }
+  .tower-result-actions {
+    gap: 6px;
+  }
+  .tower-btn {
+    padding: 8px 13px;
+  }
+}
+.tower-overlay {
+  animation: tower-overlay-in 0.35s ease both;
+}
+.tower-result {
+  animation: tower-result-in 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+@keyframes tower-overlay-in {
+  from {
+    background: rgba(23, 23, 26, 0);
+  }
+}
+@keyframes tower-result-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+}
+.tower-photo {
+  margin: -6px 0 2px;
+  padding: 6px 6px 0;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  transform: rotate(-2.5deg);
+  animation: tower-photo-in 0.6s 0.12s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.tower-photo canvas {
+  display: block;
+  width: auto;
+  height: min(200px, 30vh);
+  /* 写真以外（スライダー・ボタン・スコア・余白）で約 316px 使う。小さい画面でも枠からはみ出さない高さにする */
+  height: clamp(72px, 150cqw - 316px, 200px);
+  aspect-ratio: 3 / 4;
+  border-radius: 2px;
+}
+.tower-photo figcaption {
+  padding: 5px 0 6px;
+  font-size: 11px;
+  text-align: center;
+  color: #3a3a41;
+}
+/* 記念写真のコマ送り（積めた瞬間 ←→ 崩れた瞬間）と保存 */
+.tower-reel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.tower-reel span {
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+.tower-reel input {
+  width: 96px;
+  height: 22px; /* 指でつまめる高さを確保する */
+  margin: 0;
+  accent-color: var(--text);
+}
+.tower-save {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+.tower-result .tower-save-error {
+  font-size: 11.5px;
+  color: rgb(176, 58, 46);
+}
+@keyframes tower-photo-in {
+  from {
+    opacity: 0;
+    transform: rotate(7deg) translateY(-26px) scale(0.86);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tower-score-num,
+  .tower-overlay,
+  .tower-result,
+  .tower-photo {
+    animation: none;
+  }
 }
 
 /* ===================== チャリ通（エンドレスラン） ===================== */
@@ -9758,5 +9897,498 @@ html.dark .shiki {
   .shiki-perk,
   .shiki-mode {
     transition: none;
+  }
+}
+
+/* ===================== きせかえ ===================== */
+.kk {
+  display: flex;
+  justify-content: center;
+  padding: 12px max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))
+    calc(32px + env(safe-area-inset-bottom, 0px));
+}
+.kk-inner {
+  width: 100%;
+  max-width: 860px;
+}
+.kk-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 30px;
+  margin: 4px 0 8px;
+}
+.kk-back {
+  padding: 4px 0;
+  color: var(--text-sub);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.kk-back:hover {
+  color: var(--text);
+}
+.kk-title {
+  margin: 0 auto 0 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.kk-head .game-share-btn {
+  padding: 4px 0;
+  white-space: nowrap;
+}
+.kk-empty {
+  padding: 48px 0;
+  color: var(--text-sub);
+  text-align: center;
+}
+
+/* ---- ラウンドと点数 ---- */
+.kk-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-sub);
+}
+.kk-pips {
+  display: flex;
+  gap: 5px;
+  margin-right: auto;
+}
+.kk-pip {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  letter-spacing: 0;
+  color: var(--text-faint);
+}
+.kk-pip.now {
+  border-color: var(--text);
+  color: var(--text);
+}
+.kk-pip.done {
+  border-color: transparent;
+  background: var(--surface-muted);
+  color: var(--text);
+}
+.kk-total {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.kk-total small {
+  margin-left: 2px;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-sub);
+}
+
+/* ---- ステージ: 固定の顔の下を、3本のレーンが横に流れる ---- */
+.kk-stage {
+  position: relative;
+  /* 上下の余白ぶんを足した高さを先に確保しておく（読み込み中に高さが跳ねない） */
+  height: calc(var(--kk-h) + 30px);
+  padding: 14px 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+/* ダーク表示でも黒い服が背景に沈まないよう、ステージは少し明るい地にする */
+html.dark .kk-stage,
+html.dark .kk-gallery-item {
+  background: #34342f;
+}
+html.dark .kk-column {
+  background: #46463f;
+}
+.kk-stage.is-perfect {
+  border-color: #f0bb33;
+  box-shadow: 0 0 0 2px #f0bb33, 0 0 40px rgba(240, 187, 51, 0.35);
+}
+.kk-belt {
+  position: relative;
+  height: var(--kk-h);
+  /* 両端へ流れ去るパーツを薄く消す */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+}
+/* 体が立つ位置。ここに来たパーツで止まる */
+.kk-column {
+  position: absolute;
+  top: -14px;
+  bottom: -16px;
+  left: calc(50% - var(--kk-pitch) / 2);
+  width: var(--kk-pitch);
+  background: var(--surface);
+  border-left: 1px dashed var(--border-strong);
+  border-right: 1px dashed var(--border-strong);
+}
+.kk-face,
+.kk-cell {
+  position: absolute;
+  left: calc(50% - var(--kk-pitch) / 2);
+  width: var(--kk-pitch);
+  overflow: hidden;
+}
+.kk-face {
+  position: relative;
+}
+.kk-lane {
+  position: relative;
+  overflow: hidden;
+}
+.kk-cell {
+  top: 0;
+  height: 100%;
+  will-change: transform;
+  transition: opacity 0.3s ease;
+}
+.kk-img {
+  position: absolute;
+  width: auto;
+  max-width: none;
+  pointer-events: none;
+}
+/* 止めたレーンは、選んだパーツ以外を沈める */
+.kk-lane.is-stopped .kk-cell:not(.is-picked) {
+  opacity: 0.16;
+}
+.kk-stage.is-result .kk-cell:not(.is-picked) {
+  opacity: 0;
+}
+/* いま止めるレーンの目印（体の位置の左右を赤い線で囲む） */
+.kk-lane.is-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - var(--kk-pitch) / 2 - 1px);
+  z-index: 2;
+  width: calc(var(--kk-pitch) + 2px);
+  border-left: 3px solid var(--danger);
+  border-right: 3px solid var(--danger);
+  pointer-events: none;
+  animation: kk-blink 0.9s ease-in-out infinite;
+}
+@keyframes kk-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+.kk-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 13px;
+}
+.kk-face-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 5px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-sub);
+  font-size: 11px;
+}
+.kk-face-btn:hover {
+  color: var(--text);
+  border-color: var(--text-sub);
+}
+
+/* ---- ストップ ---- */
+.kk-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.kk-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: min(100%, 360px);
+  padding: 16px 20px 13px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.06s ease;
+}
+.kk-stop:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.kk-stop:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.kk-stop b {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.kk-stop small {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  opacity: 0.6;
+}
+.kk-help {
+  max-width: 420px;
+  margin: 0;
+  color: var(--text-sub);
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+/* ---- 判定 ---- */
+.kk-result {
+  margin-top: 14px;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  animation: kk-rise 0.3s ease both;
+}
+.kk-result.perfect {
+  border-color: #f0bb33;
+}
+@keyframes kk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.kk-result-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.kk-score {
+  display: flex;
+  align-items: baseline;
+  margin: 0;
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1;
+}
+.kk-score small {
+  margin-right: 10px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-sub);
+}
+.kk-score span {
+  margin-left: 2px;
+  font-size: 18px;
+}
+.kk-headline {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.kk-result.perfect .kk-headline {
+  color: #c98a00;
+}
+.kk-facts,
+.kk-parts {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.kk-facts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.kk-facts b {
+  flex: none;
+  font-weight: 600;
+}
+.kk-parts li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 2px 0;
+  font-size: 11.5px;
+  color: var(--text-sub);
+}
+.kk-part-tag {
+  flex: none;
+  width: 62px;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+}
+.kk-part-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.kk-part-date {
+  flex: none;
+  font-size: 10.5px;
+}
+.kk-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+.kk-btn {
+  padding: 11px 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.kk-btn:hover:not(:disabled) {
+  border-color: var(--text);
+}
+.kk-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.kk-btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+/* ---- 5コーデの結果 ---- */
+.kk-final {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+  animation: kk-rise 0.3s ease both;
+}
+.kk-final-label {
+  margin: 0;
+  font-size: 10.5px;
+  letter-spacing: 0.2em;
+  color: var(--text-sub);
+}
+.kk-final-score {
+  margin: 4px 0 0;
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.kk-final-score small {
+  margin-left: 4px;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-sub);
+}
+.kk-rank {
+  margin: 12px 0 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.kk-rank-note {
+  margin: 6px 0 0;
+  color: var(--text-sub);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.kk-best {
+  margin: 10px 0 0;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--text-sub);
+}
+.kk-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 22px 0 24px;
+}
+.kk-gallery-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  font-size: 11px;
+}
+.kk-gallery-item.perfect {
+  border-color: #f0bb33;
+}
+.kk-figure {
+  position: relative;
+  overflow: hidden;
+}
+.kk-figure-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 520px) {
+  .kk-score {
+    font-size: 38px;
+  }
+  .kk-headline {
+    font-size: 16px;
+  }
+  .kk-result {
+    padding: 14px 14px 16px;
+  }
+  .kk-actions .kk-btn {
+    flex: 1;
+    padding: 11px 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kk-lane.is-active::after,
+  .kk-result,
+  .kk-final {
+    animation: none;
   }
 }

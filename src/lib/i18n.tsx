@@ -351,6 +351,11 @@ export const EN: Record<string, string> = {
   '体': ' pcs',
   '自己ベスト更新！': 'NEW PERSONAL BEST!',
   'Xでポスト': 'Post on X',
+  '写真を保存': 'Save photo',
+  '積めた瞬間': 'Stacked',
+  '崩れた瞬間': 'Collapsed',
+  '写真にする瞬間をえらぶ': 'Choose the moment to capture',
+  '保存できませんでした': 'Could not save the photo',
   'ドラッグで移動 / タップで回転 / はなすと落下':
     'Drag to move / Tap to rotate / Release to drop',
   'つぎ': 'NEXT',
@@ -1024,6 +1029,46 @@ export const EN: Record<string, string> = {
   '急に暖かい': 'Sudden warmth',
   '寒暖差が大きい': 'Big temperature swing',
   '大雨': 'Heavy rain',
+
+  // Kisekae
+  'きせかえ': 'DRESS-UP',
+  '顔はそのまま、トップス・ボトムス・靴が横に流れてくる。スロットみたいに1つずつ止めてコーデを作り、kokiが着そうかどうかをアーカイブが判定する。':
+    'The face stays put while tops, bottoms, and shoes slide past. Stop them one at a time like a slot machine to build an outfit—then the archive judges whether koki would actually wear it.',
+  'パーツにできるくり抜き画像が足りません。': 'Not enough cutout images to make parts.',
+  '顔をかえる': 'Change face',
+  '着そう度': 'Wearability',
+  '完全再現！': 'Perfect replica!',
+  'これは着てる': 'Definitely worn this',
+  '着そう': 'Would wear',
+  '着るかもしれない': 'Might wear',
+  'たぶん着ない': 'Probably not',
+  '3つとも {date} の出勤服。あの日の俺がそのまま立っている。':
+    'All three are from {date}. That day’s me, standing right here.',
+  'この上下は、実際に{n}回着た組み合わせ': 'This top and bottom were actually worn together {n} times',
+  'このボトムスと靴は、実際に{n}回着た組み合わせ': 'These bottoms and shoes were actually worn together {n} times',
+  'このトップスと靴は、実際に{n}回着た組み合わせ': 'This top and these shoes were actually worn together {n} times',
+  'どの組み合わせも、まだ一度も着ていない': 'None of these pairings has ever been worn',
+  '着ていた日の最高気温は {min}℃〜{max}℃': 'Worn on days with highs of {min}–{max}°C',
+  '保存しました': 'Saved',
+  '画像を保存': 'Save image',
+  '結果を見る →': 'See results →',
+  'つぎのコーデ →': 'Next outfit →',
+  '{part}をとめる': 'Stop the {part}',
+  'トップス': 'top',
+  'ボトムス': 'bottoms',
+  '靴': 'shoes',
+  '流れてくる服を上から順にとめて、kokiが着そうなコーデをつくる。同じ日の3つがそろえば完全再現。':
+    'Stop the passing clothes from the top down to build an outfit koki would wear. Land all three parts from the same day for a perfect replica.',
+  '本人': 'THE MAN HIMSELF',
+  'クローゼットの中身を、本人なみに把握している。': 'You know this closet as well as its owner.',
+  '専属スタイリスト': 'PERSONAL STYLIST',
+  '明日の出勤服、まかせてもよさそう。': 'You could pick tomorrow’s workday outfit.',
+  '常連読者': 'REGULAR READER',
+  'だいたいの好みはつかめている。': 'You’ve got a feel for the taste.',
+  '通りすがり': 'PASSERBY',
+  '服は着ている。それは確か。': 'Clothes are being worn. That much is certain.',
+  'コーデ事故': 'OUTFIT ACCIDENT',
+  '季節も実績も置いてきた。それはそれで新しい。': 'Left both season and precedent behind. New, in its own way.',
 }
 
 const interpolate = (message: string, variables: Variables = {}) =>

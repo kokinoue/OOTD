@@ -7,6 +7,8 @@
 // note CDN (assets.st-note.com) は CORS 許可（access-control-allow-origin: *）なので
 // crossOrigin で読み込めば canvas を汚さずに書き出せる。
 
+import { saveImageFile } from './share'
+
 // 縦長ポートレートの基準解像度（iPhone 13/14 相当）。OS側で各端末に合わせて拡縮される。
 const CANVAS_W = 1170
 const CANVAS_H = 2532
@@ -138,26 +140,8 @@ export async function shareAsWallpaper(opts: {
   const blob = await composeWallpaper(opts)
   const file = new File([blob], `${opts.fileBase}.jpg`, { type: 'image/jpeg' })
 
-  // 共有シート: iOS Safari / Android Chrome。写真に保存→手動で壁紙に設定できる
-  const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean }
-  if (nav.canShare?.({ files: [file] })) {
-    try {
-      await nav.share({ files: [file], title: opts.dateLabel })
-      return 'shared'
-    } catch (err) {
-      // ユーザーが共有シートを閉じただけなら成功扱い
-      if (err instanceof DOMException && err.name === 'AbortError') return 'shared'
-      // それ以外（iOSのユーザー操作判定切れ等）はダウンロードへフォールバック
-    }
-  }
-
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = file.name
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-  return 'downloaded'
+  // 共有シート: iOS Safari / Android Chrome。写真に保存→手動で壁紙に設定できる。
+  // ユーザーが共有シートを閉じただけなら成功扱い
+  const result = await saveImageFile(file, { title: opts.dateLabel })
+  return result === 'downloaded' ? 'downloaded' : 'shared'
 }

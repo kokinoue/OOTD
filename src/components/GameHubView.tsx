@@ -8,6 +8,12 @@ type Props = {
 
 const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
   {
+    view: 'kisekae',
+    title: 'きせかえ',
+    tag: 'MIX & MATCH',
+    lead: '顔はそのまま、トップス・ボトムス・靴が横に流れてくる。スロットみたいに1つずつ止めてコーデを作り、kokiが着そうかどうかをアーカイブが判定する。',
+  },
+  {
     view: 'shiki',
     title: '四季通勤',
     tag: 'WARDROBE STRATEGY',

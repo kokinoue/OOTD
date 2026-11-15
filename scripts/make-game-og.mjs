@@ -1,4 +1,4 @@
-// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz,slot,jam,shiki}.png (1200x630) を生成する。
+// ゲーム別OGP画像 public/og-{memory,duel,platform,tower,chari,quiz,slot,jam,shiki,kisekae}.png (1200x630) を生成する。
 // 素材はローカルの public/cutouts/*.webp（透過切り抜き）のみ。ネットワーク不要。
 // 各ゲームの実際の配色（カード裏の濃紺・季節色・Canvasのクリーム地など）を再現する。
 import { readFile } from 'node:fs/promises'
@@ -459,9 +459,50 @@ async function shiki() {
   await save('shiki', '#cfe6fb', layers, darkTitle('四季通勤', 'WARDROBE STRATEGY'))
 }
 
+// ---- きせかえ: 固定の顔の下を、トップス・ボトムス・靴の帯が横にずれて流れる ----
+async function kisekae() {
+  const FIG_H = 430
+  const TOP = 22
+  const PITCH = 226
+  const CX = W / 2
+  // lib/kisekae.ts の BANDS と同じ割合で帯に切る
+  const edges = [0, 0.16, 0.5, 0.89, 1].map((f) => Math.round(f * FIG_H))
+  const band = async (key, k) => {
+    const sp = await sprite(key, FIG_H)
+    const buf = await sharp(sp.buf)
+      .extract({ left: 0, top: edges[k], width: sp.w, height: edges[k + 1] - edges[k] })
+      .toBuffer()
+    return { buf, w: sp.w }
+  }
+  const layers = [
+    {
+      input: svg(`
+        <rect x="${CX - PITCH / 2}" y="0" width="${PITCH}" height="${TOP + FIG_H + 14}" fill="#ffffff"/>
+        <path d="M ${CX - PITCH / 2} 0 V ${TOP + FIG_H + 14} M ${CX + PITCH / 2} 0 V ${TOP + FIG_H + 14}" stroke="#c8c8c6" stroke-width="2" stroke-dasharray="8 8"/>
+      `),
+      left: 0,
+      top: 0,
+    },
+  ]
+  const head = await band(PICKS[4], 0)
+  layers.push({ input: head.buf, left: Math.round(CX - head.w / 2), top: TOP })
+  // レーンごとに違う量だけ横へずらす（中央のコマだけが体の位置に止まっている）
+  const shifts = [0, -0.5, 0.5]
+  for (let lane = 0; lane < 3; lane++) {
+    for (let i = -3; i <= 3; i++) {
+      const cx = CX + (i + shifts[lane]) * PITCH
+      const part = await band(PICKS[(lane * 3 + i + 9) % 9], lane + 1)
+      const left = Math.round(cx - part.w / 2)
+      if (left < 0 || left + part.w > W) continue
+      layers.push({ input: part.buf, left, top: TOP + edges[lane + 1] })
+    }
+  }
+  await save('kisekae', '#f0f0ee', layers, darkTitle('きせかえ', 'MIX &amp; MATCH'))
+}
+
 // 引数でゲーム名を渡すと、そのゲームの画像だけ作り直す（例: node scripts/make-game-og.mjs slot）。
 // 引数なしなら全部。くり抜きが増えると選ばれる素材が変わるので、既存の画像を動かしたくないときは名前を指定する
-const GAMES = { memory, duel, platform, tower, chari, quiz, slot, jam, shiki }
+const GAMES = { memory, duel, platform, tower, chari, quiz, slot, jam, shiki, kisekae }
 const only = process.argv.slice(2)
 for (const [name, make] of Object.entries(GAMES)) {
   if (only.length === 0 || only.includes(name)) await make()
