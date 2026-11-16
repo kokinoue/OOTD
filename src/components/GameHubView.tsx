@@ -8,16 +8,52 @@ type Props = {
 
 const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
   {
-    view: 'kisekae',
-    title: 'きせかえ',
-    tag: 'MIX & MATCH',
-    lead: '顔はそのまま、トップス・ボトムス・靴が横に流れてくる。スロットみたいに1つずつ止めてコーデを作り、kokiが着そうかどうかをアーカイブが判定する。',
+    view: 'tower',
+    title: 'タワー',
+    tag: 'PHYSICS PUZZLE',
+    lead: '出勤服のくり抜きをどこまで高く積めるか。シルエットの凹凸が物理に効く、どうぶつタワーバトル風スコアアタック。',
+  },
+  {
+    view: 'chari',
+    title: 'チャリ通',
+    tag: 'ENDLESS RUNNER',
+    lead: '朝の通勤路を自転車でどこまでも走る。ジャンプと二段ジャンプで穴や工事現場をかわす、チャリ走風スコアアタック。',
+  },
+  {
+    view: 'clash',
+    title: '着戦',
+    tag: 'KISEKAE CLASH',
+    lead: 'ダメージをためてステージの外へ吹っ飛ばす対戦アクション。試合をまるごと先読みしてくるCPUに、崖・回避・ジャストガードで挑む。ファイターの性能は、その服の季節と色で変わる。',
+  },
+  {
+    view: 'slot',
+    title: '俺スロ',
+    tag: 'SLOT MACHINE',
+    lead: '同じ俺を3人揃えるスロット。日替わりで並ぶ6人の俺から「最新の俺」を目押しで揃えてBIGを狙う。内部抽選とリール制御つき。',
+  },
+  {
+    view: 'quiz',
+    title: '性格診断',
+    tag: 'PERSONALITY TEST',
+    lead: '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
   },
   {
     view: 'shiki',
     title: '四季通勤',
     tag: 'WARDROBE STRATEGY',
     lead: 'ほんとうにあった毎日を、当時の東京の気温のまま7着で着回す。3Dの街で春夏秋冬を生き抜き、夜は本物のkokiと答え合わせ。',
+  },
+  {
+    view: 'kisekae',
+    title: 'きせかえ',
+    tag: 'MIX & MATCH',
+    lead: '顔はそのまま、トップス・ボトムス・靴が横に流れてくる。スロットみたいに1つずつ止めてコーデを作り、kokiが着そうかどうかをアーカイブが判定する。',
+  },
+  {
+    view: 'jam',
+    title: '満員クローゼット',
+    tag: 'SLIDE PUZZLE',
+    lead: 'ぎゅうぎゅうのクローゼットから「今日の一着」をスライドさせて取り出す。デイリー1問と、腕試しのフリープレイ。',
   },
   {
     view: 'memory',
@@ -36,36 +72,6 @@ const GAMES: { view: View; title: string; tag: string; lead: string }[] = [
     title: 'ランウェイ',
     tag: 'PLATFORMER',
     lead: '出勤服からくり抜いた自分が今日のランウェイ（通勤路）を走るアクション。季節と色で特性が変わる全6ステージ。',
-  },
-  {
-    view: 'tower',
-    title: 'タワー',
-    tag: 'PHYSICS PUZZLE',
-    lead: '出勤服のくり抜きをどこまで高く積めるか。シルエットの凹凸が物理に効く、どうぶつタワーバトル風スコアアタック。',
-  },
-  {
-    view: 'chari',
-    title: 'チャリ通',
-    tag: 'ENDLESS RUNNER',
-    lead: '朝の通勤路を自転車でどこまでも走る。ジャンプと二段ジャンプで穴や工事現場をかわす、チャリ走風スコアアタック。',
-  },
-  {
-    view: 'quiz',
-    title: '性格診断',
-    tag: 'PERSONALITY TEST',
-    lead: '8つの質問で16タイプから診断。あなたにぴったりの出勤服が見つかる。あなたのkokiはこれ！',
-  },
-  {
-    view: 'slot',
-    title: '俺スロ',
-    tag: 'SLOT MACHINE',
-    lead: '同じ俺を3人揃えるスロット。日替わりで並ぶ6人の俺から「最新の俺」を目押しで揃えてBIGを狙う。内部抽選とリール制御つき。',
-  },
-  {
-    view: 'jam',
-    title: '満員クローゼット',
-    tag: 'SLIDE PUZZLE',
-    lead: 'ぎゅうぎゅうのクローゼットから「今日の一着」をスライドさせて取り出す。デイリー1問と、腕試しのフリープレイ。',
   },
 ]
 

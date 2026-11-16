@@ -5,6 +5,7 @@ import ItemsView from './components/ItemsView'
 import ScrollToTopButton from './components/ScrollToTopButton'
 import ThemeToggle from './components/ThemeToggle'
 import { useOverrides } from './lib/store'
+import { useGameInteractionGuard } from './lib/gameInteractionGuard'
 
 // 初期表示に不要なビューは遅延読み込みして初期バンドルを軽くする。
 // ゲーム（DuelGameView / MemoryGameView）と色解析は依存が重いので特に効果が大きい。
@@ -23,6 +24,7 @@ const SlotGameView = lazy(() => import('./components/SlotGameView'))
 const JamGameView = lazy(() => import('./components/JamGameView'))
 const ShikiGameView = lazy(() => import('./components/ShikiGameView'))
 const KisekaeGameView = lazy(() => import('./components/KisekaeGameView'))
+const ClashGameView = lazy(() => import('./components/ClashGameView'))
 import { useSplits } from './lib/splitsStore'
 import { useHair } from './lib/hairStore'
 import { useHashRoute } from './lib/router'
@@ -48,6 +50,7 @@ export type View =
   | 'jam'
   | 'shiki'
   | 'kisekae'
+  | 'clash'
 
 export type Filters = {
   from: string
@@ -173,10 +176,12 @@ export default function App() {
     view === 'slot' ||
     view === 'jam' ||
     view === 'shiki' ||
-    view === 'kisekae'
+    view === 'kisekae' ||
+    view === 'clash'
+  const gameInteractionRef = useGameInteractionGuard(isPlayingGame)
 
   return (
-    <div className={isPlayingGame ? 'app playing-game' : 'app'}>
+    <div ref={gameInteractionRef} className={isPlayingGame ? 'app playing-game' : 'app'}>
       <header className="header">
         <button
           className="brand"
@@ -257,7 +262,8 @@ export default function App() {
               view === 'slot' ||
               view === 'jam' ||
               view === 'shiki' ||
-              view === 'kisekae'
+              view === 'kisekae' ||
+              view === 'clash'
                 ? 'tab active'
                 : 'tab'
             }
@@ -333,6 +339,7 @@ export default function App() {
         {view === 'jam' && <JamGameView onBack={() => setView('game')} />}
         {view === 'shiki' && <ShikiGameView data={data} onBack={() => setView('game')} />}
         {view === 'kisekae' && <KisekaeGameView data={data} onBack={() => setView('game')} />}
+        {view === 'clash' && <ClashGameView data={data} onBack={() => setView('game')} />}
       </Suspense>
 
       {(saveState === 'error' || hairSaveState === 'error') && (
