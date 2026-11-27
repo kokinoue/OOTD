@@ -578,8 +578,8 @@ export default function FitsView({
               : undefined
           }
           onItemClick={(id) => {
+            // setFilters はモーダルも閉じる。別の遷移を重ねると古い filters で上書きされる。
             setFilters({ ...filters, itemId: id, itemIds: [] })
-            setOpenOutfitKey(null)
             window.scrollTo({ top: 0 })
           }}
         />
